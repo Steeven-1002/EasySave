@@ -1,57 +1,96 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Text.Json;
 
-namespace EasySave
+namespace EasySave.Services
 {
     public class LocalizationService
     {
         private Dictionary<string, string> _localizedStrings;
         private string _currentLanguage;
         private bool _isLanguageLoaded;
-        private string _defaultLanguage;
+
+        public string CurrentLanguage => _currentLanguage;
+        public bool IsLanguageLoaded => _isLanguageLoaded;
 
         public LocalizationService(string defaultLanguage = "en")
         {
-            _defaultLanguage = defaultLanguage;
-            _currentLanguage = defaultLanguage;
             _localizedStrings = new Dictionary<string, string>();
-            _isLanguageLoaded = false;
+            _currentLanguage = defaultLanguage;
+            _isLanguageLoaded = LoadLanguage(_currentLanguage);
+
+            if (!_isLanguageLoaded)
+            {
+                Console.WriteLine($"LocalizationService WARNING: Default language '{defaultLanguage}' could not be loaded. Check Resources folder and file content.");
+            }
         }
 
         public bool LoadLanguage(string languageCode)
         {
-            // Charge les chaînes de caractères localisées pour une langue donnée
+            string fileName = $"lang_{languageCode}.json";
+            _isLanguageLoaded = false;
+
             try
             {
-                string languageFilePath = < span class="math-inline">"lang\_\{languageCode\}\.json"; // Chemin relatif ou absolu
-if \(File\.Exists\(languageFilePath\)\)
-\{
-string json \= File\.ReadAllText\(languageFilePath\);
-\_localizedStrings \= JsonSerializer\.Deserialize<Dictionary<string, string\>\>\(json\);
-\_currentLanguage \= languageCode;
-\_isLanguageLoaded \= true;
-return true;
-\}
-else
-\{
-Console\.WriteLine\(</span>"Fichier de langue non trouvé : {languageFilePath}");
+                string? exePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                string filePath = Path.Combine(exePath ?? ".", "Resources", fileName);
+
+                if (!File.Exists(filePath))
+                {
+                    Console.WriteLine($"LocalizationService Error: Language file '{filePath}' not found.");
+                    return false;
+                }
+
+                string jsonContent = File.ReadAllText(filePath);
+                var newStrings = JsonSerializer.Deserialize<Dictionary<string, string>>(jsonContent);
+
+                if (newStrings != null)
+                {
+                    _localizedStrings = newStrings;
+                    _currentLanguage = languageCode;
+                    _isLanguageLoaded = true;
+                    Console.WriteLine($"LocalizationService: Language '{languageCode}' loaded successfully.");
+                    return true;
+                }
+                else
+                {
+                    Console.WriteLine($"LocalizationService Error: Could not parse JSON in language file '{filePath}'. It might be empty or malformed.");
                     return false;
                 }
             }
+            catch (JsonException jsonEx)
+            {
+                Console.WriteLine($"LocalizationService Error parsing JSON in '{fileName}': {jsonEx.Message}");
+                return false;
+            }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du chargement de la langue : {ex.Message}");
-return false;
+                Console.WriteLine($"LocalizationService Error loading language file '{fileName}': {ex.Message}");
+                return false;
             }
         }
 
         public string GetString(string key, params object[] args)
-{
-    // Récupère une chaîne de caractères localisée
-    if (_isLanguageLoaded && _localizedStrings.TryGetValue(key, out string value))
-    {
-        return string.Format(value, args);
+        {
+            if (!_isLanguageLoaded)
+            {
+                return $"[No Lang Loaded! Key: {key}]";
+            }
+
+            if (_localizedStrings.TryGetValue(key, out string? formatString) && formatString != null)
+            {
+                try
+                {
+                    return (args != null && args.Length > 0) ? string.Format(formatString, args) : formatString;
+                }
+                catch (FormatException ex)
+                {
+                    return $"[FORMAT ERROR for key '{key}' in lang '{_currentLanguage}': {ex.Message} | Original: '{formatString}']";
+                }
+            }
+            return $"[MISSING KEY: '{key}' in lang '{_currentLanguage}']";
+        }
     }
-            // Si la clé n'est pas trouvée ou la langue n'est pas chargée, retourne la clé elle-même
+}
