@@ -1,0 +1,75 @@
+{
+  "InitialLanguagePrompt": "Choose language / Choisissez la langue:\n1. English\n2. Français\nEnter choice / Entrez votre choix: ",
+  "WelcomeMessage": "Bienvenue dans EasySave !",
+  "GoodbyeMessage": "Fermeture d'EasySave. Au revoir !",
+  "InvalidChoice": "Choix invalide. Veuillez réessayer.",
+  "EnterChoice": "Entrez votre choix",
+  "PressEnterToContinue": "Appuyez sur Entrée pour continuer...",
+
+  "MainMenu_Title": "--- Menu Principal EasySave ---",
+  "MainMenu_CreateJob": "Créer un nouveau travail de sauvegarde",
+  "MainMenu_ListJobs": "Lister les travaux de sauvegarde",
+  "MainMenu_ExecuteSingleJob": "Exécuter un travail de sauvegarde spécifique",
+  "MainMenu_ExecuteMultipleJobs": "Exécuter plusieurs travaux de sauvegarde",
+  "MainMenu_ExecuteJob": "Exécuter un travail de sauvegarde",
+  "MainMenu_DeleteJob": "Supprimer un travail de sauvegarde",
+  "MainMenu_ChangeLanguage": "Changer de langue",
+  "MainMenu_Exit": "Quitter le programme",
+
+  "CreateJob_Title": "\n--- Créer un Nouveau Travail de Sauvegarde ---",
+  "EnterJobName": "Entrez le nom du travail",
+  "EnterSourcePath": "Entrez le chemin du répertoire source",
+  "EnterTargetPath": "Entrez le chemin du répertoire cible",
+  "EnterBackupType": "Entrez le type de sauvegarde (FULL/DIFFERENTIAL)",
+  "ErrorAllFieldsRequired": "Erreur : Nom, source, cible et type sont obligatoires.",
+  "ErrorInvalidBackupType": "Erreur : Type de sauvegarde invalide. Veuillez utiliser FULL ou DIFFERENTIAL.",
+  "JobCreatedSuccess": "Travail '{0}' créé avec succès.",
+  "ErrorJobCreation": "Erreur lors de la création du travail : {0}",
+  "ErrorUnexpected": "Une erreur inattendue s'est produite : {0}",
+
+  "BackupJobsList": "\n--- Travaux de Sauvegarde Configurés ---",
+  "NoJobsFound": "Aucun travail de sauvegarde n'est actuellement configuré.",
+
+  "EnterJobIndexToExecute": "Entrez le numéro du travail à exécuter",
+  "EnterJobNameToExecute": "Entrez le nom du travail à exécuter",
+  "InvalidJobIndex": "Numéro de travail invalide sélectionné.",
+  "NoJobsToExecute": "Aucun travail de sauvegarde disponible pour exécution.",
+  
+  "EnterJobIndexesToExecute": "Entrez les numéros des travaux à exécuter (ex: 1;3 ou 1-3)",
+  "NoIndexesProvided": "Aucun numéro de travail fourni pour exécution.",
+  "NoValidJobsSelected": "Aucun travail valide sélectionné pour exécution.",
+
+  "EnterJobIndexToDelete": "Entrez le numéro du travail à supprimer",
+  "EnterJobNameToRemove": "Entrez le nom du travail à supprimer",
+  "ConfirmDelete": "Êtes-vous sûr de vouloir supprimer le travail '{0}' ? (oui/non) : ",
+  "Yes": "oui",
+  "DeleteCancelled": "Suppression annulée.",
+  "JobRemovedSuccess": "Travail '{0}' supprimé avec succès.",
+  "ErrorJobNotFound": "Erreur : Travail '{0}' non trouvé.",
+
+  "ChangeLanguage_Title": "\n--- Changer de Langue ---",
+  "EnterLanguageCode": "Entrez le code de langue souhaité (ex: en, fr)",
+  "LanguageChangedSuccess": "Langue changée avec succès en {0}.",
+  "ErrorLanguageChangeFailed": "Échec du changement de langue vers {0}. Veuillez vérifier que le fichier de langue existe.",
+  "InvalidLanguageCode": "Code de langue invalide. Veuillez utiliser 'en' ou 'fr'.",
+  "LanguageName_en": "Anglais",
+  "LanguageName_fr": "Français",
+
+  "CommandLineExecution": "Exécution des travaux à partir des arguments de la ligne de commande...",
+  "ExecutingJobsViaCLI": "Exécution des travaux via ligne de commande : {0}",
+  "NoValidJobsForCLI": "Aucun travail valide trouvé pour exécution via ligne de commande basé sur les arguments fournis.",
+  "NoJobsSpecifiedForCommandLine": "Aucun travail spécifié pour exécution via ligne de commande.",
+  
+  "LoggingServiceInitialized": "Service de Journalisation (placeholder) initialisé. Chemin des logs : {0}",
+
+  "ErrorJobNameRequired": "Erreur : Le nom du travail ne peut pas être vide.",
+
+  "JobStatus_INACTIVE": "Inactif",
+  "JobStatus_PENDING_EXECUTION": "En attente d'exécution",
+  "JobStatus_ACTIVE_SCANNING_FILES": "Actif (Analyse des fichiers)",
+  "JobStatus_ACTIVE_COPYING": "Actif (Copie en cours)",
+  "JobStatus_COMPLETED_SUCCESS": "Terminé avec succès",
+  "JobStatus_COMPLETED_WITH_ERRORS": "Terminé avec erreurs",
+  "JobStatus_FAILED": "Échoué",
+  "JobStatus_CANCELLED": "Annulé"
+}

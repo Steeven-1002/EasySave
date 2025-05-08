@@ -3,79 +3,75 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
-namespace EasySave
+namespace EasySave.Services
 {
     public class ConfigManager
     {
-        private string _configFilePath;
-        private Dictionary<string, object> _settings;
-        private string _logFilePath;
-        private string _stateFilePath;
+        private readonly string _configFilePath;
+        private Dictionary<string, object> _settings; // 'object' comme dans le diagramme
 
-        public ConfigManager(string configFilePath, string logFilePath, string stateFilePath)
+        public string LogFilePath => GetSetting("LogFilePath") as string ?? "Logs"; // Valeur par défaut
+        public string StateFilePath => GetSetting("StateFilePath") as string ?? "state.json"; // Valeur par défaut
+        public string Language => GetSetting("Language") as string ?? "en"; // Valeur par défaut
+
+        public ConfigManager(string configFilePath = "app_config.json")
         {
             _configFilePath = configFilePath;
-            _logFilePath = logFilePath;
-            _stateFilePath = stateFilePath;
             _settings = new Dictionary<string, object>();
+            LoadConfiguration();
         }
 
         public void LoadConfiguration()
         {
-            // Charge la configuration depuis un fichier JSON
             try
             {
                 if (File.Exists(_configFilePath))
                 {
                     string json = File.ReadAllText(_configFilePath);
-                    _settings = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+                    _settings = JsonSerializer.Deserialize<Dictionary<string, object>>(json) ?? new Dictionary<string, object>();
+                    Console.WriteLine($"ConfigManager: Configuration loaded from '{_configFilePath}'.");
                 }
                 else
                 {
-                    // Définit les paramètres par défaut si le fichier n'existe pas
-                    _settings["defaultLanguage"] = "en";
-                    _settings["currentLanguage"] = "en";
-                    _settings["logDirectory"] = @"C:\Logs\EasySave"; // Chemin par défaut (à adapter)
-                    // ... autres paramètres par défaut
-                    SaveConfiguration(); // Sauvegarde les paramètres par défaut
+                    Console.WriteLine($"ConfigManager: File '{_configFilePath}' not found. Using/creating default settings.");
+                    // Appliquer et sauvegarder les valeurs par défaut
+                    SetSetting("LogFilePath", "Logs"); // Par défaut, un dossier "Logs"
+                    SetSetting("StateFilePath", "state.json");
+                    SetSetting("Language", "en");
+                    SaveConfiguration();
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du chargement de la configuration : {ex.Message}");
-                // Gère l'erreur (par exemple, utilise des valeurs par défaut, enregistre l'erreur)
+                Console.WriteLine($"ConfigManager: Error loading configuration: {ex.Message}. Using empty settings.");
+                _settings = new Dictionary<string, object>();
             }
         }
 
         public void SaveConfiguration()
         {
-            // Sauvegarde la configuration dans un fichier JSON
             try
             {
                 string json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(_configFilePath, json);
+                Console.WriteLine($"ConfigManager: Configuration saved to '{_configFilePath}'.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la sauvegarde de la configuration : {ex.Message}");
-                // Gère l'erreur
+                Console.WriteLine($"ConfigManager: Error saving configuration: {ex.Message}");
             }
         }
 
-        public object GetSetting(string key)
+        public object? GetSetting(string key)
         {
-            // Récupère un paramètre de configuration
-            _settings.TryGetValue(key, out object value);
-            return value;
+            return _settings.TryGetValue(key, out var value) ? value : null;
         }
 
         public void SetSetting(string key, object value)
         {
-            // Définit un paramètre de configuration
             _settings[key] = value;
-            SaveConfiguration(); // Sauvegarde immédiatement après avoir modifié un paramètre
+            // Pourrait appeler SaveConfiguration() ici si les changements doivent être immédiats,
+            // ou laisser l'appelant décider quand sauvegarder.
         }
-
-        // ... (Autres méthodes si nécessaire) ...
     }
 }

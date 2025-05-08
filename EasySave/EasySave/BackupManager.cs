@@ -1,172 +1,220 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
-using LoggingLibrary;
+using EasySave.Models;
+using EasySave.Interfaces;
+using EasySave.Services;
 
-namespace EasySave
+namespace EasySave.Core
 {
     public class BackupManager
     {
-        public List<BackupJob> backupJobs;
-        public StateManager StateManager;
-        private FileSystemService _fileSystemService;
-        private LogService _logService;
+        private List<BackupJob> _backupJobs;
+        private StateManager _stateManager; // Selon le diagramme
+        private string _jobsConfigFilePath = "backup_jobs_config.json"; // Fichier de config pour les jobs
 
-        public BackupManager(FileSystemService fileSystemService, LogService logService)
+        // IBackupJobFactory n'est pas dans le diagramme, donc création directe.
+        // Dépendances comme ILogger, FileSystemService seront passées aux stratégies par BackupJob.Execute
+        // ou si BackupManager doit les utiliser directement.
+
+        public BackupManager(StateManager stateManager, ConfigManager configManager) // Ajout de ConfigManager pour le chemin
         {
-            backupJobs = new List<BackupJob>();
-            StateManager = new StateManager("state.json"); // Assurez-vous d'avoir le bon chemin
-            _fileSystemService = fileSystemService;
-            _logService = logService;
+            _backupJobs = new List<BackupJob>();
+            _stateManager = stateManager;
+            _jobsConfigFilePath = configManager.GetSetting("BackupJobsFilePath") as string ?? "backup_jobs_config.json";
+            LoadJobs();
         }
 
-        public void AddJob(string name, string sourcePath, string targetPath, BackupType type, BackupJob job)
+        public BackupJob? AddJob(string name, string sourcePath, string targetPath, BackupType type)
         {
-            // Ajoute une nouvelle tâche de sauvegarde
-            job.Name = name;
-            job.SourcePath = sourcePath;
-            job.TargetPath = targetPath;
-            job.BackupType = type;
-            job.BackupState = BackupState.INACTIVE;
-            job.CreationTime = DateTime.Now;
-            backupJobs.Add(job);
-            StateManager.JobStates.Add(new JobState { JobName = job.Name, State = job.BackupState, LastTimeState = job.LastTimeState }); // Ajouter l'état dans StateManager
-            SaveJobs(); // Sauvegarder les jobs après l'ajout
+            if (_backupJobs.Count >= 5)
+            {
+                Console.WriteLine("BackupManager ERROR: Maximum number of backup jobs (5) reached.");
+                return null;
+            }
+            if (_backupJobs.Any(j => j.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+            {
+                Console.WriteLine($"BackupManager ERROR: Job with name '{name}' already exists.");
+                return null;
+            }
+
+            IBackupStrategy strategy;
+            FileSystemService fileSystemService = new FileSystemService(); // Instanciation directe ou via injection
+
+            switch (type)
+            {
+                case BackupType.FULL:
+                    strategy = new FullBackupStrategy(fileSystemService);
+                    break;
+                case BackupType.DIFFERENTIAL:
+                    strategy = new DifferentialBackupStrategy(fileSystemService);
+                    break;
+                default:
+                    Console.WriteLine($"BackupManager ERROR: Unsupported backup type '{type}'.");
+                    return null;
+            }
+
+            var newJob = new BackupJob(name, sourcePath, targetPath, type, strategy);
+            _backupJobs.Add(newJob);
+            SaveJobs();
+            Console.WriteLine($"BackupManager: Job '{name}' added.");
+            return newJob;
         }
 
         public bool RemoveJob(int jobIndex)
         {
-            // Supprime une tâche de sauvegarde
-            if (jobIndex >= 0 && jobIndex < backupJobs.Count)
+            if (jobIndex >= 0 && jobIndex < _backupJobs.Count)
             {
-                string jobName = backupJobs[jobIndex].Name;
-                backupJobs.RemoveAt(jobIndex);
-                StateManager.JobStates.RemoveAll(js => js.JobName == jobName); // Supprimer l'état dans StateManager
-                SaveJobs(); // Sauvegarder les jobs après la suppression
+                Console.WriteLine($"BackupManager: Job '{_backupJobs[jobIndex].Name}' removed.");
+                _backupJobs.RemoveAt(jobIndex);
+                SaveJobs();
                 return true;
             }
+            Console.WriteLine($"BackupManager ERROR: Invalid job index '{jobIndex}' for removal.");
             return false;
         }
 
-        public bool UpdateJob(int jobIndex, BackupJob job)
+        public bool UpdateJob(int jobIndex, BackupJob updatedJobData)
         {
-            // Met à jour une tâche de sauvegarde existante
-            if (jobIndex >= 0 && jobIndex < backupJobs.Count)
+            if (jobIndex >= 0 && jobIndex < _backupJobs.Count)
             {
-                job.Name = backupJobs[jobIndex].Name; // Garder le nom original
-                backupJobs[jobIndex] = job;
-                SaveJobs(); // Sauvegarder les jobs après la mise à jour
+                // Vérifier si le nouveau nom existe déjà (sauf si c'est le même job)
+                if (_backupJobs.Any(j => j.Name.Equals(updatedJobData.Name, StringComparison.OrdinalIgnoreCase) && _backupJobs.IndexOf(j) != jobIndex))
+                {
+                    Console.WriteLine($"BackupManager ERROR: Another job with name '{updatedJobData.Name}' already exists.");
+                    return false;
+                }
+                // Il faut aussi potentiellement recréer/mettre à jour la stratégie si le type a changé
+                if (_backupJobs[jobIndex].Type != updatedJobData.Type)
+                {
+                    IBackupStrategy newStrategy;
+                    FileSystemService fsService = new FileSystemService();
+                    if (updatedJobData.Type == BackupType.FULL) newStrategy = new FullBackupStrategy(fsService);
+                    else newStrategy = new DifferentialBackupStrategy(fsService);
+                    updatedJobData.Strategy = newStrategy;
+                }
+                else
+                {
+                    updatedJobData.Strategy = _backupJobs[jobIndex].Strategy; // Conserver l'ancienne stratégie si type inchangé
+                }
+
+                _backupJobs[jobIndex] = updatedJobData;
+                SaveJobs();
+                Console.WriteLine($"BackupManager: Job '{updatedJobData.Name}' updated.");
                 return true;
             }
+            Console.WriteLine($"BackupManager ERROR: Invalid job index '{jobIndex}' for update.");
             return false;
         }
 
-        public BackupJob GetJob(int jobIndex)
+        public BackupJob? GetJob(int jobIndex)
         {
-            // Récupère une tâche de sauvegarde par son index
-            if (jobIndex >= 0 && jobIndex < backupJobs.Count)
+            if (jobIndex >= 0 && jobIndex < _backupJobs.Count)
             {
-                return backupJobs[jobIndex];
+                return _backupJobs[jobIndex];
             }
             return null;
         }
 
+        public List<BackupJob> GetAllJobs() => new List<BackupJob>(_backupJobs);
+
+
         public void ExecuteJob(int jobIndex)
         {
-            // Exécute une tâche de sauvegarde spécifique
-            if (jobIndex >= 0 && jobIndex < backupJobs.Count)
+            BackupJob? job = GetJob(jobIndex);
+            if (job != null)
             {
-                BackupJob job = backupJobs[jobIndex];
-                job.BackupState = BackupState.ACTIVE;
-                job.LastTimeState = DateTime.Now;
-                StateManager.SaveState(); // Sauvegarder l'état avant l'exécution
-
-                try
-                {
-                    List<string> filesCopied = job.Execute(); // Exécuter la sauvegarde
-                    job.BackupState = BackupState.COMPLETED;
-                    StateManager.UpdateJobState(job.Name, job.BackupState, job.LastTimeState); // Mettre à jour l'état dans StateManager
-                    _logService.Log(new LogEntry
-                    {
-                        Timestamp = DateTime.Now,
-                        EventType = "JobExecuted",
-                        Message = $"Tâche '{job.Name}' exécutée avec succès. Fichiers copiés : {filesCopied.Count}"
-                    });
-                }
-                catch (Exception ex)
-                {
-                    job.BackupState = BackupState.ERROR;
-                    StateManager.UpdateJobState(job.Name, job.BackupState, job.LastTimeState); // Mettre à jour l'état dans StateManager
-                    _logService.Log(new LogEntry
-                    {
-                        Timestamp = DateTime.Now,
-                        EventType = "JobError",
-                        Message = $"Erreur lors de l'exécution de la tâche '{job.Name}': {ex.Message}"
-                    });
-                    Console.WriteLine($"Erreur lors de l'exécution de la tâche '{job.Name}': {ex.Message}");
-                }
-                finally
-                {
-                    StateManager.SaveState(); // Sauvegarder l'état après l'exécution (succès ou échec)
-                }
+                Console.WriteLine($"BackupManager: Executing job '{job.Name}'...");
+                // L'état et la journalisation sont gérés dans job.Execute() via sa stratégie
+                // et les observateurs enregistrés.
+                // Le StateManager et le LoggingService doivent être passés ou accessibles.
+                // Pour ce faire, Program va devoir injecter ces dépendances lors de l'appel.
+                // Cette méthode sera appelée par Program.cs qui aura accès à ces services.
+                // Pour l'instant, on appelle job.Execute() et on suppose que les dépendances
+                // sont gérées plus haut (par ex. Program les passe à job.Execute).
+                // Si BackupManager doit passer des dépendances aux stratégies,
+                // il aurait besoin de les avoir (ex: ILogger, FileSystemService)
+                job.Execute();
+            }
+            else
+            {
+                Console.WriteLine($"BackupManager ERROR: Job at index {jobIndex} not found.");
             }
         }
 
-        public void ExecuteAllJobs(int[] jobIndices)
+        public void ExecuteJobs(int[] jobIndexes)
         {
-            // Exécute plusieurs tâches de sauvegarde
-            foreach (int jobIndex in jobIndices)
+            foreach (int index in jobIndexes)
             {
-                ExecuteJob(jobIndex);
+                ExecuteJob(index); // Exécution séquentielle
             }
+        }
+
+        // DTO pour la sérialisation afin d'éviter les problèmes avec IBackupStrategy
+        private class BackupJobDtoForSerialization
+        {
+            public string Name { get; set; }
+            public string SourcePath { get; set; }
+            public string TargetPath { get; set; }
+            public BackupType Type { get; set; }
+            public DateTime LastRunTime { get; set; }
+            public DateTime CreationTime { get; set; }
+            // State n'est pas persisté ici, il l'est par StateManager
         }
 
         public void SaveJobs()
         {
-            // Sauvegarde la liste des tâches de sauvegarde dans un fichier
             try
             {
-                string json = JsonSerializer.Serialize(backupJobs, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText("backup_jobs.json", json); // Assurez-vous d'avoir le bon chemin
+                var dtos = _backupJobs.Select(j => new BackupJobDtoForSerialization
+                {
+                    Name = j.Name,
+                    SourcePath = j.SourcePath,
+                    TargetPath = j.TargetPath,
+                    Type = j.Type,
+                    LastRunTime = j.LastRunTime,
+                    CreationTime = j.CreationTime
+                }).ToList();
+                string json = JsonSerializer.Serialize(dtos, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(_jobsConfigFilePath, json);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la sauvegarde des tâches : {ex.Message}");
+                Console.WriteLine($"BackupManager ERROR saving jobs to '{_jobsConfigFilePath}': {ex.Message}");
             }
         }
 
         public void LoadJobs()
         {
-            // Charge la liste des tâches de sauvegarde depuis un fichier
             try
             {
-                if (File.Exists("backup_jobs.json")) // Assurez-vous d'avoir le bon chemin
+                if (File.Exists(_jobsConfigFilePath))
                 {
-                    string json = File.ReadAllText("backup_jobs.json");
-                    backupJobs = JsonSerializer.Deserialize<List<BackupJob>>(json);
-
-                    // Reconstruire l'état dans StateManager
-                    StateManager.JobStates.Clear();
-                    foreach (var job in backupJobs)
+                    string json = File.ReadAllText(_jobsConfigFilePath);
+                    var dtos = JsonSerializer.Deserialize<List<BackupJobDtoForSerialization>>(json);
+                    if (dtos != null)
                     {
-                        StateManager.JobStates.Add(new JobState
-                        {
-                            JobName = job.Name,
-                            State = job.BackupState,
-                            LastTimeState = job.LastTimeState
-                        });
+                        _backupJobs = dtos.Select(dto => {
+                            FileSystemService fsService = new FileSystemService(); // Ou injecter
+                            IBackupStrategy strategy = dto.Type == BackupType.FULL ?
+                                (IBackupStrategy)new FullBackupStrategy(fsService) :
+                                new DifferentialBackupStrategy(fsService);
+                            return new BackupJob(dto.Name, dto.SourcePath, dto.TargetPath, dto.Type, strategy)
+                            {
+                                LastRunTime = dto.LastRunTime,
+                                CreationTime = dto.CreationTime,
+                                State = BackupState.INACTIVE // État initial au chargement
+                            };
+                        }).ToList();
                     }
-                }
-                else
-                {
-                    backupJobs = new List<BackupJob>();
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du chargement des tâches : {ex.Message}");
-                backupJobs = new List<BackupJob>(); // Assurer une liste vide en cas d'erreur
+                Console.WriteLine($"BackupManager ERROR loading jobs from '{_jobsConfigFilePath}': {ex.Message}");
+                _backupJobs = new List<BackupJob>(); // Assurer une liste vide en cas d'erreur
             }
         }
     }

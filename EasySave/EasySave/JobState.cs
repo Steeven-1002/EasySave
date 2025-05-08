@@ -1,6 +1,7 @@
 ﻿using System;
+using System.Text.Json;
 
-namespace EasySave
+namespace EasySave.Models
 {
     public class JobState
     {
@@ -14,9 +15,18 @@ namespace EasySave
         public string CurrentSourceFile { get; set; }
         public string CurrentTargetFile { get; set; }
 
-        public override string ToString()
+        public JobState(string jobName)
         {
-            return $"Job: {JobName}, State: {State}, Progress: {TotalFiles - RemainingFiles}/{TotalFiles} files, Size: {TotalSize - RemainingSize}/{TotalSize} bytes, Current: {CurrentSourceFile} -> {CurrentTargetFile}";
+            JobName = jobName;
+            Timestamp = DateTime.Now;
+            State = BackupState.INACTIVE;
+            CurrentSourceFile = string.Empty;
+            CurrentTargetFile = string.Empty;
+        }
+
+        public string ToJson()
+        {
+            return JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
         }
     }
 }

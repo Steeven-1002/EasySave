@@ -1,79 +1,95 @@
-﻿using System;
+﻿// EasySave.Services.FileSystemService.cs
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
+using System.Security.Cryptography; // Exemple pour GetFileHash
 
-namespace EasySave
+namespace EasySave.Services
 {
     public class FileSystemService
     {
-        public void CopyFile(string sourcePath, string destinationPath)
+        public void CopyFile(string source, string destination)
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
-                File.Copy(sourcePath, destinationPath, true); // true permet de remplacer si le fichier existe déjà
+                string? destDir = Path.GetDirectoryName(destination);
+                if (destDir != null && !Directory.Exists(destDir)) // Utilise System.IO.Directory.Exists
+                {
+                    Directory.CreateDirectory(destDir); // Utilise System.IO.Directory.CreateDirectory
+                }
+                File.Copy(source, destination, true); // true pour overwrite
+                // Dans une version réelle, cette méthode retournerait un FileCopyResult
+                // et/ou notifierait des observateurs via la stratégie.
+                Console.WriteLine($"FileSystemService: Copied '{source}' to '{destination}'.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la copie du fichier de {sourcePath} vers {destinationPath}: {ex.Message}");
-                throw; // Relancez l'exception pour être gérée par l'appelant
+                Console.WriteLine($"FileSystemService ERROR copying '{source}' to '{destination}': {ex.Message}");
+                throw; // Il est souvent préférable de laisser l'appelant gérer l'exception.
             }
         }
 
-        public string GetRelativePath(string basePath, string fullPath)
+        public string GetFileHash(string path)
         {
-            if (!fullPath.StartsWith(basePath))
-            {
-                throw new ArgumentException("Le chemin complet ne commence pas par le chemin de base.");
-            }
-            return fullPath.Substring(basePath.Length).TrimStart(Path.DirectorySeparatorChar);
-        }
-
-        public string GetFileHash(string filePath)
-        {
+            // TODO: Implémenter une logique de hachage robuste si nécessaire
+            Console.WriteLine($"FileSystemService: GetFileHash for '{path}' (stub).");
             try
             {
-                using (var md5 = MD5.Create())
+                using (var sha256 = SHA256.Create())
                 {
-                    using (var stream = File.OpenRead(filePath))
+                    using (var stream = File.OpenRead(path))
                     {
-                        byte[] hashBytes = md5.ComputeHash(stream);
-                        return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                        byte[] hash = sha256.ComputeHash(stream);
+                        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du calcul du hash du fichier {filePath}: {ex.Message}");
-                return null; // Ou lancez une exception, selon votre gestion des erreurs
+                Console.WriteLine($"FileSystemService ERROR GetFileHash for '{path}': {ex.Message}");
+                return string.Empty;
             }
         }
 
-        public long GetFileSize(string filePath)
+        public int GetSize(string path) // Le diagramme spécifie int
         {
             try
             {
-                FileInfo fileInfo = new FileInfo(filePath);
-                return fileInfo.Length;
+                // Attention: une conversion en int peut entraîner une perte de données pour les gros fichiers.
+                // long est généralement préférable pour la taille des fichiers.
+                return (int)new FileInfo(path).Length;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la récupération de la taille du fichier {filePath}: {ex.Message}");
-                return -1; // Ou lancez une exception
+                Console.WriteLine($"FileSystemService ERROR GetSize for '{path}': {ex.Message}");
+                return 0;
             }
         }
+        public long GetSizeAsLong(string path) // Option plus sûre
+        {
+            try
+            {
+                return new FileInfo(path).Length;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"FileSystemService ERROR GetSize for '{path}': {ex.Message}");
+                return 0L;
+            }
+        }
+
 
         public void CreateDirectory(string path)
         {
             try
             {
                 Directory.CreateDirectory(path);
+                // Console.WriteLine($"FileSystemService: Created directory '{path}'.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la création du répertoire {path}: {ex.Message}");
+                Console.WriteLine($"FileSystemService ERROR creating directory '{path}': {ex.Message}");
                 throw;
             }
         }
@@ -82,77 +98,55 @@ namespace EasySave
         {
             try
             {
-                return Directory.GetFiles(path, "*.*", SearchOption.TopDirectoryOnly).ToList();
+                // Le diagramme ne spécifie pas la recherche récursive, donc on ne la met pas par défaut.
+                // Pour inclure les sous-dossiers : Directory.GetFiles(path, "*.*", SearchOption.AllDirectories).ToList();
+                return Directory.GetFiles(path).ToList();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la récupération des fichiers dans {path}: {ex.Message}");
-                return new List<string>(); // Ou lancez une exception
+                Console.WriteLine($"FileSystemService ERROR GetFilesInDirectory for '{path}': {ex.Message}");
+                return new List<string>();
             }
         }
 
-        public List<string> GetDirectoriesInDirectory(string path)
+        public List<string> GetModifiedFilesSince(string path, DateTime since)
         {
             try
             {
-                return Directory.GetDirectories(path, "*", SearchOption.TopDirectoryOnly).ToList();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erreur lors de la récupération des sous-répertoires dans {path}: {ex.Message}");
-                return new List<string>(); // Ou lancez une exception
-            }
-        }
-
-        public List<string> GetAllFiles(string path)
-        {
-            try
-            {
-                return Directory.GetFiles(path, "*.*", SearchOption.AllDirectories).ToList();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erreur lors de la récupération de tous les fichiers dans {path}: {ex.Message}");
-                return new List<string>(); // Ou lancez une exception
-            }
-        }
-
-        public List<string> GetModifiedFilesInDirectorySince(string path, DateTime since)
-        {
-            try
-            {
+                // Ici, on va supposer une recherche récursive car c'est plus logique pour les sauvegardes
                 return Directory.GetFiles(path, "*.*", SearchOption.AllDirectories)
-                                .Where(file => File.GetLastWriteTime(file) > since)
+                                .Where(f => File.GetLastWriteTime(f) > since)
                                 .ToList();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la récupération des fichiers modifiés dans {path} depuis {since}: {ex.Message}");
-                return new List<string>(); // Ou lancez une exception
+                Console.WriteLine($"FileSystemService ERROR GetModifiedFilesSince for '{path}': {ex.Message}");
+                return new List<string>();
             }
         }
 
-        public void CopyDirectory(string sourceDir, string targetDir)
+        // Ajout des méthodes qui étaient dans le diagramme mais potentiellement omises dans le code précédent
+        public bool DirectoryExists(string path)
+        {
+            return Directory.Exists(path);
+        }
+
+        public bool FileExists(string path)
+        {
+            return File.Exists(path);
+        }
+
+        public DateTime GetFileLastWriteTime(string filePath) // Ajouté car souvent utile et implicite
         {
             try
             {
-                Directory.CreateDirectory(targetDir);
-
-                foreach (string file in Directory.GetFiles(sourceDir, "*.*", SearchOption.AllDirectories))
-                {
-                    string relativePath = GetRelativePath(sourceDir, file);
-                    string targetFilePath = Path.Combine(targetDir, relativePath);
-                    CopyFile(file, targetFilePath);
-                }
+                return File.GetLastWriteTime(filePath);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la copie du répertoire de {sourceDir} vers {targetDir}: {ex.Message}");
-                throw;
+                Console.WriteLine($"FileSystemService ERROR GetFileLastWriteTime for '{filePath}': {ex.Message}");
+                return DateTime.MinValue;
             }
         }
-
-        // Vous pourriez ajouter d'autres méthodes selon vos besoins,
-        // comme la suppression de fichiers/répertoires, la vérification de l'existence, etc.
     }
 }

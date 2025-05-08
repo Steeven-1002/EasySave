@@ -7,10 +7,22 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Reference Include="FrameworkDLL">
-      <HintPath>ASSETS\LoggingLibrary.dll</HintPath>
-    </Reference>
-  </ItemGroup>
+<ItemGroup>
+  <Content Include="Resources\**">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </Content>
+</ItemGroup>
+
+<ItemGroup>
+  <Compile Remove="Ressources\**" />
+  <EmbeddedResource Remove="Ressources\**" />
+  <None Remove="Ressources\**" />
+</ItemGroup>
+
+<ItemGroup>
+  <Reference Include="FrameworkDLL">
+    <HintPath>ASSETS\LoggingLibrary.dll</HintPath>
+  </Reference>
+</ItemGroup>
 
 </Project>

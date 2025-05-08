@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace EasySave
+﻿namespace EasySave.Models
 {
     public enum BackupType
     {
