@@ -1,15 +1,50 @@
 ﻿using System;
-// Les interfaces IBackupObserver et IStateObserver doivent être définies
-// dans EasySave.Interfaces également.
+using EasySave.Interfaces;
 using EasySave.Models;
+using LoggingLibrary;
 
-namespace EasySave.Interfaces
+namespace EasySave.Services
 {
-    // Cette interface représente le contrat que la DLL externe doit implémenter.
-    // Elle hérite aussi des interfaces d'observateur comme indiqué dans le diagramme.
-    public interface LoggingService : IBackupObserver, IStateObserver
+    public class LoggingBackup : IBackupObserver
     {
-        void WriteLog(DateTime timestamp, string jobName, string sourcePath, string targetPath, long fileSize, long transferTime);
-        string GetLogFilePath();
+        private static LoggingBackup? _instance;
+        private readonly LogService _logService;
+
+        private LoggingBackup()
+        {
+            _logService = new LogService(GetLogFilePath(), new JsonLogFormatter());
+        }
+
+        public static LoggingBackup Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = new LoggingBackup();
+                }
+                return _instance;
+            }
+        }
+
+        public void Update(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile)
+        {
+            var timestamp = DateTime.Now;
+            _logService.Log(
+                timestamp,
+                jobName,
+                currentSourceFile,
+                currentTargetFile,
+                totalSize - remainingSize,
+                (int)(totalFiles - remainingFiles)
+            );
+
+            Console.WriteLine($"[LOG] {timestamp}: Job '{jobName}' updated. State: {newState}, Remaining Files: {remainingFiles}, Remaining Size: {remainingSize} bytes.");
+        }
+
+        private string GetLogFilePath()
+        {
+            return "backup_log.json"; // Default log file path
+        }
     }
 }

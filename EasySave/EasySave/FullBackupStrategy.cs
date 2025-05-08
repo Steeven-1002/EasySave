@@ -30,17 +30,27 @@ namespace EasySave.Core
         public void Execute(BackupJob job)
         {
             Console.WriteLine($"FullBackupStrategy: Executing for job '{job.Name}'");
-            NotifyObservers(job, BackupStatus.STARTED);
             job.State = BackupState.ACTIVE;
 
             var filesToBackup = GetFilesToBackup(job);
-            long totalSize = 0; // TODO: Calculer la taille totale
+            long totalSize = filesToBackup.Sum(file => _fileSystemService.GetSize(file));
             int filesProcessed = 0;
-
-            // TODO: Informer StateManager: job.Name, BackupState.ACTIVE, filesToBackup.Count, totalSize, filesToBackup.Count, totalSize, "Scanning complete", ""
 
             foreach (var sourceFilePath in filesToBackup)
             {
+                _observers.ForEach(observer =>
+                {
+                    observer.Update(
+                        job.Name,
+                        BackupState.ACTIVE,
+                        filesToBackup.Count,
+                        totalSize,
+                        filesToBackup.Count,
+                        totalSize,
+                        "Scanning complete",
+                        string.Empty
+                    );
+                });
                 string relativePath = sourceFilePath.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 string targetFilePath = Path.Combine(job.TargetPath, relativePath);
 
@@ -56,7 +66,6 @@ namespace EasySave.Core
 
                     _fileSystemService.CopyFile(sourceFilePath, targetFilePath);
                     filesProcessed++;
-                    NotifyObservers(job, BackupStatus.FILE_COPIED);
                     // TODO: Logger la copie du fichier via le LoggingService passé à Execute
                     // TODO: Mettre à jour le StateManager via le StateManager passé à Execute
                     // (job.Name, job.State, filesToBackup.Count, totalSize, filesToBackup.Count - filesProcessed, totalSize - currentFileSize, sourceFilePath, targetFilePath)
@@ -64,27 +73,18 @@ namespace EasySave.Core
                 catch (Exception ex)
                 {
                     Console.WriteLine($"ERROR during full backup of {sourceFilePath}: {ex.Message}");
-                    NotifyObservers(job, BackupStatus.ERROR);
+
                     // TODO: Logger l'erreur
                     // TODO: Mettre à jour le StateManager
                 }
             }
             job.State = BackupState.COMPLETED; // Ou ERROR si des erreurs se sont produites
-            NotifyObservers(job, job.State == BackupState.COMPLETED ? BackupStatus.COMPLETED_SUCCESS : BackupStatus.COMPLETED_WITH_ERRORS);
             // TODO: Mettre à jour StateManager pour la finalisation
         }
 
         public List<string> GetFilesToBackup(BackupJob job)
         {
             return _fileSystemService.GetFilesInDirectory(job.SourcePath);
-        }
-
-        private void NotifyObservers(BackupJob job, BackupStatus status)
-        {
-            foreach (var observer in _observers)
-            {
-                observer.Update(job, status);
-            }
         }
     }
 }

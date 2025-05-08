@@ -35,6 +35,7 @@ namespace EasySave.Models
             // par le StateManager via des notifications d'observateur.
             Console.WriteLine($"BackupJob '{Name}': Preparing to execute via strategy '{Strategy.GetType().Name}'.");
             this.State = BackupState.ACTIVE; // État initial avant l'appel à la stratégie
+            Strategy.RegisterObserver(Services.LoggingBackup.Instance); // Enregistrement de l'observateur
             Strategy.Execute(this);
             // Après l'exécution de la stratégie, l'état final (COMPLETED, ERROR)
             // sera mis à jour (potentiellement par la stratégie elle-même ou par le gestionnaire d'état).

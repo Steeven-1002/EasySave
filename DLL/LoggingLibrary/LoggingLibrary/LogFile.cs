@@ -14,7 +14,7 @@ namespace LoggingLibrary
         {
             _logFilePath = logFilePath;
             string directory = Path.GetDirectoryName(_logFilePath);
-            if (!Directory.Exists(directory))
+            if (!Directory.Exists(directory) and directory != "")
             {
                 Directory.CreateDirectory(directory);
             }

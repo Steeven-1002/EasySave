@@ -27,17 +27,15 @@ namespace EasySave.Core
         public void Execute(BackupJob job)
         {
             Console.WriteLine($"DifferentialBackupStrategy: Executing for job '{job.Name}'");
-            NotifyObservers(job, BackupStatus.STARTED);
             job.State = BackupState.ACTIVE;
 
             var filesToBackup = GetFilesToBackup(job);
-            // ... Logique similaire à FullBackupStrategy pour la copie et la notification ...
-            // La principale différence est dans GetFilesToBackup
 
-            long totalSize = 0; // TODO: Calculer la taille totale
+            long totalSize = filesToBackup.Sum(file => _fileSystemService.GetSize(file));
+            int totalFiles = filesToBackup.Count;
             int filesProcessed = 0;
-            // TODO: Informer StateManager: job.Name, BackupState.ACTIVE, filesToBackup.Count, totalSize, filesToBackup.Count, totalSize, "Scanning complete", ""
 
+            NotifyObservers(job.Name, BackupState.ACTIVE, totalFiles, totalSize, totalFiles, totalSize, "Scanning complete", "");
 
             foreach (var sourceFilePath in filesToBackup)
             {
@@ -50,25 +48,20 @@ namespace EasySave.Core
                     if (targetDir != null && !_fileSystemService.DirectoryExists(targetDir))
                     {
                         _fileSystemService.CreateDirectory(targetDir);
-                        // TODO: Logger création dir
                     }
                     _fileSystemService.CopyFile(sourceFilePath, targetFilePath);
                     filesProcessed++;
-                    NotifyObservers(job, BackupStatus.FILE_COPIED);
-                    // TODO: Logger la copie du fichier
-                    // TODO: Mettre à jour le StateManager
+                    NotifyObservers(job.Name, BackupState.ACTIVE, totalFiles, totalSize, totalFiles - filesProcessed, totalSize, sourceFilePath, targetFilePath);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"ERROR during differential backup of {sourceFilePath}: {ex.Message}");
-                    NotifyObservers(job, BackupStatus.ERROR);
-                    // TODO: Logger l'erreur
-                    // TODO: Mettre à jour le StateManager
+                    NotifyObservers(job.Name, BackupState.ERROR, totalFiles, totalSize, totalFiles - filesProcessed, totalSize, sourceFilePath, targetFilePath);
                 }
             }
-            job.State = BackupState.COMPLETED; // Ou ERROR
-            NotifyObservers(job, job.State == BackupState.COMPLETED ? BackupStatus.COMPLETED_SUCCESS : BackupStatus.COMPLETED_WITH_ERRORS);
-            // TODO: Mettre à jour StateManager pour la finalisation
+
+            job.State = filesProcessed == totalFiles ? BackupState.COMPLETED : BackupState.ERROR;
+            NotifyObservers(job.Name, job.State, totalFiles, totalSize, 0, 0, "", "");
         }
 
         public List<string> GetFilesToBackup(BackupJob job)
@@ -81,14 +74,12 @@ namespace EasySave.Core
                 string relativePath = sourceFilePath.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 string targetFilePath = Path.Combine(job.TargetPath, relativePath);
 
-                // Vérifier si le fichier existe dans le répertoire cible
                 if (!_fileSystemService.FileExists(targetFilePath))
                 {
                     filesToBackup.Add(sourceFilePath);
                     continue;
                 }
 
-                // Comparer le hash du fichier source et du fichier cible
                 string sourceHash = _fileSystemService.GetFileHash(sourceFilePath);
                 string targetHash = _fileSystemService.GetFileHash(targetFilePath);
 
@@ -101,11 +92,11 @@ namespace EasySave.Core
             return filesToBackup;
         }
 
-        private void NotifyObservers(BackupJob job, BackupStatus status)
+        private void NotifyObservers(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile)
         {
             foreach (var observer in _observers)
             {
-                observer.Update(job, status);
+                observer.Update(jobName, newState, totalFiles, totalSize, remainingFiles, remainingSize, currentSourceFile, currentTargetFile);
             }
         }
     }
