@@ -1,0 +1,12 @@
+C:\Users\doubl\source\repos\Steeven-1002\EasySave\EasySave\EasySave\FrameworkDLL\FrameworkDLL\obj\Debug\net8.0\FrameworkDLL.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\doubl\source\repos\Steeven-1002\EasySave\EasySave\EasySave\FrameworkDLL\FrameworkDLL\obj\Debug\net8.0\FrameworkDLL.AssemblyInfoInputs.cache
+C:\Users\doubl\source\repos\Steeven-1002\EasySave\EasySave\EasySave\FrameworkDLL\FrameworkDLL\obj\Debug\net8.0\FrameworkDLL.AssemblyInfo.cs
+C:\Users\doubl\source\repos\Steeven-1002\EasySave\EasySave\EasySave\FrameworkDLL\FrameworkDLL\obj\Debug\net8.0\FrameworkDLL.csproj.CoreCompileInputs.cache
+C:\Users\doubl\source\repos\Steeven-1002\EasySave\EasySave\EasySave\FrameworkDLL\FrameworkDLL\obj\Debug\net8.0\FrameworkDLL.sourcelink.json
+C:\Users\doubl\source\repos\Steeven-1002\EasySave\EasySave\EasySave\FrameworkDLL\FrameworkDLL\bin\Debug\net8.0\FrameworkDLL.deps.json
+C:\Users\doubl\source\repos\Steeven-1002\EasySave\EasySave\EasySave\FrameworkDLL\FrameworkDLL\bin\Debug\net8.0\FrameworkDLL.dll
+C:\Users\doubl\source\repos\Steeven-1002\EasySave\EasySave\EasySave\FrameworkDLL\FrameworkDLL\bin\Debug\net8.0\FrameworkDLL.pdb
+C:\Users\doubl\source\repos\Steeven-1002\EasySave\EasySave\EasySave\FrameworkDLL\FrameworkDLL\obj\Debug\net8.0\FrameworkDLL.dll
+C:\Users\doubl\source\repos\Steeven-1002\EasySave\EasySave\EasySave\FrameworkDLL\FrameworkDLL\obj\Debug\net8.0\refint\FrameworkDLL.dll
+C:\Users\doubl\source\repos\Steeven-1002\EasySave\EasySave\EasySave\FrameworkDLL\FrameworkDLL\obj\Debug\net8.0\FrameworkDLL.pdb
+C:\Users\doubl\source\repos\Steeven-1002\EasySave\EasySave\EasySave\FrameworkDLL\FrameworkDLL\obj\Debug\net8.0\ref\FrameworkDLL.dll
