@@ -36,20 +36,18 @@ namespace EasySave.ConsoleApp
 
         private static void InitializeComponents()
         {
-            _configManager = new ConfigManager("app_settings.json");
+            _configManager = new ConfigManager("app_settings.json"); // Ou autre nom
             _localizationService = new LocalizationService(_configManager.Language); // Utilise la langue de config
-
-
 
             // Le chemin du StateFile est géré par ConfigManager
             _stateManager = new StateManager(_configManager.StateFilePath);
 
             // Le chemin du LogFile (répertoire) est géré par ConfigManager
             // Correction : Cast explicite pour résoudre l'erreur CS0266
-            //_loggingService = (LoggingService)new LogService(_configManager.LogFilePath, new JsonLogFormatter());
+            _loggingService = (LoggingService)new LogService(_configManager.LogFilePath, new JsonLogFormatter());
 
             // Enregistrement du logger comme observateur de l'état
-            //_stateManager.RegisterObserver(_loggingService);
+            _stateManager.RegisterObserver(_loggingService);
 
             // BackupManager a besoin de StateManager
             _backupManager = new BackupManager(_stateManager, _configManager); // BackupManager utilise aussi ConfigManager pour le chemin des jobs
