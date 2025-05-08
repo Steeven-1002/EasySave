@@ -10,21 +10,25 @@ namespace EasySave.Services
         private readonly string _configFilePath;
         private Dictionary<string, object> _settings; // 'object' comme dans le diagramme
 
-        public string LogFilePath => GetSetting("LogFilePath") as string ?? "Logs"; // Valeur par défaut
-        public string StateFilePath => GetSetting("StateFilePath") as string ?? "state.json"; // Valeur par défaut
+        public string LogFilePath => GetSetting("LogFilePath") as string ?? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "EasySave", "Logs\\"); // Valeur par défaut
+        public string StateFilePath => GetSetting("LogFilePath") as string ?? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "EasySave", "State\\"); // Valeur par défaut
         public string Language => GetSetting("Language") as string ?? "en"; // Valeur par défaut
 
         public ConfigManager(string configFilePath)
         {
-            _configFilePath = configFilePath;
+            _configFilePath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "EasySave",
+                configFilePath
+            );
             _settings = new Dictionary<string, object>();
             LoadConfiguration();
         }
 
-        public ConfigManager()
-            : this(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "app_settings.json"))
-        {
-        }
 
         public void LoadConfiguration()
         {
@@ -40,9 +44,9 @@ namespace EasySave.Services
                 {
                     Console.WriteLine($"ConfigManager: File '{_configFilePath}' not found. Using/creating default settings.");
                     // Appliquer et sauvegarder les valeurs par défaut
-                    SetSetting("LogFilePath", "Logs"); // Par défaut, un dossier "Logs"
-                    SetSetting("StateFilePath", "state.json");
-                    SetSetting("Language", "en");
+                    SetSetting("LogFilePath", LogFilePath);
+                    SetSetting("StateFilePath", StateFilePath);
+                    SetSetting("Language", Language);
                     SaveConfiguration();
                 }
             }
