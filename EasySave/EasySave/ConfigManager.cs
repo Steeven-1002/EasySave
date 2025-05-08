@@ -8,34 +8,18 @@ namespace EasySave.Services
     public class ConfigManager
     {
         private readonly string _configFilePath;
-        private Dictionary<string, JsonElement> _settings;
+        private Dictionary<string, object> _settings; // 'object' comme dans le diagramme
 
-        public string LogFilePath =>
-            _settings.TryGetValue("LogFilePath", out var val) && val.ValueKind == JsonValueKind.String
-                ? val.GetString()!
-                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "Logs\\");
+        public string LogFilePath => GetSetting("LogFilePath") as string ?? "Logs"; // Valeur par défaut
+        public string StateFilePath => GetSetting("StateFilePath") as string ?? "state.json"; // Valeur par défaut
+        public string Language => GetSetting("Language") as string ?? "en"; // Valeur par défaut
 
-        public string StateFilePath =>
-            _settings.TryGetValue("StateFilePath", out var val) && val.ValueKind == JsonValueKind.String
-                ? val.GetString()!
-                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "State\\");
-
-        public string Language =>
-            _settings.TryGetValue("Language", out var val) && val.ValueKind == JsonValueKind.String
-                ? val.GetString()!
-                : "en";
-
-        public ConfigManager(string configFilePath)
+        public ConfigManager(string configFilePath = "app_config.json")
         {
-            _configFilePath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "EasySave",
-                configFilePath
-            );
-            _settings = new Dictionary<string, JsonElement>();
+            _configFilePath = configFilePath;
+            _settings = new Dictionary<string, object>();
             LoadConfiguration();
         }
-
 
         public void LoadConfiguration()
         {
@@ -43,26 +27,24 @@ namespace EasySave.Services
             {
                 if (File.Exists(_configFilePath))
                 {
-                    // The configuration file exists
-                    // We load it, deserialize it and store it in the _settings dictionary
                     string json = File.ReadAllText(_configFilePath);
-                    _settings = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json) ?? new Dictionary<string, JsonElement>();
+                    _settings = JsonSerializer.Deserialize<Dictionary<string, object>>(json) ?? new Dictionary<string, object>();
+                    Console.WriteLine($"ConfigManager: Configuration loaded from '{_configFilePath}'.");
                 }
                 else
                 {
-                    // No file have been found, create a new one with default values
-                    // The default values are set in the attributes
-                    // Apply and save default values
-                    SetSetting("LogFilePath", LogFilePath);
-                    SetSetting("StateFilePath", StateFilePath);
-                    SetSetting("Language", Language);
+                    Console.WriteLine($"ConfigManager: File '{_configFilePath}' not found. Using/creating default settings.");
+                    // Appliquer et sauvegarder les valeurs par défaut
+                    SetSetting("LogFilePath", "Logs"); // Par défaut, un dossier "Logs"
+                    SetSetting("StateFilePath", "state.json");
+                    SetSetting("Language", "en");
                     SaveConfiguration();
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"ConfigManager: Error loading configuration: {ex.Message}. Using empty settings.");
-                _settings = new Dictionary<string, JsonElement>();
+                _settings = new Dictionary<string, object>();
             }
         }
 
@@ -70,21 +52,13 @@ namespace EasySave.Services
         {
             try
             {
-                // The configuration live inside a directory
-                // We need to check if the directory exists
-                string directory = Path.GetDirectoryName(_configFilePath);
-                if (!Directory.Exists(directory) && directory != null)
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
                 string json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(_configFilePath, json);
                 Console.WriteLine($"ConfigManager: Configuration saved to '{_configFilePath}'.");
             }
-            catch (Exception error)
+            catch (Exception ex)
             {
-                Console.WriteLine($"ConfigManager: Error saving configuration: {error.Message}");
+                Console.WriteLine($"ConfigManager: Error saving configuration: {ex.Message}");
             }
         }
 
@@ -95,15 +69,9 @@ namespace EasySave.Services
 
         public void SetSetting(string key, object value)
         {
-            if (value is JsonElement jsonElement)
-            {
-                _settings[key] = jsonElement;
-            }
-            else
-            {
-                string json = JsonSerializer.Serialize(value);
-                _settings[key] = JsonSerializer.Deserialize<JsonElement>(json);
-            }
+            _settings[key] = value;
+            // Pourrait appeler SaveConfiguration() ici si les changements doivent être immédiats,
+            // ou laisser l'appelant décider quand sauvegarder.
         }
     }
 }
