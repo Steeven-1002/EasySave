@@ -20,7 +20,7 @@
 </ItemGroup>
 
 <ItemGroup>
-  <Reference Include="FrameworkDLL">
+  <Reference Include="LoggingLibrary">
     <HintPath>ASSETS\LoggingLibrary.dll</HintPath>
   </Reference>
 </ItemGroup>

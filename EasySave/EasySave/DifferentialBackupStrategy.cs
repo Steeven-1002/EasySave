@@ -73,17 +73,32 @@ namespace EasySave.Core
 
         public List<string> GetFilesToBackup(BackupJob job)
         {
-            // La logique ici est cruciale: comparer les fichiers source avec ceux de la cible
-            // ou se baser sur job.LastRunTime (qui devrait être la date de la dernière sauvegarde complète).
-            // Une implémentation simple basée sur la date de modification depuis la dernière sauvegarde :
-            DateTime since = job.LastRunTime; // Idéalement, ce serait la date de la dernière *Full* Backup réussie.
-            if (since == DateTime.MinValue)
+            var filesToBackup = new List<string>();
+            var sourceFiles = _fileSystemService.GetFilesInDirectory(job.SourcePath);
+
+            foreach (var sourceFilePath in sourceFiles)
             {
-                // Pas de sauvegarde précédente, donc c'est comme une sauvegarde complète.
-                Console.WriteLine($"Differential for '{job.Name}': No previous backup, acting as FULL.");
-                return _fileSystemService.GetFilesInDirectory(job.SourcePath);
+                string relativePath = sourceFilePath.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                string targetFilePath = Path.Combine(job.TargetPath, relativePath);
+
+                // Vérifier si le fichier existe dans le répertoire cible
+                if (!_fileSystemService.FileExists(targetFilePath))
+                {
+                    filesToBackup.Add(sourceFilePath);
+                    continue;
+                }
+
+                // Comparer le hash du fichier source et du fichier cible
+                string sourceHash = _fileSystemService.GetFileHash(sourceFilePath);
+                string targetHash = _fileSystemService.GetFileHash(targetFilePath);
+
+                if (sourceHash != targetHash)
+                {
+                    filesToBackup.Add(sourceFilePath);
+                }
             }
-            return _fileSystemService.GetModifiedFilesSince(job.SourcePath, since);
+
+            return filesToBackup;
         }
 
         private void NotifyObservers(BackupJob job, BackupStatus status)
