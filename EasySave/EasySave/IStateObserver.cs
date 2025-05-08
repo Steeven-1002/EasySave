@@ -1,7 +1,9 @@
-﻿namespace EasySave
+﻿using EasySave.Models;
+
+namespace EasySave.Interfaces
 {
     public interface IStateObserver
     {
-        void OnStateChange(string jobName, BackupState newState);
+        void StateChanged(JobState state);
     }
 }

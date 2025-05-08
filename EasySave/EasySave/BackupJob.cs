@@ -1,51 +1,68 @@
 ﻿using System;
 using System.Collections.Generic;
+using EasySave.Interfaces; // Pour IBackupStrategy
 
-namespace EasySave
+namespace EasySave.Models
 {
     public class BackupJob
     {
         public string Name { get; set; }
         public string SourcePath { get; set; }
         public string TargetPath { get; set; }
-        public BackupType BackupType { get; set; }
-        public BackupState BackupState { get; set; }
-        public DateTime LastTimeState { get; set; }
-        public DateTime LastTimeRun { get; set; }
+        public BackupType Type { get; set; }
+        public BackupState State { get; set; }
+        public DateTime LastRunTime { get; set; }
         public DateTime CreationTime { get; set; }
-        public BackupStrategy BackupStrategy { get; set; } // Stratégie de sauvegarde (Full ou Differential)
+        public IBackupStrategy Strategy { get; set; }
 
-        public BackupJob()
+        public BackupJob(string name, string sourcePath, string targetPath, BackupType type, IBackupStrategy strategy)
         {
-            // Initialise l'état par défaut
-            BackupState = BackupState.INACTIVE;
+            Name = name;
+            SourcePath = sourcePath;
+            TargetPath = targetPath;
+            Type = type;
+            Strategy = strategy;
+            State = BackupState.INACTIVE;
+            CreationTime = DateTime.Now;
+            LastRunTime = DateTime.MinValue;
         }
 
-        public List<string> Execute()
+        public void Execute()
         {
-            // Exécute la sauvegarde en utilisant la stratégie définie
-            if (BackupStrategy == null)
-            {
-                throw new InvalidOperationException("Aucune stratégie de sauvegarde définie pour cette tâche.");
-            }
-
-            LastTimeRun = DateTime.Now;
-            return BackupStrategy.ExecuteBackup(this);
+            // La logique d'exécution est déléguée à la stratégie.
+            // Le BackupManager ou une classe d'orchestration appellera ceci.
+            // L'état du job (this.State) sera mis à jour par la stratégie ou
+            // par le StateManager via des notifications d'observateur.
+            Console.WriteLine($"BackupJob '{Name}': Preparing to execute via strategy '{Strategy.GetType().Name}'.");
+            this.State = BackupState.ACTIVE; // État initial avant l'appel à la stratégie
+            Strategy.Execute(this);
+            // Après l'exécution de la stratégie, l'état final (COMPLETED, ERROR)
+            // sera mis à jour (potentiellement par la stratégie elle-même ou par le gestionnaire d'état).
+            this.LastRunTime = DateTime.Now;
         }
 
-        public string GetSetting(string key)
+        public List<string> GetFilesToBackup()
         {
-            // Peut être utilisé pour récupérer des paramètres spécifiques à la tâche (si nécessaire)
-            // Actuellement non implémenté
-            return null;
+            return Strategy.GetFilesToBackup(this);
         }
 
-        public void SetSetting(string key, string value)
+        public long GetTotalSize()
         {
-            // Peut être utilisé pour définir des paramètres spécifiques à la tâche (si nécessaire)
-            // Actuellement non implémenté
+            // Pourrait être une estimation ou calculée par la stratégie
+            // Basé sur le diagramme, BackupJob a cette méthode.
+            // Une implémentation simple pourrait être :
+            long totalSize = 0;
+            // foreach (var file in GetFilesToBackup())
+            // {
+            //     // TODO: Utiliser FileSystemService pour obtenir la taille de chaque fichier
+            //     // totalSize += fileSystemService.GetSize(file);
+            // }
+            return totalSize;
         }
 
-        // ... (Autres méthodes si nécessaire) ...
+        public override string ToString()
+        {
+            return $"Job: {Name}, Type: {Type}, Source: {SourcePath}, Target: {TargetPath}, State: {State}, LastRun: {LastRunTime}";
+        }
     }
 }

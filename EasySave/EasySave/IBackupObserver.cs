@@ -1,7 +1,9 @@
-﻿namespace EasySave
+﻿using EasySave.Models;
+
+namespace EasySave.Interfaces
 {
     public interface IBackupObserver
     {
-        void UpdateJobState(BackupJob job, BackupStatus status); // Note: BackupStatus est un placeholder
+        void Update(BackupJob job, BackupStatus status);
     }
 }

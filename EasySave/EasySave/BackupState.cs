@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace EasySave
+﻿namespace EasySave.Models
 {
     public enum BackupState
     {
@@ -8,6 +6,6 @@ namespace EasySave
         ACTIVE,
         ERROR,
         COMPLETED,
-        PAUSED
+        PAUSED // Selon le diagramme
     }
 }

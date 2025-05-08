@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
+using EasySave.Models;
 
-namespace EasySave
+namespace EasySave.Interfaces
 {
     public interface IBackupStrategy
     {
-        List<string> ExecuteBackup(BackupJob job);
+        void Execute(BackupJob job);
         List<string> GetFilesToBackup(BackupJob job);
     }
 }
