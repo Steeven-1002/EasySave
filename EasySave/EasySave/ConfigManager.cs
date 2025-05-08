@@ -72,7 +72,6 @@ namespace EasySave.Services
             {
                 // The configuration live inside a directory
                 // We need to check if the directory exists
-                // If not, we create it
                 string directory = Path.GetDirectoryName(_configFilePath);
                 if (!Directory.Exists(directory) && directory != null)
                 {
