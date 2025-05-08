@@ -6,56 +6,7 @@ using EasySave.Interfaces;
 using EasySave.Services;
 using EasySave.Core;
 using System.Text.Json;
-
-// Placeholder pour la DLL externe
-namespace LoggingDLLNamespace
-{
-    public class LoggingDLL : EasySave.Interfaces.LoggingService
-    {
-        private string _logFilePathBase; // ex: "Logs" directory
-        private string GetTodaysLogFilePath() => Path.Combine(_logFilePathBase, $"log_{DateTime.Now:yyyy-MM-dd}.json");
-
-        public LoggingDLL(string logDirectory = "Logs")
-        {
-            _logFilePathBase = logDirectory;
-            if (!Directory.Exists(_logFilePathBase))
-            {
-                Directory.CreateDirectory(_logFilePathBase);
-            }
-            Console.WriteLine($"LoggingService (DLL Placeholder) initialized. Logs in: {_logFilePathBase}");
-        }
-
-        public string GetLogFilePath() => GetTodaysLogFilePath();
-
-        public void WriteLog(DateTime timestamp, string jobName, string sourcePath, string targetPath, long fileSize, long transferTime)
-        {
-            string logMessage = $"{timestamp:G} - Job: {jobName}, Src: {sourcePath}, Dest: {targetPath}, Size: {fileSize}B, Time: {transferTime}ms";
-            Console.WriteLine($"DLL_LOG: {logMessage}"); // Pour le débogage console
-            try
-            {
-                var logEntry = new { timestamp, jobName, sourcePath, targetPath, fileSize, transferTime };
-                string jsonEntry = JsonSerializer.Serialize(logEntry);
-                File.AppendAllText(GetTodaysLogFilePath(), jsonEntry + Environment.NewLine);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"LoggingDLL ERROR writing log: {ex.Message}");
-            }
-        }
-
-        public void Update(BackupJob job, BackupStatus status)
-        {
-            long fileSize = 0; // Non applicable directement pour un statut général
-            long transferTime = 0; // Idem
-            WriteLog(DateTime.Now, job.Name, $"Status update: {status}", "N/A", fileSize, transferTime);
-        }
-
-        public void StateChanged(JobState state)
-        {
-            WriteLog(state.Timestamp, state.JobName, state.CurrentSourceFile, state.CurrentTargetFile, 0, 0); // Simplifié
-        }
-    }
-}
+using LoggingLibrary; // Placeholder pour la DLL externe
 
 
 namespace EasySave.ConsoleApp
@@ -92,20 +43,14 @@ namespace EasySave.ConsoleApp
             _stateManager = new StateManager(_configManager.StateFilePath);
 
             // Le chemin du LogFile (répertoire) est géré par ConfigManager
-            // Ici on instancie notre placeholder. En réalité, ce serait une réf à la DLL.
-            _loggingService = new LoggingDLLNamespace.LoggingDLL(_configManager.LogFilePath);
+            // Correction : Cast explicite pour résoudre l'erreur CS0266
+            _loggingService = (LoggingService)new LogService(_configManager.LogFilePath, new JsonLogFormatter());
 
             // Enregistrement du logger comme observateur de l'état
             _stateManager.RegisterObserver(_loggingService);
 
             // BackupManager a besoin de StateManager
             _backupManager = new BackupManager(_stateManager, _configManager); // BackupManager utilise aussi ConfigManager pour le chemin des jobs
-
-            // Les stratégies sont créées par BackupManager. Si elles doivent notifier
-            // _loggingService, BackupManager doit le savoir pour enregistrer _loggingService
-            // auprès des stratégies/jobs qu'il crée. C'est une complexité supplémentaire.
-            // Pour l'instant, le diagramme montre LoggingService implémentant IBackupObserver,
-            // donc il pourrait être passé aux stratégies ou aux jobs.
 
             Console.WriteLine(_localizationService.GetString("WelcomeMessage"));
         }
@@ -212,7 +157,7 @@ namespace EasySave.ConsoleApp
                 Console.WriteLine(_localizationService.GetString("ErrorInvalidBackupType"));
                 return;
             }
-            _backupManager.AddJob(name, source, target, type);
+            _backupManager.AddJob(name, source, target, (Models.BackupType)type);
             // Les messages de succès/erreur de AddJob sont déjà dans BackupManager
         }
 
@@ -228,7 +173,10 @@ namespace EasySave.ConsoleApp
             for (int i = 0; i < jobs.Count; i++)
             {
                 var jobState = _stateManager.GetState(jobs[i].Name);
-                string statusInfo = jobState != null ? $"{jobState.State} ({jobState.RemainingFiles} files left)" : "N/A"; // Exemple
+
+                string statusInfo = jobState != null
+                                  ? $"{jobState}" // Display only the state as a string
+                                  : "N/A"; // Example fallback for unavailable state
                 Console.WriteLine($"{i + 1}. {jobs[i].Name} ({jobs[i].Type}) - Src: {jobs[i].SourcePath} -> Dest: {jobs[i].TargetPath} [State: {statusInfo}]");
             }
         }

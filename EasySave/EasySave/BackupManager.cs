@@ -27,7 +27,7 @@ namespace EasySave.Core
             LoadJobs();
         }
 
-        public BackupJob? AddJob(string name, string sourcePath, string targetPath, BackupType type)
+        public BackupJob? AddJob(string name, string sourcePath, string targetPath, EasySave.Models.BackupType type)
         {
             if (_backupJobs.Count >= 5)
             {
@@ -45,10 +45,10 @@ namespace EasySave.Core
 
             switch (type)
             {
-                case BackupType.FULL:
+                case EasySave.Models.BackupType.FULL:
                     strategy = new FullBackupStrategy(fileSystemService);
                     break;
-                case BackupType.DIFFERENTIAL:
+                case EasySave.Models.BackupType.DIFFERENTIAL:
                     strategy = new DifferentialBackupStrategy(fileSystemService);
                     break;
                 default:
@@ -91,9 +91,15 @@ namespace EasySave.Core
                 {
                     IBackupStrategy newStrategy;
                     FileSystemService fsService = new FileSystemService();
-                    if (updatedJobData.Type == BackupType.FULL) newStrategy = new FullBackupStrategy(fsService);
-                    else newStrategy = new DifferentialBackupStrategy(fsService);
-                    updatedJobData.Strategy = newStrategy;
+
+                    if (!updatedJobData.Type.Equals(BackupType.FULL))
+                    {
+                        newStrategy = new DifferentialBackupStrategy(fsService);
+                    }
+                    else
+                    {
+                        newStrategy = new FullBackupStrategy(fsService);
+                    }
                 }
                 else
                 {
@@ -173,7 +179,7 @@ namespace EasySave.Core
                     Name = j.Name,
                     SourcePath = j.SourcePath,
                     TargetPath = j.TargetPath,
-                    Type = j.Type,
+                    Type = (BackupType)j.Type,
                     LastRunTime = j.LastRunTime,
                     CreationTime = j.CreationTime
                 }).ToList();
@@ -201,7 +207,7 @@ namespace EasySave.Core
                             IBackupStrategy strategy = dto.Type == BackupType.FULL ?
                                 (IBackupStrategy)new FullBackupStrategy(fsService) :
                                 new DifferentialBackupStrategy(fsService);
-                            return new BackupJob(dto.Name, dto.SourcePath, dto.TargetPath, dto.Type, strategy)
+                            return new BackupJob(dto.Name, dto.SourcePath, dto.TargetPath, (Models.BackupType)dto.Type, strategy)
                             {
                                 LastRunTime = dto.LastRunTime,
                                 CreationTime = dto.CreationTime,
