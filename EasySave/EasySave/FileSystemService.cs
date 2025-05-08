@@ -32,7 +32,6 @@ namespace EasySave.Services
 
         public string GetFileHash(string path)
         {
-            // TODO: Implémenter une logique de hachage robuste si nécessaire
             Console.WriteLine($"FileSystemService: GetFileHash for '{path}' (stub).");
             try
             {
@@ -133,6 +132,19 @@ namespace EasySave.Services
             {
                 Console.WriteLine($"FileSystemService ERROR GetFileLastWriteTime for '{filePath}': {ex.Message}");
                 return DateTime.MinValue;
+            }
+        }
+        public bool HasFileChanged(string filePath, string previousHash)
+        {
+            try
+            {
+                string currentHash = GetFileHash(filePath);
+                return !string.Equals(currentHash, previousHash, StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"FileSystemService ERROR HasFileChanged for '{filePath}': {ex.Message}");
+                return false;
             }
         }
     }
