@@ -1,85 +1,89 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using LoggingLibrary;
+using EasySave.Models;
+using EasySave.Interfaces;
+using EasySave.Services;
 
-namespace EasySave
+namespace EasySave.Core
 {
     public class FullBackupStrategy : IBackupStrategy
     {
-        private FileSystemService _fileSystemService;
-        private LogService _logService;
+        private readonly FileSystemService _fileSystemService;
+        private List<IBackupObserver> _observers;
 
-        public FullBackupStrategy(FileSystemService fileSystemService, LogService logService)
+        // Les dépendances (comme LoggingService et StateManager) sont passées à Execute
+        // Ou elles pourraient être injectées ici si la stratégie a besoin de les utiliser en dehors d'Execute.
+        // Pour l'instant, je suppose qu'elles sont fournies à Execute, mais FileSystemService est essentiel.
+        public FullBackupStrategy(FileSystemService fileSystemService)
         {
             _fileSystemService = fileSystemService;
-            _logService = logService;
+            _observers = new List<IBackupObserver>();
         }
 
-        public List<string> ExecuteBackup(BackupJob job)
+        // Méthode pour enregistrer des observateurs si la stratégie est le sujet.
+        public void RegisterObserver(IBackupObserver observer)
         {
-            List<string> filesCopied = new List<string>();
-            try
+            if (!_observers.Contains(observer)) _observers.Add(observer);
+        }
+
+        public void Execute(BackupJob job)
+        {
+            Console.WriteLine($"FullBackupStrategy: Executing for job '{job.Name}'");
+            NotifyObservers(job, BackupStatus.STARTED);
+            job.State = BackupState.ACTIVE;
+
+            var filesToBackup = GetFilesToBackup(job);
+            long totalSize = 0; // TODO: Calculer la taille totale
+            int filesProcessed = 0;
+
+            // TODO: Informer StateManager: job.Name, BackupState.ACTIVE, filesToBackup.Count, totalSize, filesToBackup.Count, totalSize, "Scanning complete", ""
+
+            foreach (var sourceFilePath in filesToBackup)
             {
-                // 1. Get all files to backup
-                List<string> filesToBackup = GetFilesToBackup(job);
+                string relativePath = sourceFilePath.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                string targetFilePath = Path.Combine(job.TargetPath, relativePath);
 
-                // 2. Perform the full backup
-                foreach (string sourceFile in filesToBackup)
+                try
                 {
-                    string relativePath = _fileSystemService.GetRelativePath(job.SourcePath, sourceFile);
-                    string targetFile = Path.Combine(job.TargetPath, relativePath);
-
-                    _fileSystemService.CopyFile(sourceFile, targetFile);
-                    filesCopied.Add(targetFile);
-
-                    _logService.Log(new LogEntry
+                    // Assurer que le répertoire cible existe
+                    string? targetDir = Path.GetDirectoryName(targetFilePath);
+                    if (targetDir != null && !_fileSystemService.DirectoryExists(targetDir))
                     {
-                        Timestamp = DateTime.Now,
-                        EventType = "FileCopied",
-                        Message = $"Fichier copié : {sourceFile} vers {targetFile}"
-                    });
-                }
+                        _fileSystemService.CreateDirectory(targetDir);
+                        // TODO: Logger la création du répertoire via le LoggingService passé à Execute
+                    }
 
-                return filesCopied;
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(new LogEntry
+                    _fileSystemService.CopyFile(sourceFilePath, targetFilePath);
+                    filesProcessed++;
+                    NotifyObservers(job, BackupStatus.FILE_COPIED);
+                    // TODO: Logger la copie du fichier via le LoggingService passé à Execute
+                    // TODO: Mettre à jour le StateManager via le StateManager passé à Execute
+                    // (job.Name, job.State, filesToBackup.Count, totalSize, filesToBackup.Count - filesProcessed, totalSize - currentFileSize, sourceFilePath, targetFilePath)
+                }
+                catch (Exception ex)
                 {
-                    Timestamp = DateTime.Now,
-                    EventType = "BackupError",
-                    Message = $"Erreur lors de la sauvegarde complète : {ex.Message}"
-                });
-                throw; // Rethrow the exception to be handled by the BackupManager
+                    Console.WriteLine($"ERROR during full backup of {sourceFilePath}: {ex.Message}");
+                    NotifyObservers(job, BackupStatus.ERROR);
+                    // TODO: Logger l'erreur
+                    // TODO: Mettre à jour le StateManager
+                }
             }
+            job.State = BackupState.COMPLETED; // Ou ERROR si des erreurs se sont produites
+            NotifyObservers(job, job.State == BackupState.COMPLETED ? BackupStatus.COMPLETED_SUCCESS : BackupStatus.COMPLETED_WITH_ERRORS);
+            // TODO: Mettre à jour StateManager pour la finalisation
         }
 
         public List<string> GetFilesToBackup(BackupJob job)
         {
-            // For a full backup, we simply get all files from the source
-            return _fileSystemService.GetAllFiles(job.SourcePath);
+            return _fileSystemService.GetFilesInDirectory(job.SourcePath);
         }
 
-        public void CopyFilesWithResourceControl(string sourceDirectory, string targetDirectory)
+        private void NotifyObservers(BackupJob job, BackupStatus status)
         {
-            try
+            foreach (var observer in _observers)
             {
-                // Implement logic to copy all files from source to target while handling
-                // potential resource conflicts (e.g., file locks).
-
-                // !! IMPORTANT !!: This is a placeholder. You MUST implement the correct logic.
-                _fileSystemService.CopyDirectory(sourceDirectory, targetDirectory);
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(new LogEntry
-                {
-                    Timestamp = DateTime.Now,
-                    EventType = "FileCopyError",
-                    Message = $"Erreur lors de la copie des fichiers de {sourceDirectory} vers {targetDirectory}: {ex.Message}"
-                });
-                throw;
+                observer.Update(job, status);
             }
         }
     }

@@ -1,69 +1,76 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
 using System.Linq;
+using System.Text.Json;
+using EasySave.Models;
+using EasySave.Interfaces;
 
-namespace EasySave
+namespace EasySave.Services
 {
     public class StateManager
     {
-        private string _stateFilePath;
-        public List<JobState> JobStates { get; set; }
-        private List<IStateObserver> _observers = new List<IStateObserver>(); // Pour le pattern Observer
+        private readonly string _stateFilePath;
+        private List<JobState> _jobStates;
+        private List<IStateObserver> _observers;
 
         public StateManager(string stateFilePath)
         {
             _stateFilePath = stateFilePath;
-            JobStates = new List<JobState>();
-            LoadState(); // Charge l'état au démarrage
+            _jobStates = new List<JobState>();
+            _observers = new List<IStateObserver>();
+            LoadState(); // Charger l'état existant à l'initialisation
         }
 
-        public void RegisterObserver(IStateObserver observer)
+        // Le diagramme indique : UpdateJobState(job: BackupJob, currentFile: string, targetFile: string, remainingFiles: int, remainingSize: long)
+        // Je vais adapter pour utiliser JobState directement ou le nom du job
+        public void UpdateJobState(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile)
         {
-            _observers.Add(observer);
-        }
-
-        public void UnregisterObserver(IStateObserver observer)
-        {
-            _observers.Remove(observer);
-        }
-
-        private void NotifyObservers(string jobName, BackupState newState)
-        {
-            foreach (var observer in _observers)
+            JobState? jobState = _jobStates.FirstOrDefault(js => js.JobName == jobName);
+            bool newEntry = false;
+            if (jobState == null)
             {
-                observer.OnStateChange(jobName, newState);
+                jobState = new JobState(jobName);
+                newEntry = true;
             }
+
+            jobState.Timestamp = DateTime.Now;
+            jobState.State = newState;
+            jobState.TotalFiles = totalFiles;
+            jobState.TotalSize = totalSize;
+            jobState.RemainingFiles = remainingFiles;
+            jobState.RemainingSize = remainingSize;
+            jobState.CurrentSourceFile = currentSourceFile;
+            jobState.CurrentTargetFile = currentTargetFile;
+
+            if (newEntry) _jobStates.Add(jobState); // Ajouter seulement si c'est une nouvelle entrée
+
+            Console.WriteLine($"StateManager: Updated state for job '{jobName}'. Current file: {currentSourceFile}");
+            NotifyObservers(jobState);
+            SaveState();
         }
 
-        public void UpdateJobState(string jobName, BackupState newState, DateTime lastTimeState)
+        public void InitializeJobState(string jobName, int totalFiles, long totalSize)
         {
-            var jobState = JobStates.FirstOrDefault(js => js.JobName == jobName);
-            if (jobState != null)
-            {
-                jobState.State = newState;
-                jobState.LastTimeState = lastTimeState;
-                NotifyObservers(jobName, newState); // Notifie les observateurs
-                SaveState();
-            }
+            UpdateJobState(jobName, BackupState.ACTIVE, totalFiles, totalSize, totalFiles, totalSize, "Starting scan...", "");
         }
 
-        public JobState GetJobState(string jobName)
+        public void FinalizeJobState(string jobName, BackupState finalState)
         {
-            return JobStates.FirstOrDefault(js => js.JobName == jobName);
+            UpdateJobState(jobName, finalState, 0, 0, 0, 0, "Finalized", ""); // Les totaux pourraient être ceux de fin
         }
+
 
         public void SaveState()
         {
             try
             {
-                string json = JsonSerializer.Serialize(JobStates, new JsonSerializerOptions { WriteIndented = true });
+                string json = JsonSerializer.Serialize(_jobStates, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(_stateFilePath, json);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la sauvegarde de l'état : {ex.Message}");
+                Console.WriteLine($"StateManager ERROR saving state to '{_stateFilePath}': {ex.Message}");
             }
         }
 
@@ -74,31 +81,53 @@ namespace EasySave
                 if (File.Exists(_stateFilePath))
                 {
                     string json = File.ReadAllText(_stateFilePath);
-                    JobStates = JsonSerializer.Deserialize<List<JobState>>(json);
+                    _jobStates = JsonSerializer.Deserialize<List<JobState>>(json) ?? new List<JobState>();
                 }
                 else
                 {
-                    JobStates = new List<JobState>(); // Initialise avec une liste vide si le fichier n'existe pas
+                    _jobStates = new List<JobState>();
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du chargement de l'état : {ex.Message}");
-                JobStates = new List<JobState>(); // Assure une liste vide en cas d'erreur
+                Console.WriteLine($"StateManager ERROR loading state from '{_stateFilePath}': {ex.Message}");
+                _jobStates = new List<JobState>();
             }
         }
-    }
 
-    public class JobState
-    {
-        public string JobName { get; set; }
-        public BackupState State { get; set; }
-        public DateTime LastTimeState { get; set; }
-        // remaining files, etc.
-    }
+        public JobState? GetState(string jobName)
+        {
+            return _jobStates.FirstOrDefault(js => js.JobName == jobName);
+        }
 
-    public interface IStateObserver
-    {
-        void OnStateChange(string jobName, BackupState newState);
+        public void RegisterObserver(IStateObserver observer)
+        {
+            if (!_observers.Contains(observer))
+            {
+                _observers.Add(observer);
+            }
+        }
+
+        public void UnregisterObserver(IStateObserver observer) // Méthode utile
+        {
+            _observers.Remove(observer);
+        }
+
+        private void NotifyObservers(JobState state)
+        {
+            foreach (var observer in _observers)
+            {
+                observer.StateChanged(state);
+            }
+        }
+
+        private void CreateStateFile() // Définie dans le diagramme
+        {
+            // Assure que le fichier est créé s'il n'existe pas, potentiellement avec un contenu vide ou initial.
+            if (!File.Exists(_stateFilePath))
+            {
+                SaveState(); // Sauvegarde une liste vide de _jobStates ou l'état actuel.
+            }
+        }
     }
 }
