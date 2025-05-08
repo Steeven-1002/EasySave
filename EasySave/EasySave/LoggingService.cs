@@ -27,7 +27,7 @@ namespace EasySave.Services
             }
         }
 
-        public void Update(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile)
+        public void Update(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile, double transfertDuration)
         {
             var timestamp = DateTime.Now;
             _logService.Log(
@@ -36,7 +36,7 @@ namespace EasySave.Services
                 currentSourceFile,
                 currentTargetFile,
                 totalSize - remainingSize,
-                (int)(totalFiles - remainingFiles)
+                transfertDuration
             );
 
             Console.WriteLine($"[LOG] {timestamp}: Job '{jobName}' updated. State: {newState}, Remaining Files: {remainingFiles}, Remaining Size: {remainingSize} bytes.");

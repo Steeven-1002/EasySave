@@ -34,13 +34,17 @@ namespace EasySave.Core
             long totalSize = filesToBackup.Sum(file => _fileSystemService.GetSize(file));
             int totalFiles = filesToBackup.Count;
             int filesProcessed = 0;
+            long currentProcessedFileSize = 0;
+            bool errorOccurred = false;
 
-            NotifyObservers(job.Name, BackupState.ACTIVE, totalFiles, totalSize, totalFiles, totalSize, "Scanning complete", "");
+            NotifyObservers(job.Name, BackupState.ACTIVE, totalFiles, totalSize, totalFiles, totalSize, "Scanning complete", "", 0);
 
             foreach (var sourceFilePath in filesToBackup)
             {
                 string relativePath = sourceFilePath.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 string targetFilePath = Path.Combine(job.TargetPath, relativePath);
+                long currentFileSize = _fileSystemService.GetSize(sourceFilePath);
+                currentProcessedFileSize += currentFileSize;
 
                 try
                 {
@@ -48,20 +52,26 @@ namespace EasySave.Core
                     if (targetDir != null && !_fileSystemService.DirectoryExists(targetDir))
                     {
                         _fileSystemService.CreateDirectory(targetDir);
+                        NotifyObservers(job.Name, BackupState.ACTIVE, totalFiles, totalSize, totalFiles - filesProcessed, totalSize - currentProcessedFileSize, sourceFilePath, targetFilePath, 0);
                     }
+
+                    var startTime = DateTime.Now;
                     _fileSystemService.CopyFile(sourceFilePath, targetFilePath);
+                    var endTime = DateTime.Now;
+
                     filesProcessed++;
-                    NotifyObservers(job.Name, BackupState.ACTIVE, totalFiles, totalSize, totalFiles - filesProcessed, totalSize, sourceFilePath, targetFilePath);
+                    NotifyObservers(job.Name, BackupState.ACTIVE, totalFiles, totalSize, totalFiles - filesProcessed, totalSize - currentProcessedFileSize, sourceFilePath, targetFilePath, endTime.Subtract(startTime).TotalMilliseconds);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"ERROR during differential backup of {sourceFilePath}: {ex.Message}");
-                    NotifyObservers(job.Name, BackupState.ERROR, totalFiles, totalSize, totalFiles - filesProcessed, totalSize, sourceFilePath, targetFilePath);
+                    errorOccurred = true;
+                    NotifyObservers(job.Name, BackupState.ERROR, totalFiles, totalSize, totalFiles - filesProcessed, totalSize - currentProcessedFileSize, sourceFilePath, targetFilePath, -1);
                 }
             }
 
-            job.State = filesProcessed == totalFiles ? BackupState.COMPLETED : BackupState.ERROR;
-            NotifyObservers(job.Name, job.State, totalFiles, totalSize, 0, 0, "", "");
+            job.State = !errorOccurred ? BackupState.COMPLETED : BackupState.ERROR;
+            NotifyObservers(job.Name, job.State, totalFiles, totalSize, 0, 0, "", "", 0);
         }
 
         public List<string> GetFilesToBackup(BackupJob job)
@@ -92,11 +102,11 @@ namespace EasySave.Core
             return filesToBackup;
         }
 
-        private void NotifyObservers(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile)
+        private void NotifyObservers(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile, double transferDuration)
         {
             foreach (var observer in _observers)
             {
-                observer.Update(jobName, newState, totalFiles, totalSize, remainingFiles, remainingSize, currentSourceFile, currentTargetFile);
+                observer.Update(jobName, newState, totalFiles, totalSize, remainingFiles, remainingSize, currentSourceFile, currentTargetFile, transferDuration);
             }
         }
     }

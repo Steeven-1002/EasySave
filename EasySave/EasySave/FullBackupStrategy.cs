@@ -35,24 +35,15 @@ namespace EasySave.Core
             var filesToBackup = GetFilesToBackup(job);
             long totalSize = filesToBackup.Sum(file => _fileSystemService.GetSize(file));
             int filesProcessed = 0;
+            long currentProcessedFileSize = 0;
+            bool errorOccurred = false;
 
             foreach (var sourceFilePath in filesToBackup)
             {
-                _observers.ForEach(observer =>
-                {
-                    observer.Update(
-                        job.Name,
-                        BackupState.ACTIVE,
-                        filesToBackup.Count,
-                        totalSize,
-                        filesToBackup.Count,
-                        totalSize,
-                        "Scanning complete",
-                        string.Empty
-                    );
-                });
                 string relativePath = sourceFilePath.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 string targetFilePath = Path.Combine(job.TargetPath, relativePath);
+                long currentFileSize = _fileSystemService.GetSize(sourceFilePath);
+                currentProcessedFileSize += currentFileSize;
 
                 try
                 {
@@ -61,24 +52,63 @@ namespace EasySave.Core
                     if (targetDir != null && !_fileSystemService.DirectoryExists(targetDir))
                     {
                         _fileSystemService.CreateDirectory(targetDir);
-                        // TODO: Logger la création du répertoire via le LoggingService passé à Execute
+                        _observers.ForEach(observer =>
+                        {
+                            observer.Update(
+                                job.Name,
+                                BackupState.ACTIVE,
+                                filesToBackup.Count,
+                                totalSize,
+                                filesToBackup.Count - filesProcessed,
+                                totalSize - currentProcessedFileSize,
+                                sourceFilePath,
+                                targetFilePath,
+                                0 //No transfert duration for directory creation
+                                );
+                        });
                     }
-
+                    // Start timer for file transfer duration
+                    var startTime = DateTime.Now;
                     _fileSystemService.CopyFile(sourceFilePath, targetFilePath);
+                    var endTime = DateTime.Now;
+                    _observers.ForEach(observer =>
+                    {
+                        observer.Update(
+                            job.Name,
+                            BackupState.ACTIVE,
+                            filesToBackup.Count,
+                            totalSize,
+                            filesToBackup.Count - filesProcessed,
+                            totalSize - currentProcessedFileSize,
+                            sourceFilePath,
+                            targetFilePath,
+                            endTime.Subtract(startTime).TotalMilliseconds
+                            );
+                    });
                     filesProcessed++;
-                    // TODO: Logger la copie du fichier via le LoggingService passé à Execute
-                    // TODO: Mettre à jour le StateManager via le StateManager passé à Execute
-                    // (job.Name, job.State, filesToBackup.Count, totalSize, filesToBackup.Count - filesProcessed, totalSize - currentFileSize, sourceFilePath, targetFilePath)
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"ERROR during full backup of {sourceFilePath}: {ex.Message}");
-
-                    // TODO: Logger l'erreur
+                    errorOccurred = true;
+                    _observers.ForEach(observer =>
+                    {
+                        observer.Update(
+                            job.Name,
+                            BackupState.ERROR,
+                            filesToBackup.Count,
+                            totalSize,
+                            filesToBackup.Count - filesProcessed,
+                            totalSize - currentProcessedFileSize,
+                            sourceFilePath,
+                            targetFilePath,
+                            -1 // Indicate error in transfer duration
+                            );
+                    });
                     // TODO: Mettre à jour le StateManager
                 }
             }
-            job.State = BackupState.COMPLETED; // Ou ERROR si des erreurs se sont produites
+            job.State = !errorOccurred ? BackupState.COMPLETED : BackupState.ERROR;
             // TODO: Mettre à jour StateManager pour la finalisation
         }
 
