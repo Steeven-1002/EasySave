@@ -44,7 +44,7 @@ namespace EasySave.Services
 
         private string GetLogFilePath()
         {
-            return "backup_log.json"; // Default log file path
+            return "log"; // Default log file path
         }
     }
 }
