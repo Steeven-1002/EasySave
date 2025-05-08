@@ -52,7 +52,7 @@ namespace EasySave.Services
             }
         }
 
-        public int GetSize(string path) // Le diagramme spécifie int
+        public long GetSize(string path) // Le diagramme spécifie int
         {
             try
             {
@@ -66,19 +66,6 @@ namespace EasySave.Services
                 return 0;
             }
         }
-        public long GetSizeAsLong(string path) // Option plus sûre
-        {
-            try
-            {
-                return new FileInfo(path).Length;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"FileSystemService ERROR GetSize for '{path}': {ex.Message}");
-                return 0L;
-            }
-        }
-
 
         public void CreateDirectory(string path)
         {
