@@ -14,11 +14,16 @@ namespace EasySave.Services
         public string StateFilePath => GetSetting("StateFilePath") as string ?? "state.json"; // Valeur par défaut
         public string Language => GetSetting("Language") as string ?? "en"; // Valeur par défaut
 
-        public ConfigManager(string configFilePath = "app_config.json")
+        public ConfigManager(string configFilePath)
         {
             _configFilePath = configFilePath;
             _settings = new Dictionary<string, object>();
             LoadConfiguration();
+        }
+
+        public ConfigManager()
+            : this(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "app_settings.json"))
+        {
         }
 
         public void LoadConfiguration()
