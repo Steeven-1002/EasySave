@@ -7,15 +7,19 @@ using EasySave.Services;
 
 namespace EasySave.Core
 {
+    /// <summary>
+    /// Implements the full backup strategy, which copies all files from the source directory to the target directory.
+    /// </summary>
     public class FullBackupStrategy : IBackupStrategy
     {
         private readonly FileSystemService _fileSystemService;
         private List<IBackupObserver> _observers;
         private List<IStateObserver> _stateObservers;
 
-        // Les dépendances (comme LoggingService et StateManager) sont passées à Execute
-        // Ou elles pourraient être injectées ici si la stratégie a besoin de les utiliser en dehors d'Execute.
-        // Pour l'instant, je suppose qu'elles sont fournies à Execute, mais FileSystemService est essentiel.
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FullBackupStrategy"/> class.
+        /// </summary>
+        /// <param name="fileSystemService">The file system service used for file operations.</param>
         public FullBackupStrategy(FileSystemService fileSystemService)
         {
             _fileSystemService = fileSystemService;
@@ -23,24 +27,46 @@ namespace EasySave.Core
             _stateObservers = new List<IStateObserver>();
         }
 
-        // Méthode pour enregistrer des observateurs si la stratégie est le sujet.
+        /// <summary>
+        /// Registers a backup observer to receive updates during the backup process.
+        /// </summary>
+        /// <param name="observer">The observer to register.</param>
         public void RegisterObserver(IBackupObserver observer)
         {
             if (!_observers.Contains(observer)) _observers.Add(observer);
         }
+
+        /// <summary>
+        /// Unregisters a backup observer to stop receiving updates.
+        /// </summary>
+        /// <param name="observer">The observer to unregister.</param>
         public void UnregisterObserver(IBackupObserver observer)
         {
             if (_observers.Contains(observer)) _observers.Remove(observer);
         }
+
+        /// <summary>
+        /// Registers a state observer to receive state change notifications during the backup process.
+        /// </summary>
+        /// <param name="stateObserver">The state observer to register.</param>
         public void RegisterStateObserver(IStateObserver stateObserver)
         {
             if (!_stateObservers.Contains(stateObserver)) _stateObservers.Add(stateObserver);
         }
+
+        /// <summary>
+        /// Unregisters a state observer to stop receiving state change notifications.
+        /// </summary>
+        /// <param name="stateObserver">The state observer to unregister.</param>
         public void UnregisterStateObserver(IStateObserver stateObserver)
         {
             if (_stateObservers.Contains(stateObserver)) _stateObservers.Remove(stateObserver);
         }
 
+        /// <summary>
+        /// Executes the full backup process for the specified backup job.
+        /// </summary>
+        /// <param name="job">The backup job to execute.</param>
         public void Execute(BackupJob job)
         {
             Console.WriteLine($"FullBackupStrategy: Executing for job '{job.Name}'");
@@ -64,7 +90,9 @@ namespace EasySave.Core
                     string.Empty, // No source file for initial state
                     string.Empty  // No target file for initial state
                 );
-                foreach (var sourceFilePath in filesToBackup)
+            });
+
+            foreach (var sourceFilePath in filesToBackup)
             {
                 string relativePath = sourceFilePath.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 string targetFilePath = Path.Combine(job.TargetPath, relativePath);
@@ -73,7 +101,6 @@ namespace EasySave.Core
 
                 try
                 {
-                    // Assurer que le répertoire cible existe
                     string? targetDir = Path.GetDirectoryName(targetFilePath);
                     if (targetDir != null && !_fileSystemService.DirectoryExists(targetDir))
                     {
@@ -89,14 +116,16 @@ namespace EasySave.Core
                                 totalSize - currentProcessedFileSize,
                                 sourceFilePath,
                                 targetFilePath,
-                                0 //No transfert duration for directory creation
-                                );
+                                0 // No transfer duration for directory creation
+                            );
                         });
                     }
+
                     // Start timer for file transfer duration
                     var startTime = DateTime.Now;
                     _fileSystemService.CopyFile(sourceFilePath, targetFilePath);
                     var endTime = DateTime.Now;
+
                     _observers.ForEach(observer =>
                     {
                         observer.Update(
@@ -109,8 +138,9 @@ namespace EasySave.Core
                             sourceFilePath,
                             targetFilePath,
                             endTime.Subtract(startTime).TotalMilliseconds
-                            );
+                        );
                     });
+
                     _stateObservers.ForEach(stateObserver =>
                     {
                         stateObserver.StateChanged(
@@ -124,12 +154,14 @@ namespace EasySave.Core
                             targetFilePath
                         );
                     });
+
                     filesProcessed++;
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"ERROR during full backup of {sourceFilePath}: {ex.Message}");
                     errorOccurred = true;
+
                     _observers.ForEach(observer =>
                     {
                         observer.Update(
@@ -142,8 +174,9 @@ namespace EasySave.Core
                             sourceFilePath,
                             targetFilePath,
                             -1 // Indicate error in transfer duration
-                            );
+                        );
                     });
+
                     _stateObservers.ForEach(stateObserver =>
                     {
                         stateObserver.StateChanged(
@@ -159,7 +192,9 @@ namespace EasySave.Core
                     });
                 }
             }
+
             job.State = !errorOccurred ? BackupState.COMPLETED : BackupState.ERROR;
+
             _stateObservers.ForEach(stateObserver =>
             {
                 stateObserver.StateChanged(
@@ -173,9 +208,13 @@ namespace EasySave.Core
                     string.Empty  // No target file for final state
                 );
             });
-        });
         }
 
+        /// <summary>
+        /// Retrieves the list of files to back up for the specified backup job.
+        /// </summary>
+        /// <param name="job">The backup job.</param>
+        /// <returns>A list of file paths to back up.</returns>
         public List<string> GetFilesToBackup(BackupJob job)
         {
             return _fileSystemService.GetFilesInDirectory(job.SourcePath);

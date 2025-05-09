@@ -6,6 +6,6 @@
         ACTIVE,
         ERROR,
         COMPLETED,
-        PAUSED // Selon le diagramme
+        PAUSED
     }
 }

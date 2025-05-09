@@ -28,6 +28,7 @@ namespace EasySave.Services
         {
             _stateFilePath = stateFilePath;
             _jobStates = new List<JobState>();
+            _observers = new List<IStateObserver>();
             LoadState();
         }
 

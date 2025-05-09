@@ -9,11 +9,20 @@ using EasySave.Services;
 
 namespace EasySave.Core
 {
+    /// <summary>
+    /// Manages backup jobs, including adding, removing, updating, executing, and persisting them.
+    /// </summary>
     public class BackupManager
     {
         private List<BackupJob> _backupJobs;
         private StateManager _stateManager;
-        private string _jobsConfigFilePath = "backup_jobs_config.json"; 
+        private string _jobsConfigFilePath = "backup_jobs_config.json";
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BackupManager"/> class.
+        /// </summary>
+        /// <param name="stateManager">The state manager to manage job states.</param>
+        /// <param name="configManager">The configuration manager to retrieve settings.</param>
         public BackupManager(StateManager stateManager, ConfigManager configManager)
         {
             _backupJobs = new List<BackupJob>();
@@ -22,7 +31,15 @@ namespace EasySave.Core
             LoadJobs();
         }
 
-        public BackupJob? AddJob(string name, string sourcePath, string targetPath, EasySave.Models.BackupType type)
+        /// <summary>
+        /// Adds a new backup job.
+        /// </summary>
+        /// <param name="name">The name of the backup job.</param>
+        /// <param name="sourcePath">The source directory path.</param>
+        /// <param name="targetPath">The target directory path.</param>
+        /// <param name="type">The type of backup (Full or Differential).</param>
+        /// <returns>The created <see cref="BackupJob"/> if successful, otherwise null.</returns>
+        public BackupJob? AddJob(string name, string sourcePath, string targetPath, EasySave.BackupType type)
         {
             if (_backupJobs.Count >= 5)
             {
@@ -36,14 +53,14 @@ namespace EasySave.Core
             }
 
             IBackupStrategy strategy;
-            FileSystemService fileSystemService = new FileSystemService(); // Instanciation directe ou via injection
+            FileSystemService fileSystemService = new FileSystemService();
 
             switch (type)
             {
-                case EasySave.Models.BackupType.FULL:
+                case EasySave.BackupType.FULL:
                     strategy = new FullBackupStrategy(fileSystemService);
                     break;
-                case EasySave.Models.BackupType.DIFFERENTIAL:
+                case EasySave.BackupType.DIFFERENTIAL:
                     strategy = new DifferentialBackupStrategy(fileSystemService);
                     break;
                 default:
@@ -58,6 +75,11 @@ namespace EasySave.Core
             return newJob;
         }
 
+        /// <summary>
+        /// Removes a backup job by its index.
+        /// </summary>
+        /// <param name="jobIndex">The index of the job to remove.</param>
+        /// <returns>True if the job was removed successfully, otherwise false.</returns>
         public bool RemoveJob(int jobIndex)
         {
             if (jobIndex >= 0 && jobIndex < _backupJobs.Count)
@@ -71,17 +93,22 @@ namespace EasySave.Core
             return false;
         }
 
+        /// <summary>
+        /// Updates an existing backup job.
+        /// </summary>
+        /// <param name="jobIndex">The index of the job to update.</param>
+        /// <param name="updatedJobData">The updated job data.</param>
+        /// <returns>True if the job was updated successfully, otherwise false.</returns>
         public bool UpdateJob(int jobIndex, BackupJob updatedJobData)
         {
             if (jobIndex >= 0 && jobIndex < _backupJobs.Count)
             {
-                // Vérifier si le nouveau nom existe déjà (sauf si c'est le même job)
                 if (_backupJobs.Any(j => j.Name.Equals(updatedJobData.Name, StringComparison.OrdinalIgnoreCase) && _backupJobs.IndexOf(j) != jobIndex))
                 {
                     Console.WriteLine($"BackupManager ERROR: Another job with name '{updatedJobData.Name}' already exists.");
                     return false;
                 }
-                // Il faut aussi potentiellement recréer/mettre à jour la stratégie si le type a changé
+
                 if (_backupJobs[jobIndex].Type != updatedJobData.Type)
                 {
                     IBackupStrategy newStrategy;
@@ -98,7 +125,7 @@ namespace EasySave.Core
                 }
                 else
                 {
-                    updatedJobData.Strategy = _backupJobs[jobIndex].Strategy; // Conserver l'ancienne stratégie si type inchangé
+                    updatedJobData.Strategy = _backupJobs[jobIndex].Strategy;
                 }
 
                 _backupJobs[jobIndex] = updatedJobData;
@@ -110,6 +137,11 @@ namespace EasySave.Core
             return false;
         }
 
+        /// <summary>
+        /// Retrieves a backup job by its index.
+        /// </summary>
+        /// <param name="jobIndex">The index of the job to retrieve.</param>
+        /// <returns>The <see cref="BackupJob"/> if found, otherwise null.</returns>
         public BackupJob? GetJob(int jobIndex)
         {
             if (jobIndex >= 0 && jobIndex < _backupJobs.Count)
@@ -119,9 +151,16 @@ namespace EasySave.Core
             return null;
         }
 
+        /// <summary>
+        /// Retrieves all backup jobs.
+        /// </summary>
+        /// <returns>A list of all <see cref="BackupJob"/> instances.</returns>
         public List<BackupJob> GetAllJobs() => new List<BackupJob>(_backupJobs);
 
-
+        /// <summary>
+        /// Executes a specific backup job by its index.
+        /// </summary>
+        /// <param name="jobIndex">The index of the job to execute.</param>
         public void ExecuteJob(int jobIndex)
         {
             BackupJob? job = GetJob(jobIndex);
@@ -136,25 +175,21 @@ namespace EasySave.Core
             }
         }
 
+        /// <summary>
+        /// Executes multiple backup jobs by their indexes.
+        /// </summary>
+        /// <param name="jobIndexes">An array of job indexes to execute.</param>
         public void ExecuteJobs(int[] jobIndexes)
         {
             foreach (int index in jobIndexes)
             {
-                ExecuteJob(index); // Exécution séquentielle
+                ExecuteJob(index);
             }
         }
 
-        // DTO pour la sérialisation afin d'éviter les problèmes avec IBackupStrategy
-        private class BackupJobDtoForSerialization
-        {
-            public string Name { get; set; }
-            public string SourcePath { get; set; }
-            public string TargetPath { get; set; }
-            public BackupType Type { get; set; }
-            public DateTime LastRunTime { get; set; }
-            public DateTime CreationTime { get; set; }
-        }
-
+        /// <summary>
+        /// Saves all backup jobs to a configuration file.
+        /// </summary>
         public void SaveJobs()
         {
             try
@@ -177,6 +212,9 @@ namespace EasySave.Core
             }
         }
 
+        /// <summary>
+        /// Loads all backup jobs from a configuration file.
+        /// </summary>
         public void LoadJobs()
         {
             try
@@ -187,16 +225,17 @@ namespace EasySave.Core
                     var dtos = JsonSerializer.Deserialize<List<BackupJobDtoForSerialization>>(json);
                     if (dtos != null)
                     {
-                        _backupJobs = dtos.Select(dto => {
-                            FileSystemService fsService = new FileSystemService(); // Ou injecter
+                        _backupJobs = dtos.Select(dto =>
+                        {
+                            FileSystemService fsService = new FileSystemService();
                             IBackupStrategy strategy = dto.Type == BackupType.FULL ?
                                 (IBackupStrategy)new FullBackupStrategy(fsService) :
                                 new DifferentialBackupStrategy(fsService);
-                            return new BackupJob(dto.Name, dto.SourcePath, dto.TargetPath, (Models.BackupType)dto.Type, strategy)
+                            return new BackupJob(dto.Name, dto.SourcePath, dto.TargetPath, (BackupType)dto.Type, strategy)
                             {
                                 LastRunTime = dto.LastRunTime,
                                 CreationTime = dto.CreationTime,
-                                State = BackupState.INACTIVE // État initial au chargement
+                                State = BackupState.INACTIVE
                             };
                         }).ToList();
                     }
@@ -205,8 +244,21 @@ namespace EasySave.Core
             catch (Exception ex)
             {
                 Console.WriteLine($"BackupManager ERROR loading jobs from '{_jobsConfigFilePath}': {ex.Message}");
-                _backupJobs = new List<BackupJob>(); // Assurer une liste vide en cas d'erreur
+                _backupJobs = new List<BackupJob>();
             }
+        }
+
+        /// <summary>
+        /// DTO class for serializing and deserializing backup jobs.
+        /// </summary>
+        private class BackupJobDtoForSerialization
+        {
+            public string Name { get; set; }
+            public string SourcePath { get; set; }
+            public string TargetPath { get; set; }
+            public BackupType Type { get; set; }
+            public DateTime LastRunTime { get; set; }
+            public DateTime CreationTime { get; set; }
         }
     }
 }
