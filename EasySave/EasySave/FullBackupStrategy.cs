@@ -11,6 +11,7 @@ namespace EasySave.Core
     {
         private readonly FileSystemService _fileSystemService;
         private List<IBackupObserver> _observers;
+        private List<IStateObserver> _stateObservers;
 
         // Les dépendances (comme LoggingService et StateManager) sont passées à Execute
         // Ou elles pourraient être injectées ici si la stratégie a besoin de les utiliser en dehors d'Execute.
@@ -19,6 +20,7 @@ namespace EasySave.Core
         {
             _fileSystemService = fileSystemService;
             _observers = new List<IBackupObserver>();
+            _stateObservers = new List<IStateObserver>();
         }
 
         // Méthode pour enregistrer des observateurs si la stratégie est le sujet.
@@ -26,23 +28,36 @@ namespace EasySave.Core
         {
             if (!_observers.Contains(observer)) _observers.Add(observer);
         }
+        public void UnregisterObserver(IBackupObserver observer)
+        {
+            if (_observers.Contains(observer)) _observers.Remove(observer);
+        }
+        public void RegisterStateObserver(IStateObserver stateObserver)
+        {
+            if (!_stateObservers.Contains(stateObserver)) _stateObservers.Add(stateObserver);
+        }
+        public void UnregisterStateObserver(IStateObserver stateObserver)
+        {
+            if (_stateObservers.Contains(stateObserver)) _stateObservers.Remove(stateObserver);
+        }
 
         public void Execute(BackupJob job)
         {
             Console.WriteLine($"FullBackupStrategy: Executing for job '{job.Name}'");
-            NotifyObservers(job, BackupStatus.STARTED);
             job.State = BackupState.ACTIVE;
 
             var filesToBackup = GetFilesToBackup(job);
-            long totalSize = 0; // TODO: Calculer la taille totale
+            long totalSize = filesToBackup.Sum(file => _fileSystemService.GetSize(file));
             int filesProcessed = 0;
-
-            // TODO: Informer StateManager: job.Name, BackupState.ACTIVE, filesToBackup.Count, totalSize, filesToBackup.Count, totalSize, "Scanning complete", ""
+            long currentProcessedFileSize = 0;
+            bool errorOccurred = false;
 
             foreach (var sourceFilePath in filesToBackup)
             {
                 string relativePath = sourceFilePath.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 string targetFilePath = Path.Combine(job.TargetPath, relativePath);
+                long currentFileSize = _fileSystemService.GetSize(sourceFilePath);
+                currentProcessedFileSize += currentFileSize;
 
                 try
                 {
@@ -51,40 +66,106 @@ namespace EasySave.Core
                     if (targetDir != null && !_fileSystemService.DirectoryExists(targetDir))
                     {
                         _fileSystemService.CreateDirectory(targetDir);
-                        // TODO: Logger la création du répertoire via le LoggingService passé à Execute
+                        _observers.ForEach(observer =>
+                        {
+                            observer.Update(
+                                job.Name,
+                                BackupState.ACTIVE,
+                                filesToBackup.Count,
+                                totalSize,
+                                filesToBackup.Count - filesProcessed,
+                                totalSize - currentProcessedFileSize,
+                                sourceFilePath,
+                                targetFilePath,
+                                0 //No transfert duration for directory creation
+                                );
+                        });
                     }
-
+                    // Start timer for file transfer duration
+                    var startTime = DateTime.Now;
                     _fileSystemService.CopyFile(sourceFilePath, targetFilePath);
+                    var endTime = DateTime.Now;
+                    _observers.ForEach(observer =>
+                    {
+                        observer.Update(
+                            job.Name,
+                            BackupState.ACTIVE,
+                            filesToBackup.Count,
+                            totalSize,
+                            filesToBackup.Count - filesProcessed,
+                            totalSize - currentProcessedFileSize,
+                            sourceFilePath,
+                            targetFilePath,
+                            endTime.Subtract(startTime).TotalMilliseconds
+                            );
+                    });
+                    _stateObservers.ForEach(stateObserver =>
+                    {
+                        stateObserver.StateChanged(
+                            job.Name,
+                            job.State,
+                            filesToBackup.Count,
+                            totalSize,
+                            filesToBackup.Count - filesProcessed,
+                            totalSize - currentProcessedFileSize,
+                            sourceFilePath,
+                            targetFilePath
+                        );
+                    });
                     filesProcessed++;
-                    NotifyObservers(job, BackupStatus.FILE_COPIED);
-                    // TODO: Logger la copie du fichier via le LoggingService passé à Execute
-                    // TODO: Mettre à jour le StateManager via le StateManager passé à Execute
-                    // (job.Name, job.State, filesToBackup.Count, totalSize, filesToBackup.Count - filesProcessed, totalSize - currentFileSize, sourceFilePath, targetFilePath)
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"ERROR during full backup of {sourceFilePath}: {ex.Message}");
-                    NotifyObservers(job, BackupStatus.ERROR);
-                    // TODO: Logger l'erreur
-                    // TODO: Mettre à jour le StateManager
+                    errorOccurred = true;
+                    _observers.ForEach(observer =>
+                    {
+                        observer.Update(
+                            job.Name,
+                            BackupState.ERROR,
+                            filesToBackup.Count,
+                            totalSize,
+                            filesToBackup.Count - filesProcessed,
+                            totalSize - currentProcessedFileSize,
+                            sourceFilePath,
+                            targetFilePath,
+                            -1 // Indicate error in transfer duration
+                            );
+                    });
+                    _stateObservers.ForEach(stateObserver =>
+                    {
+                        stateObserver.StateChanged(
+                            job.Name,
+                            job.State,
+                            filesToBackup.Count,
+                            totalSize,
+                            filesToBackup.Count - filesProcessed,
+                            totalSize - currentProcessedFileSize,
+                            sourceFilePath, // Pass the current source file
+                            targetFilePath  // Pass the current target file
+                        );
+                    });
                 }
             }
-            job.State = BackupState.COMPLETED; // Ou ERROR si des erreurs se sont produites
-            NotifyObservers(job, job.State == BackupState.COMPLETED ? BackupStatus.COMPLETED_SUCCESS : BackupStatus.COMPLETED_WITH_ERRORS);
-            // TODO: Mettre à jour StateManager pour la finalisation
+            job.State = !errorOccurred ? BackupState.COMPLETED : BackupState.ERROR;
+            _stateObservers.ForEach(stateObserver =>
+            {
+                stateObserver.StateChanged(
+                    job.Name,
+                    job.State,
+                    filesToBackup.Count,
+                    totalSize,
+                    filesToBackup.Count - filesProcessed,
+                    totalSize - currentProcessedFileSize,
+                    string.Empty, // No source file for final state
+                    string.Empty  // No target file for final state
+                );
+            });
         }
 
         public List<string> GetFilesToBackup(BackupJob job)
         {
             return _fileSystemService.GetFilesInDirectory(job.SourcePath);
-        }
-
-        private void NotifyObservers(BackupJob job, BackupStatus status)
-        {
-            foreach (var observer in _observers)
-            {
-                observer.Update(job, status);
-            }
         }
     }
 }

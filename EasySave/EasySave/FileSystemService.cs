@@ -1,35 +1,42 @@
-﻿// EasySave.Services.FileSystemService.cs
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Security.Cryptography; // Exemple pour GetFileHash
+﻿using System.Security.Cryptography;
 
 namespace EasySave.Services
 {
+    /// <summary>
+    /// Provides file system operations such as copying files, calculating file hashes, and retrieving file information.
+    /// </summary>
     public class FileSystemService
     {
+        /// <summary>
+        /// Copies a file from the source path to the destination path, creating directories if necessary.
+        /// </summary>
+        /// <param name="source">The source file path.</param>
+        /// <param name="destination">The destination file path.</param>
+        /// <exception cref="Exception">Thrown if an error occurs during the copy operation.</exception>
         public void CopyFile(string source, string destination)
         {
             try
             {
                 string? destDir = Path.GetDirectoryName(destination);
-                if (destDir != null && !Directory.Exists(destDir)) // Utilise System.IO.Directory.Exists
+                if (destDir != null && !Directory.Exists(destDir))
                 {
-                    Directory.CreateDirectory(destDir); // Utilise System.IO.Directory.CreateDirectory
+                    Directory.CreateDirectory(destDir);
                 }
-                File.Copy(source, destination, true); // true pour overwrite
-                // Dans une version réelle, cette méthode retournerait un FileCopyResult
-                // et/ou notifierait des observateurs via la stratégie.
+                File.Copy(source, destination, true); // true for overwrite existing files
                 Console.WriteLine($"FileSystemService: Copied '{source}' to '{destination}'.");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"FileSystemService ERROR copying '{source}' to '{destination}': {ex.Message}");
-                throw; // Il est souvent préférable de laisser l'appelant gérer l'exception.
+                throw;
             }
         }
 
+        /// <summary>
+        /// Computes the SHA-256 hash of a file.
+        /// </summary>
+        /// <param name="path">The file path.</param>
+        /// <returns>The SHA-256 hash as a hexadecimal string, or an empty string if an error occurs.</returns>
         public string GetFileHash(string path)
         {
             Console.WriteLine($"FileSystemService: GetFileHash for '{path}' (stub).");
@@ -51,12 +58,15 @@ namespace EasySave.Services
             }
         }
 
-        public long GetSize(string path) // Le diagramme spécifie int
+        /// <summary>
+        /// Gets the size of a file in bytes.
+        /// </summary>
+        /// <param name="path">The file path.</param>
+        /// <returns>The size of the file in bytes, or 0 if an error occurs.</returns>
+        public long GetSize(string path)
         {
             try
             {
-                // Attention: une conversion en int peut entraîner une perte de données pour les gros fichiers.
-                // long est généralement préférable pour la taille des fichiers.
                 return (int)new FileInfo(path).Length;
             }
             catch (Exception ex)
@@ -66,6 +76,11 @@ namespace EasySave.Services
             }
         }
 
+        /// <summary>
+        /// Creates a directory at the specified path.
+        /// </summary>
+        /// <param name="path">The directory path.</param>
+        /// <exception cref="Exception">Thrown if an error occurs during directory creation.</exception>
         public void CreateDirectory(string path)
         {
             try
@@ -80,13 +95,16 @@ namespace EasySave.Services
             }
         }
 
+        /// <summary>
+        /// Retrieves all files in a directory and its subdirectories.
+        /// </summary>
+        /// <param name="path">The directory path.</param>
+        /// <returns>A list of file paths, or an empty list if an error occurs.</returns>
         public List<string> GetFilesInDirectory(string path)
         {
             try
             {
-                // Le diagramme ne spécifie pas la recherche récursive, donc on ne la met pas par défaut.
-                // Pour inclure les sous-dossiers : Directory.GetFiles(path, "*.*", SearchOption.AllDirectories).ToList();
-                return Directory.GetFiles(path).ToList();
+                return Directory.GetFiles(path, "*.*", SearchOption.AllDirectories).ToList();
             }
             catch (Exception ex)
             {
@@ -95,11 +113,16 @@ namespace EasySave.Services
             }
         }
 
+        /// <summary>
+        /// Retrieves files in a directory that have been modified since a specified date and time.
+        /// </summary>
+        /// <param name="path">The directory path.</param>
+        /// <param name="since">The date and time to compare file modification times against.</param>
+        /// <returns>A list of file paths, or an empty list if an error occurs.</returns>
         public List<string> GetModifiedFilesSince(string path, DateTime since)
         {
             try
             {
-                // Ici, on va supposer une recherche récursive car c'est plus logique pour les sauvegardes
                 return Directory.GetFiles(path, "*.*", SearchOption.AllDirectories)
                                 .Where(f => File.GetLastWriteTime(f) > since)
                                 .ToList();
@@ -111,40 +134,43 @@ namespace EasySave.Services
             }
         }
 
-        // Ajout des méthodes qui étaient dans le diagramme mais potentiellement omises dans le code précédent
+        /// <summary>
+        /// Checks if a directory exists at the specified path.
+        /// </summary>
+        /// <param name="path">The directory path.</param>
+        /// <returns>True if the directory exists, otherwise false.</returns>
         public bool DirectoryExists(string path)
         {
             return Directory.Exists(path);
         }
 
+        /// <summary>
+        /// Checks if a file exists at the specified path.
+        /// </summary>
+        /// <param name="path">The file path.</param>
+        /// <returns>True if the file exists, otherwise false.</returns>
         public bool FileExists(string path)
         {
             return File.Exists(path);
         }
 
-        public DateTime GetFileLastWriteTime(string filePath) // Ajouté car souvent utile et implicite
+        /// <summary>  
+        /// Retrieves all directories, subdirectories, and files contained in the specified directory path.  
+        /// </summary>  
+        /// <param name="path">The directory path.</param>  
+        /// <returns>A list of paths for all directories, subdirectories, and files, or an empty list if an error occurs.</returns>  
+        public List<string> GetAllContents(string path)
         {
             try
             {
-                return File.GetLastWriteTime(filePath);
+                var directories = Directory.GetDirectories(path, "*", SearchOption.AllDirectories);
+                var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
+                return directories.Concat(files).ToList();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"FileSystemService ERROR GetFileLastWriteTime for '{filePath}': {ex.Message}");
-                return DateTime.MinValue;
-            }
-        }
-        public bool HasFileChanged(string filePath, string previousHash)
-        {
-            try
-            {
-                string currentHash = GetFileHash(filePath);
-                return !string.Equals(currentHash, previousHash, StringComparison.OrdinalIgnoreCase);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"FileSystemService ERROR HasFileChanged for '{filePath}': {ex.Message}");
-                return false;
+                Console.WriteLine($"FileSystemService ERROR GetAllContents for '{path}': {ex.Message}");
+                return new List<string>();
             }
         }
     }

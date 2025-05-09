@@ -5,26 +5,59 @@ using System.Linq;
 using System.Text.Json;
 using EasySave.Models;
 using EasySave.Interfaces;
+using EasySave.ConsoleApp;
 
 namespace EasySave.Services
 {
-    public class StateManager
+    /// <summary>
+    /// Manages the state of backup jobs and provides functionality to save, load, and update job states.
+    /// Implements the <see cref="IStateObserver"/> interface.
+    /// </summary>
+    public class StateManager : IStateObserver
     {
+        private static StateManager? _instance;
         private readonly string _stateFilePath;
         private List<JobState> _jobStates;
-        private List<IStateObserver> _observers;
+        private readonly List<IStateObserver> _observers;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="StateManager"/> class.
+        /// </summary>
+        /// <param name="stateFilePath">The file path where the state will be saved and loaded from.</param>
         public StateManager(string stateFilePath)
         {
             _stateFilePath = stateFilePath;
             _jobStates = new List<JobState>();
-            _observers = new List<IStateObserver>();
-            LoadState(); // Charger l'état existant à l'initialisation
+            LoadState();
         }
 
-        // Le diagramme indique : UpdateJobState(job: BackupJob, currentFile: string, targetFile: string, remainingFiles: int, remainingSize: long)
-        // Je vais adapter pour utiliser JobState directement ou le nom du job
-        public void UpdateJobState(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile)
+        /// <summary>
+        /// Gets the singleton instance of the <see cref="StateManager"/> class.
+        /// </summary>
+        public static StateManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = new StateManager(ReferenceEquals(ConfigManager.Instance.StateFilePath, "") ? "state.json" : ConfigManager.Instance.StateFilePath);
+                }
+                return _instance;
+            }
+        }
+
+        /// <summary>
+        /// Updates the state of a specific job and saves the updated state to the file.
+        /// </summary>
+        /// <param name="jobName">The name of the job.</param>
+        /// <param name="newState">The new state of the job.</param>
+        /// <param name="totalFiles">The total number of files in the job.</param>
+        /// <param name="totalSize">The total size of files in the job.</param>
+        /// <param name="remainingFiles">The number of remaining files to process.</param>
+        /// <param name="remainingSize">The size of remaining files to process.</param>
+        /// <param name="currentSourceFile">The current source file being processed.</param>
+        /// <param name="currentTargetFile">The current target file being processed.</param>
+        public void StateChanged(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile)
         {
             JobState? jobState = _jobStates.FirstOrDefault(js => js.JobName == jobName);
             bool newEntry = false;
@@ -43,24 +76,36 @@ namespace EasySave.Services
             jobState.CurrentSourceFile = currentSourceFile;
             jobState.CurrentTargetFile = currentTargetFile;
 
-            if (newEntry) _jobStates.Add(jobState); // Ajouter seulement si c'est une nouvelle entrée
+            if (newEntry) _jobStates.Add(jobState);
 
             Console.WriteLine($"StateManager: Updated state for job '{jobName}'. Current file: {currentSourceFile}");
-            NotifyObservers(jobState);
             SaveState();
         }
 
+        /// <summary>
+        /// Initializes the state of a job with the given total files and size.
+        /// </summary>
+        /// <param name="jobName">The name of the job.</param>
+        /// <param name="totalFiles">The total number of files in the job.</param>
+        /// <param name="totalSize">The total size of files in the job.</param>
         public void InitializeJobState(string jobName, int totalFiles, long totalSize)
         {
-            UpdateJobState(jobName, BackupState.ACTIVE, totalFiles, totalSize, totalFiles, totalSize, "Starting scan...", "");
+            StateChanged(jobName, BackupState.ACTIVE, totalFiles, totalSize, totalFiles, totalSize, "Starting scan...", "");
         }
 
+        /// <summary>
+        /// Finalizes the state of a job with the specified final state.
+        /// </summary>
+        /// <param name="jobName">The name of the job.</param>
+        /// <param name="finalState">The final state of the job.</param>
         public void FinalizeJobState(string jobName, BackupState finalState)
         {
-            UpdateJobState(jobName, finalState, 0, 0, 0, 0, "Finalized", ""); // Les totaux pourraient être ceux de fin
+            StateChanged(jobName, finalState, 0, 0, 0, 0, "Finalized", "");
         }
 
-
+        /// <summary>
+        /// Saves the current state of all jobs to the state file.
+        /// </summary>
         public void SaveState()
         {
             try
@@ -74,6 +119,9 @@ namespace EasySave.Services
             }
         }
 
+        /// <summary>
+        /// Loads the state of all jobs from the state file.
+        /// </summary>
         public void LoadState()
         {
             try
@@ -95,39 +143,14 @@ namespace EasySave.Services
             }
         }
 
+        /// <summary>
+        /// Retrieves the state of a specific job by its name.
+        /// </summary>
+        /// <param name="jobName">The name of the job.</param>
+        /// <returns>The <see cref="JobState"/> of the job, or null if not found.</returns>
         public JobState? GetState(string jobName)
         {
             return _jobStates.FirstOrDefault(js => js.JobName == jobName);
-        }
-
-        public void RegisterObserver(IStateObserver observer)
-        {
-            if (!_observers.Contains(observer))
-            {
-                _observers.Add(observer);
-            }
-        }
-
-        public void UnregisterObserver(IStateObserver observer) // Méthode utile
-        {
-            _observers.Remove(observer);
-        }
-
-        private void NotifyObservers(JobState state)
-        {
-            foreach (var observer in _observers)
-            {
-                observer.StateChanged(state);
-            }
-        }
-
-        private void CreateStateFile() // Définie dans le diagramme
-        {
-            // Assure que le fichier est créé s'il n'existe pas, potentiellement avec un contenu vide ou initial.
-            if (!File.Exists(_stateFilePath))
-            {
-                SaveState(); // Sauvegarde une liste vide de _jobStates ou l'état actuel.
-            }
         }
     }
 }

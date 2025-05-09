@@ -7,6 +7,7 @@ namespace EasySave.Services
 {
     public class ConfigManager
     {
+        private static ConfigManager? _instance;
         private readonly string _configFilePath;
         private Dictionary<string, JsonElement> _settings;
 
@@ -26,6 +27,22 @@ namespace EasySave.Services
                 : "en";
 
         public ConfigManager(string configFilePath)
+          
+        private Dictionary<string, object> _settings;
+
+        public static ConfigManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = new ConfigManager("app_settings.json");
+                }
+                return _instance;
+            }
+        }
+
+        private ConfigManager(string configFilePath)
         {
             _configFilePath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -61,8 +78,7 @@ namespace EasySave.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ConfigManager: Error loading configuration: {ex.Message}. Using empty settings.");
-                _settings = new Dictionary<string, JsonElement>();
+                Console.WriteLine($"ConfigManager ERROR loading configuration: {ex.Message}");
             }
         }
 
@@ -80,7 +96,6 @@ namespace EasySave.Services
 
                 string json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(_configFilePath, json);
-                Console.WriteLine($"ConfigManager: Configuration saved to '{_configFilePath}'.");
             }
             catch (Exception error)
             {
@@ -90,7 +105,8 @@ namespace EasySave.Services
 
         public object? GetSetting(string key)
         {
-            return _settings.TryGetValue(key, out var value) ? value : null;
+            _settings.TryGetValue(key, out var value);
+            return value;
         }
 
         public void SetSetting(string key, object value)
