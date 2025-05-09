@@ -152,7 +152,7 @@ namespace EasySave.ConsoleApp
             string? source = Console.ReadLine();
             Console.Write($"{_localizationService.GetString("EnterTargetPath")}: ");
             string? target = Console.ReadLine();
-            Console.Write($"{_localizationService.GetString("EnterBackupType")} (FULL/DIFFERENTIAL): ");
+            Console.Write($"{_localizationService.GetString("EnterBackupType")}: ");
             string? typeStr = Console.ReadLine();
 
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(source) ||
@@ -286,7 +286,7 @@ namespace EasySave.ConsoleApp
         /// </summary>
         private static void UiChangeLanguage()
         {
-            Console.Write($"{_localizationService.GetString("EnterLanguageCode")} (en, fr): ");
+            Console.Write($"{_localizationService.GetString("EnterLanguageCode")}: ");
             string? langCode = Console.ReadLine()?.ToLower();
             if (!string.IsNullOrWhiteSpace(langCode) && (langCode == "en" || langCode == "fr"))
             {
