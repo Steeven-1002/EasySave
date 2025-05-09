@@ -35,8 +35,7 @@ namespace EasySave.ConsoleApp
 
         private static void InitializeComponents()
         {
-            // Assuming ConfigManager.Instance is the correct way to initialize ConfigManager
-            _configManager = ConfigManager.Instance; // Singleton pattern
+            _configManager = ConfigManager.Instance;
 
             _localizationService = new LocalizationService(_configManager.Language); // Utilise la langue de config
 
