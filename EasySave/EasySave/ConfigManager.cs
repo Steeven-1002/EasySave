@@ -26,9 +26,8 @@ namespace EasySave.Services
                 ? val.GetString()!
                 : "en";
 
-        public ConfigManager(string configFilePath)
-          
-        private Dictionary<string, object> _settings;
+        //public ConfigManager(string configFilePath)
+
 
         public static ConfigManager Instance
         {
