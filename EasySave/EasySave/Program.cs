@@ -6,7 +6,7 @@ using EasySave.Interfaces;
 using EasySave.Services;
 using EasySave.Core;
 using System.Text.Json;
-using LoggingLibrary; // Placeholder pour la DLL externe
+using LoggingLibrary;
 
 
 namespace EasySave.ConsoleApp
