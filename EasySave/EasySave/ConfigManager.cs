@@ -5,19 +5,35 @@ using System.Text.Json;
 
 namespace EasySave.Services
 {
-    /// <summary>
-    /// Manages the application's configuration settings, including loading and saving them to a file.
-    /// Implements the Singleton design pattern.
-    /// </summary>
+    /// <summary>  
+    /// Manages the application's configuration settings, including loading and saving them to a file.  
+    /// Implements the Singleton design pattern.  
+    /// </summary>  
     public class ConfigManager
     {
         private static ConfigManager? _instance;
         private readonly string _configFilePath;
-        private Dictionary<string, object> _settings;
+        private Dictionary<string, JsonElement> _settings;
 
-        /// <summary>
-        /// Gets the singleton instance of the <see cref="ConfigManager"/> class.
-        /// </summary>
+        // Removed duplicate property definitions causing ambiguity  
+        public string LogFilePath =>
+            _settings.TryGetValue("LogFilePath", out var val) && val.ValueKind == JsonValueKind.String
+                ? val.GetString()!
+                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "Logs\\");
+
+        public string StateFilePath =>
+            _settings.TryGetValue("StateFilePath", out var val) && val.ValueKind == JsonValueKind.String
+                ? val.GetString()!
+                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "state.json");
+
+        public string Language =>
+            _settings.TryGetValue("Language", out var val) && val.ValueKind == JsonValueKind.String
+                ? val.GetString()!
+                : "en";
+
+        /// <summary>  
+        /// Gets the singleton instance of the <see cref="ConfigManager"/> class.  
+        /// </summary>  
         public static ConfigManager Instance
         {
             get
@@ -30,40 +46,26 @@ namespace EasySave.Services
             }
         }
 
-        /// <summary>
-        /// Gets the file path for the log file from the configuration.
-        /// Defaults to "log.txt" if not specified.
-        /// </summary>
-        public string LogFilePath => GetSetting("LogFilePath")?.ToString() ?? "log.txt";
-
-        /// <summary>
-        /// Gets the file path for the state file from the configuration.
-        /// Defaults to "state.json" if not specified.
-        /// </summary>
-        public string StateFilePath => GetSetting("StateFilePath")?.ToString() ?? "state.json";
-
-        /// <summary>
-        /// Gets the language setting from the configuration.
-        /// Defaults to "en" if not specified.
-        /// </summary>
-        public string Language => GetSetting("Language")?.ToString() ?? "en";
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ConfigManager"/> class.
-        /// Loads the configuration from the specified file path.
-        /// </summary>
-        /// <param name="configFilePath">The path to the configuration file.</param>
+        /// <summary>  
+        /// Initializes a new instance of the <see cref="ConfigManager"/> class.  
+        /// Loads the configuration from the specified file path.  
+        /// </summary>  
+        /// <param name="configFilePath">The path to the configuration file.</param>  
         private ConfigManager(string configFilePath)
         {
-            _configFilePath = configFilePath;
-            _settings = new Dictionary<string, object>();
+            _configFilePath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "EasySave",
+                configFilePath
+            );
+            _settings = new Dictionary<string, JsonElement>();
             LoadConfiguration();
         }
 
-        /// <summary>
-        /// Loads the configuration settings from the file.
-        /// If the file does not exist, an empty configuration is used.
-        /// </summary>
+        /// <summary>  
+        /// Loads the configuration settings from the file.  
+        /// If the file does not exist, an empty configuration is used.  
+        /// </summary>  
         public void LoadConfiguration()
         {
             try
@@ -71,7 +73,14 @@ namespace EasySave.Services
                 if (File.Exists(_configFilePath))
                 {
                     string json = File.ReadAllText(_configFilePath);
-                    _settings = JsonSerializer.Deserialize<Dictionary<string, object>>(json) ?? new Dictionary<string, object>();
+                    _settings = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json) ?? new Dictionary<string, JsonElement>();
+                }
+                else
+                {
+                    SetSetting("LogFilePath", LogFilePath);
+                    SetSetting("StateFilePath", StateFilePath);
+                    SetSetting("Language", Language);
+                    SaveConfiguration();
                 }
             }
             catch (Exception ex)
@@ -80,42 +89,56 @@ namespace EasySave.Services
             }
         }
 
-        /// <summary>
-        /// Saves the current configuration settings to the file.
-        /// </summary>
+        /// <summary>  
+        /// Saves the current configuration settings to the file.  
+        /// </summary>  
         public void SaveConfiguration()
         {
             try
             {
+                string directory = Path.GetDirectoryName(_configFilePath);
+                if (!Directory.Exists(directory) && directory != null)
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
                 string json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(_configFilePath, json);
             }
-            catch (Exception ex)
+            catch (Exception error)
             {
-                Console.WriteLine($"ConfigManager ERROR saving configuration: {ex.Message}");
+                Console.WriteLine($"ConfigManager: Error saving configuration: {error.Message}");
             }
         }
 
-        /// <summary>
-        /// Gets the value of a configuration setting by its key.
-        /// </summary>
-        /// <param name="key">The key of the setting to retrieve.</param>
-        /// <returns>The value of the setting, or <c>null</c> if the key does not exist.</returns>
+        /// <summary>  
+        /// Gets the value of a configuration setting by its key.  
+        /// </summary>  
+        /// <param name="key">The key of the setting to retrieve.</param>  
+        /// <returns>The value of the setting, or <c>null</c> if the key does not exist.</returns>  
         public object? GetSetting(string key)
         {
             _settings.TryGetValue(key, out var value);
             return value;
         }
 
-        /// <summary>
-        /// Sets the value of a configuration setting.
-        /// If the key already exists, its value is updated.
-        /// </summary>
-        /// <param name="key">The key of the setting to set.</param>
-        /// <param name="value">The value to assign to the setting.</param>
+        /// <summary>  
+        /// Sets the value of a configuration setting.  
+        /// If the key already exists, its value is updated.  
+        /// </summary>  
+        /// <param name="key">The key of the setting to set.</param>  
+        /// <param name="value">The value to assign to the setting.</param>  
         public void SetSetting(string key, object value)
         {
-            _settings[key] = value;
+            if (value is JsonElement jsonElement)
+            {
+                _settings[key] = jsonElement;
+            }
+            else
+            {
+                string json = JsonSerializer.Serialize(value);
+                _settings[key] = JsonSerializer.Deserialize<JsonElement>(json);
+            }
         }
     }
 }
