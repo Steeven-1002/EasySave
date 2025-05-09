@@ -1,4 +1,4 @@
-Groupe 1 :
+**Groupe 1 :**
 Antonin CREVON
 Steeven BIHEL
 Virgile VILLARD
@@ -6,16 +6,13 @@ Grégoire DUPONT
 
 # Cahier de Tests
 
-# Sommaire
-Introduction
-
 # Introduction
 
 Un cahier de tests a pour objectif de montrer toutes les possibilités d'utilisation d'une application. Ici, chaque option est décrite afin de faire une rétrospection de toutes les fonctionalités. Notre application EasySave permet de créer des sauvegardes de vos fichiers de manière simple, efficaces et intuitives. Retrouvez dans ce document les réponses à vos questions concernant l'utilisation de EasySave.
 
-Tests unitaires
+# Tests unitaires
 
-# 1. Tests de l'Interface Utilisateur et de la Localisation
+## 1. Tests de l'Interface Utilisateur et de la Localisation
 
 | ID Test | Titre du Test | Étapes | Résultats Attendus |
 |---|---|---|---|
@@ -27,7 +24,7 @@ Tests unitaires
 | UI-FR-006 | Message de sortie de l'application | 1.<br> Choisir ""Quitter le programme"" depuis le menu principal. | Le message ""Fermeture d'EasySave.<br> Au revoir !"" s'affiche avant la fermeture. |
 | UI-FR-007 | ""Invite ""Appuyez sur Entrée pour continuer"" | 1. Exécuter une action qui affiche un résultat (ex: lister les travaux). | L'invite ""Appuyez sur Entrée pour continuer..."" s'affiche. |
 
-# 2. Tests de Fonctionnalités de Base des Travaux de Sauvegarde
+## 2. Tests de Fonctionnalités de Base des Travaux de Sauvegarde
 
 | ID Test | Titre du Test | Étapes | Résultats Attendus |
 |---|---|---|---|
@@ -37,7 +34,7 @@ Tests unitaires
 | JB-FR-004 | Annulation de la suppression d'un travail | 1. Créer un travail ""NotDeletedFR"".<br>2. Choisir ""Supprimer un travail de sauvegarde"".<br>3. Entrer l'index/nom de ""NotDeletedFR"".<br>4. Répondre ""non"" à la confirmation. | 1. Le message ""Suppression annulée."" s'affiche.<br>2. ""NotDeletedFR"" est toujours listé. |
 | JB-FR-005 | Listage des travaux de sauvegarde | 1. Créer plusieurs travaux (ex: JobA, JobB).<br>2. Choisir ""Lister les travaux de sauvegarde"". | 1. Le titre ""--- Travaux de Sauvegarde Configurés ---"" s'affiche.<br>2. JobA et JobB sont listés avec leurs détails (Nom, Source, Cible, Type, État). |
 
-# 3. Tests d'Exécution des Travaux de Sauvegarde
+## 3. Tests d'Exécution des Travaux de Sauvegarde
 
 | ID Test | Titre du Test | Étapes | Résultats Attendus |
 |---|---|---|---|
@@ -46,7 +43,7 @@ Tests unitaires
 | EX-FR-003 | Exécution de plusieurs travaux de sauvegarde | 1. Créer deux travaux ""MultiA"" et ""MultiB"".<br>2. Choisir ""Exécuter plusieurs travaux de sauvegarde"".<br>3. Entrer les numéros des travaux ""MultiA"" et ""MultiB"" (ex: ""1;2"" ou ""1-2""). | 1. L'invite ""Entrez les numéros des travaux à exécuter (ex: 1;3 ou 1-3)"" s'affiche.<br>2. Les travaux ""MultiA"" et ""MultiB"" sont exécutés séquentiellement ou en parallèle (selon l'implémentation).<br>3. Les deux travaux se terminent avec l'état ""Terminé avec succès"". |
 | EX-FR-004 | Statut du travail après exécution avec erreurs | 1. Créer un travail ""ErrorJobFR"" avec un répertoire source inaccessible après la création.<br>2. Exécuter ""ErrorJobFR"". | 1. L'état du travail passe à ""Terminé avec erreurs"" ou ""Échoué"".<br>2. Des messages d'erreur appropriés sont journalisés (non visibles directement via UI sauf si implémenté). |
 
-# 4. Tests de Gestion des Erreurs et Messages
+## 4. Tests de Gestion des Erreurs et Messages
 
 | ID Test | Titre du Test | Étapes | Résultats Attendus |
 |---|---|---|---|
@@ -60,7 +57,7 @@ Tests unitaires
 | ERR-FR-008 | Changement de langue - Fichier de langue manquant (simulé) | 1. Renommer temporairement lang_de.json en lang_fr.json (si on voulait tester un code ""de"" et que lang_fr.json est le seul qui ne fonctionne pas).<br>2. Choisir ""Changer de langue"".<br>3. Entrer ""fr"". | Le message ""Échec du changement de langue vers fr. Veuillez vérifier que le fichier de langue existe."" s'affiche (ou message similaire de LocalizationService). |
 | ERR-FR-009 | Menu Principal - Choix invalide | 1. Au menu principal, entrer une option non listée (ex: 99). | Le message ""Choix invalide. Veuillez réessayer."" s'affiche, suivi de ""Entrez votre choix"". |
 
-# 5. Tests de Configuration et Persistance
+## 5. Tests de Configuration et Persistance
 
 | ID Test | Titre du Test | Étapes | Résultats Attendus |
 |---|---|---|---|
