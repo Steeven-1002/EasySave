@@ -4,18 +4,18 @@ Steeven BIHEL
 Virgile VILLARD
 Grégoire DUPONT
 
-Cahier de Tests
+# Cahier de Tests
 
-Sommaire
+# Sommaire
 Introduction
 
-Introduction
+# Introduction
 
 Un cahier de tests a pour objectif de montrer toutes les possibilités d'utilisation d'une application. Ici, chaque option est décrite afin de faire une rétrospection de toutes les fonctionalités. Notre application EasySave permet de créer des sauvegardes de vos fichiers de manière simple, efficaces et intuitives. Retrouvez dans ce document les réponses à vos questions concernant l'utilisation de EasySave.
 
 Tests unitaires
 
-1. Tests de l'Interface Utilisateur et de la Localisation
+# 1. Tests de l'Interface Utilisateur et de la Localisation
 
 | ID Test | Titre du Test | Étapes | Résultats Attendus |
 |---|---|---|---|
@@ -27,7 +27,7 @@ Tests unitaires
 | UI-FR-006 | Message de sortie de l'application | 1.<br> Choisir ""Quitter le programme"" depuis le menu principal. | Le message ""Fermeture d'EasySave.<br> Au revoir !"" s'affiche avant la fermeture. |
 | UI-FR-007 | ""Invite ""Appuyez sur Entrée pour continuer"" | 1. Exécuter une action qui affiche un résultat (ex: lister les travaux). | L'invite ""Appuyez sur Entrée pour continuer..."" s'affiche. |
 
-2. Tests de Fonctionnalités de Base des Travaux de Sauvegarde
+# 2. Tests de Fonctionnalités de Base des Travaux de Sauvegarde
 
 | ID Test | Titre du Test | Étapes | Résultats Attendus |
 |---|---|---|---|
@@ -36,3 +36,12 @@ Tests unitaires
 | JB-FR-003 | Suppression d'un travail de sauvegarde existant | 1. Créer un travail ""ToDeleteFR"".<br>2. Choisir ""Supprimer un travail de sauvegarde"".<br>3. Entrer l'index/nom de ""ToDeleteFR"".<br>4. Confirmer avec ""oui"". | 1. L'invite ""Êtes-vous sûr de vouloir supprimer le travail 'ToDeleteFR' ? (oui/non) : "" s'affiche.<br>2. Le message ""Travail 'ToDeleteFR' supprimé avec succès."" s'affiche.<br>3. ""ToDeleteFR"" n'est plus listé. |
 | JB-FR-004 | Annulation de la suppression d'un travail | 1. Créer un travail ""NotDeletedFR"".<br>2. Choisir ""Supprimer un travail de sauvegarde"".<br>3. Entrer l'index/nom de ""NotDeletedFR"".<br>4. Répondre ""non"" à la confirmation. | 1. Le message ""Suppression annulée."" s'affiche.<br>2. ""NotDeletedFR"" est toujours listé. |
 | JB-FR-005 | Listage des travaux de sauvegarde | 1. Créer plusieurs travaux (ex: JobA, JobB).<br>2. Choisir ""Lister les travaux de sauvegarde"". | 1. Le titre ""--- Travaux de Sauvegarde Configurés ---"" s'affiche.<br>2. JobA et JobB sont listés avec leurs détails (Nom, Source, Cible, Type, État). |
+
+# 3. Tests d'Exécution des Travaux de Sauvegarde
+
+| ID Test | Titre du Test | Étapes | Résultats Attendus (Messages en français de lang_fr.json et comportement attendu) |
+|---|---|---|---|
+| EX-FR-001 | Exécution d'un travail de sauvegarde FULL (unique) | 1. Créer un travail FULL ""FullExecFR"" avec un répertoire source contenant des fichiers.<br>2. Choisir ""Exécuter un travail de sauvegarde spécifique"" (ou ""Exécuter un travail de sauvegarde"").<br>3. Entrer l'index/nom de ""FullExecFR"". | 1. L'invite ""Entrez le numéro du travail à exécuter"" ou ""Entrez le nom du travail à exécuter"" s'affiche.<br>2. Pendant l'exécution, l'état du travail passe à ""Actif (Analyse des fichiers)"" puis ""Actif (Copie en cours)"".<br>3. Les fichiers sont copiés dans le répertoire cible.<br>4. Après exécution, l'état du travail devient ""Terminé avec succès"". L'heure de <br>dernière exécution est mise à jour. |
+| EX-FR-002 | Exécution d'un travail de sauvegarde DIFFERENTIAL | 1. Exécuter une première fois un travail FULL ""SourceDiffFR"".<br>2. Modifier/Ajouter des fichiers dans la source.<br>3. Créer un travail DIFFERENTIAL ""DiffExecFR"" pour la même source/cible.<br>4. Exécuter ""DiffExecFR"". | 1. Seuls les fichiers modifiés/ajoutés depuis la dernière sauvegarde FULL (ou la dernière sauvegarde pour ce job différentiel, selon l'implémentation de LastSuccessfulRunTime) sont copiés.<br>2. Les états ""Actif (Analyse des fichiers)"", ""Actif (Copie en cours)"", et ""Terminé avec succès"" sont observés. |
+| EX-FR-003 | Exécution de plusieurs travaux de sauvegarde | 1. Créer deux travaux ""MultiA"" et ""MultiB"".<br>2. Choisir ""Exécuter plusieurs travaux de sauvegarde"".<br>3. Entrer les numéros des travaux ""MultiA"" et ""MultiB"" (ex: ""1;2"" ou ""1-2""). | 1. L'invite ""Entrez les numéros des travaux à exécuter (ex: 1;3 ou 1-3)"" s'affiche.<br>2. Les travaux ""MultiA"" et ""MultiB"" sont exécutés séquentiellement ou en parallèle (selon l'implémentation).<br>3. Les deux travaux se terminent avec l'état ""Terminé avec succès"". |
+| EX-FR-004 | Statut du travail après exécution avec erreurs | 1. Créer un travail ""ErrorJobFR"" avec un répertoire source inaccessible après la création.<br>2. Exécuter ""ErrorJobFR"". | 1. L'état du travail passe à ""Terminé avec erreurs"" ou ""Échoué"".<br>2. Des messages d'erreur appropriés sont journalisés (non visibles directement via UI sauf si implémenté). |
