@@ -18,7 +18,17 @@ namespace LoggingLibrary
 
         public string FormatLog(LogEntry logEntry)
         {
-            return JsonSerializer.Serialize(logEntry, _options);
+            return JsonSerializer.Serialize(logEntry, _options) + ",";
+        }
+
+        public string InitializeLogFile(string logFilePath)
+        {
+            return "[" + Environment.NewLine; // Start the JSON array  
+        }
+
+        public string CloseLogFile()
+        {
+            return Environment.NewLine + "]"; // End the JSON array  
         }
     }
 }

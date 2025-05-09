@@ -2,16 +2,16 @@
 
 namespace LoggingLibrary
 {
-    public class LogService : ILoggingService
+    public class LogService
     {
         private readonly LogFile _logFile;
         private readonly ILogFormatter _logFormatter;
-        private readonly string _logFilePath; // Stockez le chemin du fichier
+        private readonly string _logDirectoryPath; // Stockez le chemin du fichier
 
-        public LogService(string logFilePath, ILogFormatter logFormatter)
+        public LogService(string logDirectoryPath, ILogFormatter logFormatter)
         {
-            _logFilePath = logFilePath; // Initialisez le chemin
-            _logFile = new LogFile(logFilePath);
+            _logDirectoryPath = logDirectoryPath; // Initialisez le chemin
+            _logFile = new LogFile(logDirectoryPath, logFormatter);
             _logFormatter = logFormatter ?? throw new ArgumentNullException(nameof(logFormatter));
         }
 
@@ -31,9 +31,9 @@ namespace LoggingLibrary
             _logFile.WriteLogEntry(formattedLog);
         }
 
-        public string GetLogFilePath()
+        public string GetlogDirectoryPath()
         {
-            return _logFilePath; // Retournez le chemin stocké
+            return _logDirectoryPath; // Retournez le chemin stocké
         }
 
         public void CloseLogFile()

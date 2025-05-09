@@ -8,13 +8,13 @@ namespace LoggingLibrary
     public class LogEntry
     {
         [JsonPropertyName("Name")]
-        public string SaveName { get; set; }
+        public required string SaveName { get; set; }
 
         [JsonPropertyName("FileSource")]
-        public string SourcePathUNC { get; set; }
+        public required string SourcePathUNC { get; set; }
 
         [JsonPropertyName("FileTarget")]
-        public string TargetPathUNC { get; set; }
+        public required string TargetPathUNC { get; set; }
 
         [JsonPropertyName("FileSize")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -33,7 +33,6 @@ namespace LoggingLibrary
         }
     }
 
-    // Convertisseur personnalisé pour le format de date/heure
     public class DateTimeFormatConverter : JsonConverter<DateTime>
     {
         private const string DateTimeFormat = "dd/MM/yyyy HH:mm:ss";

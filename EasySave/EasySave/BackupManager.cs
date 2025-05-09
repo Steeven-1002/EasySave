@@ -12,13 +12,8 @@ namespace EasySave.Core
     public class BackupManager
     {
         private List<BackupJob> _backupJobs;
-        private StateManager _stateManager; // Selon le diagramme
-        private string _jobsConfigFilePath = "backup_jobs_config.json"; // Fichier de config pour les jobs
-
-        // IBackupJobFactory n'est pas dans le diagramme, donc création directe.
-        // Dépendances comme ILogger, FileSystemService seront passées aux stratégies par BackupJob.Execute
-        // ou si BackupManager doit les utiliser directement.
-
+        private StateManager _stateManager;
+        private string _jobsConfigFilePath = "backup_jobs_config.json"; 
         public BackupManager(StateManager stateManager, ConfigManager configManager) // Ajout de ConfigManager pour le chemin
         {
             _backupJobs = new List<BackupJob>();
@@ -133,15 +128,6 @@ namespace EasySave.Core
             if (job != null)
             {
                 Console.WriteLine($"BackupManager: Executing job '{job.Name}'...");
-                // L'état et la journalisation sont gérés dans job.Execute() via sa stratégie
-                // et les observateurs enregistrés.
-                // Le StateManager et le LoggingService doivent être passés ou accessibles.
-                // Pour ce faire, Program va devoir injecter ces dépendances lors de l'appel.
-                // Cette méthode sera appelée par Program.cs qui aura accès à ces services.
-                // Pour l'instant, on appelle job.Execute() et on suppose que les dépendances
-                // sont gérées plus haut (par ex. Program les passe à job.Execute).
-                // Si BackupManager doit passer des dépendances aux stratégies,
-                // il aurait besoin de les avoir (ex: ILogger, FileSystemService)
                 job.Execute();
             }
             else
