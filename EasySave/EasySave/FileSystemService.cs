@@ -153,5 +153,25 @@ namespace EasySave.Services
         {
             return File.Exists(path);
         }
+
+        /// <summary>  
+        /// Retrieves all directories, subdirectories, and files contained in the specified directory path.  
+        /// </summary>  
+        /// <param name="path">The directory path.</param>  
+        /// <returns>A list of paths for all directories, subdirectories, and files, or an empty list if an error occurs.</returns>  
+        public List<string> GetAllContents(string path)
+        {
+            try
+            {
+                var directories = Directory.GetDirectories(path, "*", SearchOption.AllDirectories);
+                var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
+                return directories.Concat(files).ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"FileSystemService ERROR GetAllContents for '{path}': {ex.Message}");
+                return new List<string>();
+            }
+        }
     }
 }

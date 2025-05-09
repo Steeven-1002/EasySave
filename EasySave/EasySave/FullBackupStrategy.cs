@@ -11,6 +11,7 @@ namespace EasySave.Core
     {
         private readonly FileSystemService _fileSystemService;
         private List<IBackupObserver> _observers;
+        private List<IStateObserver> _stateObservers;
 
         // Les dépendances (comme LoggingService et StateManager) sont passées à Execute
         // Ou elles pourraient être injectées ici si la stratégie a besoin de les utiliser en dehors d'Execute.
@@ -19,12 +20,25 @@ namespace EasySave.Core
         {
             _fileSystemService = fileSystemService;
             _observers = new List<IBackupObserver>();
+            _stateObservers = new List<IStateObserver>();
         }
 
         // Méthode pour enregistrer des observateurs si la stratégie est le sujet.
         public void RegisterObserver(IBackupObserver observer)
         {
             if (!_observers.Contains(observer)) _observers.Add(observer);
+        }
+        public void UnregisterObserver(IBackupObserver observer)
+        {
+            if (_observers.Contains(observer)) _observers.Remove(observer);
+        }
+        public void RegisterStateObserver(IStateObserver stateObserver)
+        {
+            if (!_stateObservers.Contains(stateObserver)) _stateObservers.Add(stateObserver);
+        }
+        public void UnregisterStateObserver(IStateObserver stateObserver)
+        {
+            if (_stateObservers.Contains(stateObserver)) _stateObservers.Remove(stateObserver);
         }
 
         public void Execute(BackupJob job)
@@ -105,11 +119,35 @@ namespace EasySave.Core
                             -1 // Indicate error in transfer duration
                             );
                     });
-                    // TODO: Mettre à jour le StateManager
+                    _stateObservers.ForEach(stateObserver =>
+                    {
+                        stateObserver.StateChanged(
+                            job.Name,
+                            job.State,
+                            filesToBackup.Count,
+                            totalSize,
+                            filesToBackup.Count - filesProcessed,
+                            totalSize - currentProcessedFileSize,
+                            sourceFilePath, // Pass the current source file
+                            targetFilePath  // Pass the current target file
+                        );
+                    });
                 }
             }
             job.State = !errorOccurred ? BackupState.COMPLETED : BackupState.ERROR;
-            // TODO: Mettre à jour StateManager pour la finalisation
+            _stateObservers.ForEach(stateObserver =>
+            {
+                stateObserver.StateChanged(
+                    job.Name,
+                    job.State,
+                    filesToBackup.Count,
+                    totalSize,
+                    filesToBackup.Count - filesProcessed,
+                    totalSize - currentProcessedFileSize,
+                    string.Empty, // No source file for final state
+                    string.Empty  // No target file for final state
+                );
+            });
         }
 
         public List<string> GetFilesToBackup(BackupJob job)

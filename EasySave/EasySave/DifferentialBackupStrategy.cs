@@ -12,16 +12,23 @@ namespace EasySave.Core
     {
         private readonly FileSystemService _fileSystemService;
         private List<IBackupObserver> _observers;
+        private List<IStateObserver> _stateObservers;
 
         public DifferentialBackupStrategy(FileSystemService fileSystemService)
         {
             _fileSystemService = fileSystemService;
             _observers = new List<IBackupObserver>();
+            _stateObservers = new List<IStateObserver>();
         }
 
         public void RegisterObserver(IBackupObserver observer)
         {
             if (!_observers.Contains(observer)) _observers.Add(observer);
+        }
+
+        public void RegisterStateObserver(IStateObserver stateObserver)
+        {
+            if (!_stateObservers.Contains(stateObserver)) _stateObservers.Add(stateObserver);
         }
 
         public void Execute(BackupJob job)
@@ -36,8 +43,6 @@ namespace EasySave.Core
             int filesProcessed = 0;
             long currentProcessedFileSize = 0;
             bool errorOccurred = false;
-
-            NotifyObservers(job.Name, BackupState.ACTIVE, totalFiles, totalSize, totalFiles, totalSize, "Scanning complete", "", 0);
 
             foreach (var sourceFilePath in filesToBackup)
             {

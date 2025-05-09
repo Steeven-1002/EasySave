@@ -35,7 +35,9 @@ namespace EasySave.ConsoleApp
 
         private static void InitializeComponents()
         {
-            _configManager = new ConfigManager("app_settings.json"); // Ou autre nom
+            // Assuming ConfigManager.Instance is the correct way to initialize ConfigManager
+            _configManager = ConfigManager.Instance; // Singleton pattern
+
             _localizationService = new LocalizationService(_configManager.Language); // Utilise la langue de config
 
             // Le chemin du StateFile est géré par ConfigManager

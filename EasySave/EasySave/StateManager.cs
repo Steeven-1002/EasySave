@@ -5,26 +5,37 @@ using System.Linq;
 using System.Text.Json;
 using EasySave.Models;
 using EasySave.Interfaces;
+using EasySave.ConsoleApp;
 
 namespace EasySave.Services
 {
-    public class StateManager
+    public class StateManager : IStateObserver // Implémentation de l'interface IStateObserver
     {
+        private static StateManager? _instance;
         private readonly string _stateFilePath;
         private List<JobState> _jobStates;
-        private List<IStateObserver> _observers;
+        private readonly List<IStateObserver> _observers = new(); // Initialisation pour éviter CS8618
 
         public StateManager(string stateFilePath)
         {
             _stateFilePath = stateFilePath;
             _jobStates = new List<JobState>();
-            _observers = new List<IStateObserver>();
             LoadState(); // Charger l'état existant à l'initialisation
         }
 
-        // Le diagramme indique : UpdateJobState(job: BackupJob, currentFile: string, targetFile: string, remainingFiles: int, remainingSize: long)
-        // Je vais adapter pour utiliser JobState directement ou le nom du job
-        public void UpdateJobState(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile)
+        public static StateManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = new StateManager(ReferenceEquals(ConfigManager.Instance.StateFilePath, "") ? "state.json" : ConfigManager.Instance.StateFilePath);
+                }
+                return _instance;
+            }
+        }
+
+        public void StateChanged(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile)
         {
             JobState? jobState = _jobStates.FirstOrDefault(js => js.JobName == jobName);
             bool newEntry = false;
@@ -46,20 +57,18 @@ namespace EasySave.Services
             if (newEntry) _jobStates.Add(jobState); // Ajouter seulement si c'est une nouvelle entrée
 
             Console.WriteLine($"StateManager: Updated state for job '{jobName}'. Current file: {currentSourceFile}");
-            NotifyObservers(jobState);
             SaveState();
         }
 
         public void InitializeJobState(string jobName, int totalFiles, long totalSize)
         {
-            UpdateJobState(jobName, BackupState.ACTIVE, totalFiles, totalSize, totalFiles, totalSize, "Starting scan...", "");
+            StateChanged(jobName, BackupState.ACTIVE, totalFiles, totalSize, totalFiles, totalSize, "Starting scan...", "");
         }
 
         public void FinalizeJobState(string jobName, BackupState finalState)
         {
-            UpdateJobState(jobName, finalState, 0, 0, 0, 0, "Finalized", ""); // Les totaux pourraient être ceux de fin
+            StateChanged(jobName, finalState, 0, 0, 0, 0, "Finalized", ""); // Les totaux pourraient être ceux de fin
         }
-
 
         public void SaveState()
         {
@@ -100,30 +109,8 @@ namespace EasySave.Services
             return _jobStates.FirstOrDefault(js => js.JobName == jobName);
         }
 
-        public void RegisterObserver(IStateObserver observer)
-        {
-            if (!_observers.Contains(observer))
-            {
-                _observers.Add(observer);
-            }
-        }
-
-        public void UnregisterObserver(IStateObserver observer) // Méthode utile
-        {
-            _observers.Remove(observer);
-        }
-
-        private void NotifyObservers(JobState state)
-        {
-            foreach (var observer in _observers)
-            {
-                observer.StateChanged(state);
-            }
-        }
-
         private void CreateStateFile() // Définie dans le diagramme
         {
-            // Assure que le fichier est créé s'il n'existe pas, potentiellement avec un contenu vide ou initial.
             if (!File.Exists(_stateFilePath))
             {
                 SaveState(); // Sauvegarde une liste vide de _jobStates ou l'état actuel.
