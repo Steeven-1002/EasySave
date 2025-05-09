@@ -6,18 +6,23 @@ using EasySave.Interfaces;
 using EasySave.Services;
 using EasySave.Core;
 using System.Text.Json;
-using LoggingLibrary; // Placeholder pour la DLL externe
+using LoggingLibrary;
 
 
 namespace EasySave.ConsoleApp
 {
     public class Program
     {
-        private static ConfigManager _configManager = null!; // Initialisé dans InitializeComponents
-        private static BackupManager _backupManager = null!; // Initialisé dans InitializeComponents
-        private static LocalizationService _localizationService = null!; // Initialisé dans InitializeComponents
-        private static StateManager _stateManager = null!; // Initialisé dans InitializeComponents
+        private static ConfigManager _configManager = null!;
+        private static BackupManager _backupManager = null!;
+        private static LocalizationService _localizationService = null!;
+        private static StateManager _stateManager = null!;
 
+        /// <summary>
+        /// Entry point of the application.
+        /// Initializes components and either parses command-line arguments or displays the menu.
+        /// </summary>
+        /// <param name="args">Command-line arguments.</param>
         public static void Main(string[] args)
         {
             InitializeComponents();
@@ -33,28 +38,27 @@ namespace EasySave.ConsoleApp
             Console.WriteLine(_localizationService.GetString("GoodbyeMessage"));
         }
 
+        /// <summary>
+        /// Initializes the main components of the application, such as configuration, localization, state, and backup managers.
+        /// </summary>
         private static void InitializeComponents()
         {
-            // Assuming ConfigManager.Instance is the correct way to initialize ConfigManager
             _configManager = ConfigManager.Instance; // Singleton pattern
-
-            _localizationService = new LocalizationService(_configManager.Language); // Utilise la langue de config
-
-            // Le chemin du StateFile est géré par ConfigManager
+            _localizationService = new LocalizationService(_configManager.Language);
             _stateManager = new StateManager(_configManager.StateFilePath);
-
-            // BackupManager a besoin de StateManager
-            _backupManager = new BackupManager(_stateManager, _configManager); // BackupManager utilise aussi ConfigManager pour le chemin des jobs
+            _backupManager = new BackupManager(_stateManager, _configManager);
 
             Console.WriteLine(_localizationService.GetString("WelcomeMessage"));
         }
 
+        /// <summary>
+        /// Parses command-line arguments to execute specific backup jobs.
+        /// </summary>
+        /// <param name="args">Command-line arguments specifying job indexes or ranges.</param>
         private static void ParseCommandLine(string[] args)
         {
             Console.WriteLine(_localizationService.GetString("CommandLineExecution"));
             List<int> jobIndexesToRun = new List<int>();
-            // TODO: Implémenter un parsing robuste pour "1-3" et "1;3"
-            // Ce parsing est un placeholder et doit être amélioré
             if (args.Length > 0)
             {
                 string[] ranges = args[0].Split(';');
@@ -87,6 +91,9 @@ namespace EasySave.ConsoleApp
             }
         }
 
+        /// <summary>
+        /// Displays the main menu and processes user input until the user chooses to exit.
+        /// </summary>
         private static void DisplayMenu()
         {
             bool exit = false;
@@ -95,8 +102,8 @@ namespace EasySave.ConsoleApp
                 Console.WriteLine($"\n{_localizationService.GetString("MainMenu_Title")}");
                 Console.WriteLine($"1. {_localizationService.GetString("MainMenu_CreateJob")}");
                 Console.WriteLine($"2. {_localizationService.GetString("MainMenu_ListJobs")}");
-                Console.WriteLine($"3. {_localizationService.GetString("MainMenu_ExecuteJob")}"); // Exécuter un job spécifique
-                Console.WriteLine($"4. {_localizationService.GetString("MainMenu_ExecuteMultipleJobs")}"); // Exécuter plusieurs jobs
+                Console.WriteLine($"3. {_localizationService.GetString("MainMenu_ExecuteJob")}");
+                Console.WriteLine($"4. {_localizationService.GetString("MainMenu_ExecuteMultipleJobs")}");
                 Console.WriteLine($"5. {_localizationService.GetString("MainMenu_DeleteJob")}");
                 Console.WriteLine($"6. {_localizationService.GetString("MainMenu_ChangeLanguage")}");
                 Console.WriteLine($"7. {_localizationService.GetString("MainMenu_Exit")}");
@@ -108,6 +115,10 @@ namespace EasySave.ConsoleApp
             }
         }
 
+        /// <summary>
+        /// Processes the user's menu choice and calls the appropriate method.
+        /// </summary>
+        /// <param name="choice">The user's menu choice.</param>
         private static void ProcessUserChoice(string? choice)
         {
             switch (choice)
@@ -118,7 +129,7 @@ namespace EasySave.ConsoleApp
                 case "4": UiExecuteMultipleJobs(); break;
                 case "5": UiDeleteBackupJob(); break;
                 case "6": UiChangeLanguage(); break;
-                case "7": break; // Géré par la boucle DisplayMenu
+                case "7": break;
                 default: Console.WriteLine(_localizationService.GetString("InvalidChoice")); break;
             }
             if (choice != "7" && choice != "6")
@@ -128,6 +139,9 @@ namespace EasySave.ConsoleApp
             }
         }
 
+        /// <summary>
+        /// Allows the user to create a new backup job by providing necessary details.
+        /// </summary>
         private static void UiCreateBackupJob()
         {
             Console.WriteLine($"\n{_localizationService.GetString("CreateJob_Title")}");
@@ -151,10 +165,12 @@ namespace EasySave.ConsoleApp
                 Console.WriteLine(_localizationService.GetString("ErrorInvalidBackupType"));
                 return;
             }
-            _backupManager.AddJob(name, source, target, (Models.BackupType)type);
-            // Les messages de succès/erreur de AddJob sont déjà dans BackupManager
+            _backupManager.AddJob(name, source, target, (BackupType)type);
         }
 
+        /// <summary>
+        /// Lists all existing backup jobs with their details.
+        /// </summary>
         private static void UiListBackupJobs()
         {
             var jobs = _backupManager.GetAllJobs();
@@ -166,15 +182,15 @@ namespace EasySave.ConsoleApp
             }
             for (int i = 0; i < jobs.Count; i++)
             {
-                var jobState = _stateManager.GetState(jobs[i].Name);
-
-                string statusInfo = jobState != null
-                                  ? $"{jobState}" // Display only the state as a string
-                                  : "N/A"; // Example fallback for unavailable state
+                var jobState = jobs[i].State; // Correctly reference the 'State' property of the job
+                string statusInfo = $"{jobState}";
                 Console.WriteLine($"{i + 1}. {jobs[i].Name} ({jobs[i].Type}) - Src: {jobs[i].SourcePath} -> Dest: {jobs[i].TargetPath} [State: {statusInfo}]");
             }
         }
 
+        /// <summary>
+        /// Executes a single backup job selected by the user.
+        /// </summary>
         private static void UiExecuteSingleJob()
         {
             UiListBackupJobs();
@@ -189,6 +205,9 @@ namespace EasySave.ConsoleApp
             }
         }
 
+        /// <summary>
+        /// Executes multiple backup jobs based on user input (e.g., ranges or specific indexes).
+        /// </summary>
         private static void UiExecuteMultipleJobs()
         {
             UiListBackupJobs();
@@ -201,7 +220,6 @@ namespace EasySave.ConsoleApp
             }
 
             List<int> jobIndexesToRun = new List<int>();
-            // Logique de parsing similaire à ParseCommandLine
             string[] ranges = input.Split(';');
             foreach (string range in ranges)
             {
@@ -229,7 +247,9 @@ namespace EasySave.ConsoleApp
             }
         }
 
-
+        /// <summary>
+        /// Deletes a backup job selected by the user.
+        /// </summary>
         private static void UiDeleteBackupJob()
         {
             UiListBackupJobs();
@@ -260,6 +280,9 @@ namespace EasySave.ConsoleApp
             }
         }
 
+        /// <summary>
+        /// Allows the user to change the application's language.
+        /// </summary>
         private static void UiChangeLanguage()
         {
             Console.Write($"{_localizationService.GetString("EnterLanguageCode")} (en, fr): ");
@@ -272,7 +295,6 @@ namespace EasySave.ConsoleApp
                     _configManager.SaveConfiguration();
                     Console.WriteLine(_localizationService.GetString("LanguageChangedSuccess", langCode));
                 }
-                // else: L'erreur est déjà affichée par LoadLanguage
             }
             else
             {
