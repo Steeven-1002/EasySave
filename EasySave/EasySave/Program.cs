@@ -29,7 +29,7 @@ namespace EasySave.ConsoleApp
 
             if (args.Length > 0)
             {
-                ParseCommandLine(args);
+                ParseCommandLine(args.ToString());
             }
             else
             {
@@ -56,13 +56,13 @@ namespace EasySave.ConsoleApp
         /// Parses command-line arguments to execute specific backup jobs.
         /// </summary>
         /// <param name="args">Command-line arguments specifying job indexes or ranges.</param>
-        private static void ParseCommandLine(string[] args)
+        private static void ParseCommandLine(string args)
         {
             Console.WriteLine(_localizationService.GetString("CommandLineExecution"));
             List<int> jobIndexesToRun = new List<int>();
             if (args.Length > 0)
             {
-                string[] ranges = args[0].Split(';');
+                string[] ranges = args.Split(';', StringSplitOptions.RemoveEmptyEntries);
                 foreach (string range in ranges)
                 {
                     if (range.Contains('-'))
@@ -219,33 +219,10 @@ namespace EasySave.ConsoleApp
                 Console.WriteLine(_localizationService.GetString("NoIndexesProvided"));
                 return;
             }
-
-            List<int> jobIndexesToRun = new List<int>();
-            string[] ranges = input.Split(';');
-            foreach (string range in ranges)
-            {
-                if (range.Contains('-'))
-                {
-                    string[] parts = range.Split('-');
-                    if (parts.Length == 2 && int.TryParse(parts[0], out int start) && int.TryParse(parts[1], out int end))
-                    {
-                        for (int i = start; i <= end; i++) jobIndexesToRun.Add(i - 1);
-                    }
-                }
-                else if (int.TryParse(range, out int index))
-                {
-                    jobIndexesToRun.Add(index - 1);
-                }
-            }
-            var validIndexes = jobIndexesToRun.Distinct().Where(i => i >= 0 && i < _backupManager.GetAllJobs().Count).ToArray();
-            if (validIndexes.Length > 0)
-            {
-                _backupManager.ExecuteJobs(validIndexes);
-            }
             else
             {
-                Console.WriteLine(_localizationService.GetString("NoValidJobsSelected"));
-            }
+                ParseCommandLine(input);
+            }   
         }
 
         /// <summary>
