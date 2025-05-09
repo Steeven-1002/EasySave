@@ -3,16 +3,12 @@
   "WorkspaceRootPath": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|c:\\users\\anton\\documents\\github\\easysave\\easysave\\easysave\\backupjob.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|solutionrelative:easysave\\backupjob.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|c:\\users\\anton\\documents\\github\\easysave\\easysave\\easysave\\differentialbackupstrategy.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|solutionrelative:easysave\\differentialbackupstrategy.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|c:\\users\\anton\\documents\\github\\easysave\\easysave\\easysave\\fullbackupstrategy.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|solutionrelative:easysave\\fullbackupstrategy.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|c:\\users\\anton\\documents\\github\\easysave\\easysave\\easysave\\istateobserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|solutionrelative:easysave\\istateobserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -22,7 +18,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Document",
@@ -32,7 +28,7 @@
               "RelativeDocumentMoniker": "EasySave\\FullBackupStrategy.cs",
               "ToolTip": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\FullBackupStrategy.cs",
               "RelativeToolTip": "EasySave\\FullBackupStrategy.cs",
-              "ViewState": "AgIAACIAAAAAAAAAAAAQwJQAAAAPAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAHQAAAAkAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-05-08T16:12:19.452Z",
               "IsPinned": true,
@@ -40,28 +36,15 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "IStateObserver.cs",
-              "DocumentMoniker": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\IStateObserver.cs",
-              "RelativeDocumentMoniker": "EasySave\\IStateObserver.cs",
-              "ToolTip": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\IStateObserver.cs",
-              "RelativeToolTip": "EasySave\\IStateObserver.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAC8AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-09T00:40:40.814Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "BackupJob.cs",
-              "DocumentMoniker": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\BackupJob.cs",
-              "RelativeDocumentMoniker": "EasySave\\BackupJob.cs",
-              "ToolTip": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\BackupJob.cs",
-              "RelativeToolTip": "EasySave\\BackupJob.cs",
-              "ViewState": "AgIAAB4AAAAAAAAAAAAkwDMAAAAJAAAAAAAAAA==",
+              "Title": "DifferentialBackupStrategy.cs",
+              "DocumentMoniker": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\DifferentialBackupStrategy.cs",
+              "RelativeDocumentMoniker": "EasySave\\DifferentialBackupStrategy.cs",
+              "ToolTip": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\DifferentialBackupStrategy.cs",
+              "RelativeToolTip": "EasySave\\DifferentialBackupStrategy.cs",
+              "ViewState": "AgIAADgAAAAAAAAAAAAIwEMAAADrAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-09T00:17:25.705Z",
+              "WhenOpened": "2025-05-09T01:39:52.029Z",
               "EditorCaption": ""
             }
           ]

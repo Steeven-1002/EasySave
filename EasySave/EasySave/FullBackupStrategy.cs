@@ -99,6 +99,19 @@ namespace EasySave.Core
                             endTime.Subtract(startTime).TotalMilliseconds
                             );
                     });
+                    _stateObservers.ForEach(stateObserver =>
+                    {
+                        stateObserver.StateChanged(
+                            job.Name,
+                            job.State,
+                            filesToBackup.Count,
+                            totalSize,
+                            filesToBackup.Count - filesProcessed,
+                            totalSize - currentProcessedFileSize,
+                            sourceFilePath,
+                            targetFilePath
+                        );
+                    });
                     filesProcessed++;
                 }
                 catch (Exception ex)
