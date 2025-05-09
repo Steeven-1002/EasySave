@@ -13,11 +13,11 @@ Our team has just integrated the software publisher ProSoft.   Under the res
 
 ## Tools
 
-Visual Studio 2022
-Argot UML
-GitHub
-C#
-Framework .NET 8.0
+* Visual Studio 2022
+* Argo UML
+* GitHub
+* C#
+*Framework .NET 8.0
 
 # Version 1.0
 
