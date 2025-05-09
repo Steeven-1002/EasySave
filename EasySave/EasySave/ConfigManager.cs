@@ -19,16 +19,15 @@ namespace EasySave.Services
         public string StateFilePath =>
             _settings.TryGetValue("StateFilePath", out var val) && val.ValueKind == JsonValueKind.String
                 ? val.GetString()!
-                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "State\\");
+                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "state.json");
 
         public string Language =>
             _settings.TryGetValue("Language", out var val) && val.ValueKind == JsonValueKind.String
                 ? val.GetString()!
                 : "en";
 
-        public ConfigManager(string configFilePath)
-          
-        private Dictionary<string, object> _settings;
+        //public ConfigManager(string configFilePath)
+
 
         public static ConfigManager Instance
         {
