@@ -5,12 +5,17 @@ using System.Text.Json;
 
 namespace EasySave.Services
 {
+    /// <summary>  
+    /// Manages the application's configuration settings, including loading and saving them to a file.  
+    /// Implements the Singleton design pattern.  
+    /// </summary>  
     public class ConfigManager
     {
         private static ConfigManager? _instance;
         private readonly string _configFilePath;
         private Dictionary<string, JsonElement> _settings;
 
+        // Removed duplicate property definitions causing ambiguity  
         public string LogFilePath =>
             _settings.TryGetValue("LogFilePath", out var val) && val.ValueKind == JsonValueKind.String
                 ? val.GetString()!
@@ -26,9 +31,9 @@ namespace EasySave.Services
                 ? val.GetString()!
                 : "en";
 
-        //public ConfigManager(string configFilePath)
-
-
+        /// <summary>  
+        /// Gets the singleton instance of the <see cref="ConfigManager"/> class.  
+        /// </summary>  
         public static ConfigManager Instance
         {
             get
@@ -41,6 +46,11 @@ namespace EasySave.Services
             }
         }
 
+        /// <summary>  
+        /// Initializes a new instance of the <see cref="ConfigManager"/> class.  
+        /// Loads the configuration from the specified file path.  
+        /// </summary>  
+        /// <param name="configFilePath">The path to the configuration file.</param>  
         private ConfigManager(string configFilePath)
         {
             _configFilePath = Path.Combine(
@@ -52,23 +62,21 @@ namespace EasySave.Services
             LoadConfiguration();
         }
 
-
+        /// <summary>  
+        /// Loads the configuration settings from the file.  
+        /// If the file does not exist, an empty configuration is used.  
+        /// </summary>  
         public void LoadConfiguration()
         {
             try
             {
                 if (File.Exists(_configFilePath))
                 {
-                    // The configuration file exists
-                    // We load it, deserialize it and store it in the _settings dictionary
                     string json = File.ReadAllText(_configFilePath);
                     _settings = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json) ?? new Dictionary<string, JsonElement>();
                 }
                 else
                 {
-                    // No file have been found, create a new one with default values
-                    // The default values are set in the attributes
-                    // Apply and save default values
                     SetSetting("LogFilePath", LogFilePath);
                     SetSetting("StateFilePath", StateFilePath);
                     SetSetting("Language", Language);
@@ -81,12 +89,13 @@ namespace EasySave.Services
             }
         }
 
+        /// <summary>  
+        /// Saves the current configuration settings to the file.  
+        /// </summary>  
         public void SaveConfiguration()
         {
             try
             {
-                // The configuration live inside a directory
-                // We need to check if the directory exists
                 string directory = Path.GetDirectoryName(_configFilePath);
                 if (!Directory.Exists(directory) && directory != null)
                 {
@@ -102,12 +111,23 @@ namespace EasySave.Services
             }
         }
 
+        /// <summary>  
+        /// Gets the value of a configuration setting by its key.  
+        /// </summary>  
+        /// <param name="key">The key of the setting to retrieve.</param>  
+        /// <returns>The value of the setting, or <c>null</c> if the key does not exist.</returns>  
         public object? GetSetting(string key)
         {
             _settings.TryGetValue(key, out var value);
             return value;
         }
 
+        /// <summary>  
+        /// Sets the value of a configuration setting.  
+        /// If the key already exists, its value is updated.  
+        /// </summary>  
+        /// <param name="key">The key of the setting to set.</param>  
+        /// <param name="value">The value to assign to the setting.</param>  
         public void SetSetting(string key, object value)
         {
             if (value is JsonElement jsonElement)

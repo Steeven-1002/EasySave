@@ -5,11 +5,9 @@ This document aims to give some informations about the technical support
 **1) Default Software Location :**
 
 * The default installation location depends on the operating system used by the user : 
-    * **Windows (64-bit) :** "C:\Program Files\EasySave\" or "C:\Program Files (x86)\EasySave\"
-    * **Windows (32-bit) :** "C:\Program Files\EasySave\"
-    * **Linux :** "/opt/easysave/", "/usr/local/bin/easysave/", or in the user's home directory ("~/easysave/")
-    * **macOS :** "/Applications/EasySave.app/Contents/MacOS/easysave", or in the user's home directory ("~/Applications/EasySave.app/Contents/MacOS/easysave")
-
+    * **Windows (64-bit) :** "C:\Users\NameUser\source\repos\Steeven-1002"
+    * **Linux :** "/home/NameUser/source/repos/Steeven-1002"
+    * **macOS :** "/Users/NameUser/source/repos/Steeven-1002"
 **2) Minimum System Requirements:**
 
 * **Operating System :**
@@ -25,17 +23,14 @@ This document aims to give some informations about the technical support
 
 * EasySave configuration files depends on the operating system :
     * **Windows:**
-        * "C:\ProgramData\EasySave\" (global configuration and backup job information).
-        * "%AppData%\EasySave\" (user-specific configurations).
+        * "C:\Users\NameUser\AppData\Roaming\EasySave" 
     * **Linux:**
-        * "/etc/easysave/" (global configuration, may require root privileges).
-        * "~/.config/easysave/" or "~/.easysave/" (user-specific configurations).
+        * "/home/NameUser/.config/EasySave" 
     * **macOS:**
-        * "/Library/Application Support/EasySave/" (global configuration).
-        * "~/Library/Application Support/EasySave/" or "~/.easysave/" (user-specific configurations).
+        * "/Users/NameUser/Library/Application Support/EasySave" 
 * **Default Log File Location:** The default location for the log file (if implemented) is normally:
-    * **Windows:** "C:\ProgramData\EasySave\Logs\"
-    * **Linux:** "/var/log/easysave/" or "~/.local/share/easysave/logs/"
+    * **Windows:** "C:\Users\NameUser\AppData\Roaming\EasySave"
+    * **Linux:** "/home/NameUser/.config/EasySave"
     * **macOS:** "/Library/Logs/EasySave/" or "~/Library/Logs/EasySave/"
 
 **4) Version Management:**
