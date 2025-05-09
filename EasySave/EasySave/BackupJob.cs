@@ -50,7 +50,14 @@ namespace EasySave.Models
             var jobState = StateManager.Instance.GetState(Name);
             if (jobState != null)
             {
-                State = jobState.State;
+                if (Enum.TryParse(typeof(BackupState), jobState.State, out var parsedState))
+                {
+                    State = (BackupState)parsedState;
+                }
+                else
+                {
+                    State = BackupState.INACTIVE; // Default or fallback state
+                }
             }
         }
 

@@ -44,6 +44,8 @@ namespace EasySave.Core
             long currentProcessedFileSize = 0;
             bool errorOccurred = false;
 
+            NotifyStateObservers(job.Name, BackupState.ACTIVE, totalFiles, totalSize, totalFiles, totalSize, "", "");
+
             foreach (var sourceFilePath in filesToBackup)
             {
                 string relativePath = sourceFilePath.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);

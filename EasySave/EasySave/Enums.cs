@@ -13,7 +13,7 @@ namespace EasySave
     {
         public string JobName { get; set; }
         public DateTime Timestamp { get; set; }
-        public BackupState State { get; set; }
+        public string State { get; set; }
         public int TotalFiles { get; set; }
         public long TotalSize { get; set; }
         public int RemainingFiles { get; set; }
@@ -26,7 +26,7 @@ namespace EasySave
         {
             JobName = jobName;
             Timestamp = DateTime.Now;
-            State = BackupState.INACTIVE;
+            State = Enum.GetName(typeof(BackupState), BackupState.INACTIVE) ?? "UNKNOWN";
             TotalFiles = 0;
             TotalSize = 0;
             RemainingFiles = 0;

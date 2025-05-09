@@ -68,7 +68,7 @@ namespace EasySave.Services
             }
 
             jobState.Timestamp = DateTime.Now;
-            jobState.State = newState;
+            jobState.State = Enum.GetName(typeof(BackupState), newState) ?? "UNKNOWN";
             jobState.TotalFiles = totalFiles;
             jobState.TotalSize = totalSize;
             jobState.RemainingFiles = remainingFiles;

@@ -52,7 +52,19 @@ namespace EasySave.Core
             long currentProcessedFileSize = 0;
             bool errorOccurred = false;
 
-            foreach (var sourceFilePath in filesToBackup)
+            _stateObservers.ForEach(stateObserver =>
+            {
+                stateObserver.StateChanged(
+                    job.Name,
+                    job.State,
+                    filesToBackup.Count,
+                    totalSize,
+                    filesToBackup.Count - filesProcessed,
+                    totalSize - currentProcessedFileSize,
+                    string.Empty, // No source file for initial state
+                    string.Empty  // No target file for initial state
+                );
+                foreach (var sourceFilePath in filesToBackup)
             {
                 string relativePath = sourceFilePath.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 string targetFilePath = Path.Combine(job.TargetPath, relativePath);
@@ -161,6 +173,7 @@ namespace EasySave.Core
                     string.Empty  // No target file for final state
                 );
             });
+        });
         }
 
         public List<string> GetFilesToBackup(BackupJob job)
