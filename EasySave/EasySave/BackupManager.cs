@@ -14,7 +14,7 @@ namespace EasySave.Core
         private List<BackupJob> _backupJobs;
         private StateManager _stateManager;
         private string _jobsConfigFilePath = "backup_jobs_config.json"; 
-        public BackupManager(StateManager stateManager, ConfigManager configManager) // Ajout de ConfigManager pour le chemin
+        public BackupManager(StateManager stateManager, ConfigManager configManager)
         {
             _backupJobs = new List<BackupJob>();
             _stateManager = stateManager;
@@ -153,7 +153,6 @@ namespace EasySave.Core
             public BackupType Type { get; set; }
             public DateTime LastRunTime { get; set; }
             public DateTime CreationTime { get; set; }
-            // State n'est pas persisté ici, il l'est par StateManager
         }
 
         public void SaveJobs()

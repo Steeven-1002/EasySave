@@ -58,6 +58,7 @@ namespace EasySave.Core
                     {
                         _fileSystemService.CreateDirectory(targetDir);
                         NotifyObservers(job.Name, BackupState.ACTIVE, totalFiles, totalSize, totalFiles - filesProcessed, totalSize - currentProcessedFileSize, sourceFilePath, targetFilePath, 0);
+                        NotifyStateObservers(job.Name, BackupState.ACTIVE, totalFiles, totalSize, totalFiles - filesProcessed, totalSize - currentProcessedFileSize, sourceFilePath, targetFilePath);
                     }
 
                     var startTime = DateTime.Now;
@@ -66,17 +67,20 @@ namespace EasySave.Core
 
                     filesProcessed++;
                     NotifyObservers(job.Name, BackupState.ACTIVE, totalFiles, totalSize, totalFiles - filesProcessed, totalSize - currentProcessedFileSize, sourceFilePath, targetFilePath, endTime.Subtract(startTime).TotalMilliseconds);
+                    NotifyStateObservers(job.Name, BackupState.ACTIVE, totalFiles, totalSize, totalFiles - filesProcessed, totalSize - currentProcessedFileSize, sourceFilePath, targetFilePath);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"ERROR during differential backup of {sourceFilePath}: {ex.Message}");
                     errorOccurred = true;
                     NotifyObservers(job.Name, BackupState.ERROR, totalFiles, totalSize, totalFiles - filesProcessed, totalSize - currentProcessedFileSize, sourceFilePath, targetFilePath, -1);
+                    NotifyStateObservers(job.Name, BackupState.ERROR, totalFiles, totalSize, totalFiles - filesProcessed, totalSize - currentProcessedFileSize, sourceFilePath, targetFilePath);
                 }
             }
 
             job.State = !errorOccurred ? BackupState.COMPLETED : BackupState.ERROR;
             NotifyObservers(job.Name, job.State, totalFiles, totalSize, 0, 0, "", "", 0);
+            NotifyStateObservers(job.Name, job.State, totalFiles, totalSize, 0, 0, "", "");
         }
 
         public List<string> GetFilesToBackup(BackupJob job)
@@ -103,7 +107,6 @@ namespace EasySave.Core
                     filesToBackup.Add(sourceFilePath);
                 }
             }
-
             return filesToBackup;
         }
 
@@ -112,6 +115,13 @@ namespace EasySave.Core
             foreach (var observer in _observers)
             {
                 observer.Update(jobName, newState, totalFiles, totalSize, remainingFiles, remainingSize, currentSourceFile, currentTargetFile, transferDuration);
+            }
+        }
+        private void NotifyStateObservers(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile)
+        {
+            foreach (var observer in _stateObservers)
+            {
+                observer.StateChanged(jobName, newState, totalFiles, totalSize, remainingFiles, remainingSize, currentSourceFile, currentTargetFile);
             }
         }
     }

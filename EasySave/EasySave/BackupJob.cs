@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using EasySave.Interfaces; // Pour IBackupStrategy
+using EasySave.Interfaces;
+using EasySave.Services;
 
 namespace EasySave.Models
 {
@@ -25,21 +26,16 @@ namespace EasySave.Models
             State = BackupState.INACTIVE;
             CreationTime = DateTime.Now;
             LastRunTime = DateTime.MinValue;
+            UpdateState();
         }
 
         public void Execute()
         {
-            // La logique d'exécution est déléguée à la stratégie.
-            // Le BackupManager ou une classe d'orchestration appellera ceci.
-            // L'état du job (this.State) sera mis à jour par la stratégie ou
-            // par le StateManager via des notifications d'observateur.
             Console.WriteLine($"BackupJob '{Name}': Preparing to execute via strategy '{Strategy.GetType().Name}'.");
-            this.State = BackupState.ACTIVE; // État initial avant l'appel à la stratégie
-            Strategy.RegisterObserver(Services.LoggingBackup.Instance); // Enregistrement de l'observateur
+            this.State = BackupState.ACTIVE;
+            Strategy.RegisterObserver(Services.LoggingBackup.Instance);
             Strategy.RegisterStateObserver(Services.StateManager.Instance);
             Strategy.Execute(this);
-            // Après l'exécution de la stratégie, l'état final (COMPLETED, ERROR)
-            // sera mis à jour (potentiellement par la stratégie elle-même ou par le gestionnaire d'état).
             this.LastRunTime = DateTime.Now;
         }
 
@@ -48,10 +44,14 @@ namespace EasySave.Models
             return Strategy.GetFilesToBackup(this);
         }
 
-        public long GetTotalSize()
+        public void UpdateState()
         {
-            long totalSize = 0;
-            return totalSize;
+            StateManager.Instance.LoadState();
+            var jobState = StateManager.Instance.GetState(Name);
+            if (jobState != null)
+            {
+                State = jobState.State;
+            }
         }
 
         public override string ToString()

@@ -24,7 +24,7 @@ namespace EasySave.Services
         }
         public string LogFilePath => GetSetting("LogFilePath")?.ToString() ?? "log.txt";
         public string StateFilePath => GetSetting("StateFilePath")?.ToString() ?? "state.json";
-        public string Language => GetSetting("Language")?.ToString() ?? "en-US";
+        public string Language => GetSetting("Language")?.ToString() ?? "en";
 
         private ConfigManager(string configFilePath)
         {

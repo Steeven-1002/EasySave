@@ -166,11 +166,8 @@ namespace EasySave.ConsoleApp
             }
             for (int i = 0; i < jobs.Count; i++)
             {
-                var jobState = _stateManager.GetState(jobs[i].Name);
-
-                string statusInfo = jobState != null
-                                  ? $"{jobState}" // Display only the state as a string
-                                  : "N/A"; // Example fallback for unavailable state
+                var jobState = jobs[i].State; // Correctly reference the 'State' property of the job
+                string statusInfo = $"{jobState}";
                 Console.WriteLine($"{i + 1}. {jobs[i].Name} ({jobs[i].Type}) - Src: {jobs[i].SourcePath} -> Dest: {jobs[i].TargetPath} [State: {statusInfo}]");
             }
         }
