@@ -43,8 +43,9 @@ namespace EasySave.ConsoleApp
         /// </summary>
         private static void InitializeComponents()
         {
-            _configManager = ConfigManager.Instance; // Singleton pattern
-            _localizationService = new LocalizationService(_configManager.Language);
+            _configManager = ConfigManager.Instance;
+
+            _localizationService = new LocalizationService(_configManager.Language); // Utilise la langue de config
             _stateManager = new StateManager(_configManager.StateFilePath);
             _backupManager = new BackupManager(_stateManager, _configManager);
 

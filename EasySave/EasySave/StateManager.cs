@@ -9,10 +9,8 @@ using EasySave.ConsoleApp;
 
 namespace EasySave.Services
 {
-    /// <summary>
-    /// Manages the state of backup jobs and provides functionality to save, load, and update job states.
-    /// Implements the <see cref="IStateObserver"/> interface.
-    /// </summary>
+    // Manages the state of backup jobs and provides functionality to save, load, and update job states.
+    // Implements the IStateObserver interface.
     public class StateManager : IStateObserver
     {
         private static StateManager? _instance;
@@ -20,10 +18,8 @@ namespace EasySave.Services
         private List<JobState> _jobStates;
         private readonly List<IStateObserver> _observers;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="StateManager"/> class.
-        /// </summary>
-        /// <param name="stateFilePath">The file path where the state will be saved and loaded from.</param>
+        // Initializes a new instance of the StateManager class.
+        // stateFilePath : The file path where the state will be saved and loaded from.
         public StateManager(string stateFilePath)
         {
             _stateFilePath = stateFilePath;
@@ -32,9 +28,7 @@ namespace EasySave.Services
             LoadState();
         }
 
-        /// <summary>
-        /// Gets the singleton instance of the <see cref="StateManager"/> class.
-        /// </summary>
+        // Gets the singleton instance of the StateManager class.
         public static StateManager Instance
         {
             get
@@ -47,17 +41,15 @@ namespace EasySave.Services
             }
         }
 
-        /// <summary>
-        /// Updates the state of a specific job and saves the updated state to the file.
-        /// </summary>
-        /// <param name="jobName">The name of the job.</param>
-        /// <param name="newState">The new state of the job.</param>
-        /// <param name="totalFiles">The total number of files in the job.</param>
-        /// <param name="totalSize">The total size of files in the job.</param>
-        /// <param name="remainingFiles">The number of remaining files to process.</param>
-        /// <param name="remainingSize">The size of remaining files to process.</param>
-        /// <param name="currentSourceFile">The current source file being processed.</param>
-        /// <param name="currentTargetFile">The current target file being processed.</param>
+        // Updates the state of a specific job and saves the updated state to the file.
+        // jobName : The name of the job.
+        // newState : The new state of the job.
+        // totalFiles : The total number of files in the job.
+        // totalSize : The total size of files in the job.
+        // remainingFiles : The number of remaining files to process.
+        // remainingSize : The size of remaining files to process.
+        // currentSourceFile : The current source file being processed.
+        // currentTargetFile : The current target file being processed.
         public void StateChanged(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile)
         {
             JobState? jobState = _jobStates.FirstOrDefault(js => js.JobName == jobName);
@@ -83,30 +75,27 @@ namespace EasySave.Services
             SaveState();
         }
 
-        /// <summary>
-        /// Initializes the state of a job with the given total files and size.
-        /// </summary>
-        /// <param name="jobName">The name of the job.</param>
-        /// <param name="totalFiles">The total number of files in the job.</param>
-        /// <param name="totalSize">The total size of files in the job.</param>
+
+        // Initializes the state of a job with the given total files and size.
+        // jobName : The name of the job.
+        // totalFiles : The total number of files in the job.
+        // totalSize : The total size of files in the job.
         public void InitializeJobState(string jobName, int totalFiles, long totalSize)
         {
             StateChanged(jobName, BackupState.ACTIVE, totalFiles, totalSize, totalFiles, totalSize, "Starting scan...", "");
         }
 
-        /// <summary>
-        /// Finalizes the state of a job with the specified final state.
-        /// </summary>
-        /// <param name="jobName">The name of the job.</param>
-        /// <param name="finalState">The final state of the job.</param>
+
+        // Finalizes the state of a job with the specified final state.
+        // jobName : The name of the job.
+        // finalState : The final state of the job.
         public void FinalizeJobState(string jobName, BackupState finalState)
         {
             StateChanged(jobName, finalState, 0, 0, 0, 0, "Finalized", "");
         }
 
-        /// <summary>
-        /// Saves the current state of all jobs to the state file.
-        /// </summary>
+
+        // Saves the current state of all jobs to the state file.
         public void SaveState()
         {
             try
@@ -120,9 +109,8 @@ namespace EasySave.Services
             }
         }
 
-        /// <summary>
-        /// Loads the state of all jobs from the state file.
-        /// </summary>
+
+        // Loads the state of all jobs from the state file.
         public void LoadState()
         {
             try
@@ -144,11 +132,10 @@ namespace EasySave.Services
             }
         }
 
-        /// <summary>
-        /// Retrieves the state of a specific job by its name.
-        /// </summary>
-        /// <param name="jobName">The name of the job.</param>
-        /// <returns>The <see cref="JobState"/> of the job, or null if not found.</returns>
+
+        // Retrieves the state of a specific job by its name.
+        // jobName : The name of the job.
+        // Returns the JobState of the job, or null if not found.
         public JobState? GetState(string jobName)
         {
             return _jobStates.FirstOrDefault(js => js.JobName == jobName);
