@@ -59,3 +59,12 @@ Tests unitaires
 | ERR-FR-007 | Changement de langue - Code invalide | 1. Choisir ""Changer de langue"".<br>2. Entrer ""xx"" comme code de langue. | Le message ""Code de langue invalide. Veuillez utiliser 'en' ou 'fr'."" s'affiche. |
 | ERR-FR-008 | Changement de langue - Fichier de langue manquant (simulé) | 1. Renommer temporairement lang_de.json en lang_fr.json (si on voulait tester un code ""de"" et que lang_fr.json est le seul qui ne fonctionne pas).<br>2. Choisir ""Changer de langue"".<br>3. Entrer ""fr"". | Le message ""Échec du changement de langue vers fr. Veuillez vérifier que le fichier de langue existe."" s'affiche (ou message similaire de LocalizationService). |
 | ERR-FR-009 | Menu Principal - Choix invalide | 1. Au menu principal, entrer une option non listée (ex: 99). | Le message ""Choix invalide. Veuillez réessayer."" s'affiche, suivi de ""Entrez votre choix"". |
+
+# 5. Tests de Configuration et Persistance
+
+| ID Test | Titre du Test | Étapes | Résultats Attendus |
+|---|---|---|---|
+| CFG-FR-001 | Persistance de la langue après redémarrage | 1. Changer la langue en ""français"".<br>2. Quitter l'application.<br>3. Relancer l'application. | L'application démarre directement en français, affichant ""Bienvenue dans EasySave !"". |
+| CFG-FR-002 | Persistance des travaux de sauvegarde après redémarrage | 1. Créer un travail ""PersistentJobFR"".<br>2. Quitter l'application.<br>3. Relancer l'application.<br>4. Lister les travaux. | Le travail ""PersistentJobFR"" est toujours listé avec ses configurations correctes et son état ""Inactif"". |
+| CFG-FR-003 | Création du fichier de log app_config.json | 1. S'assurer que app_config.json n'existe pas.<br>2. Lancer l'application. | Le fichier app_config.json est créé avec les paramètres par défaut (ex: ""Language"": ""en"" initialement, puis ""fr"" après changement). L'emplacement du fichier de log est spécifié. Voir ConfigManager.cs pour les valeurs par défaut. |
+| CFG-FR-004 | Création du fichier d'état state.json | 1. S'assurer que state.json n'existe pas (ou est vide).<br>2. Lancer l'application et exécuter un travail. | Le fichier state.json est créé/mis à jour pour refléter l'état des travaux. Voir StateManager.cs pour la gestion de ce fichier. Les états des travaux (""JobStatus_..."") doivent y être correctement enregistrés. |
