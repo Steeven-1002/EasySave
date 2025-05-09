@@ -77,7 +77,7 @@ namespace EasySave.Services
         /// <returns>The default log file path as a string.</returns>
         private string GetLogFilePath()
         {
-            return "log"; // Default log file path
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "Logs\\");
         }
     }
 }
