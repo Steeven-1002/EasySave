@@ -42,14 +42,10 @@ namespace EasySave.Services
             Console.WriteLine($"FileSystemService: GetFileHash for '{path}' (stub).");
             try
             {
-                using (var sha256 = SHA256.Create())
-                {
-                    using (var stream = File.OpenRead(path))
-                    {
-                        byte[] hash = sha256.ComputeHash(stream);
-                        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-                    }
-                }
+                using var sha256 = SHA256.Create();
+                using var stream = File.OpenRead(path);
+                byte[] hash = sha256.ComputeHash(stream);
+                return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
             }
             catch (Exception ex)
             {

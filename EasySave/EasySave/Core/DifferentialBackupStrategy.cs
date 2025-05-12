@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using EasySave.Models;
+﻿using EasySave.Core.Models;
 using EasySave.Interfaces;
 using EasySave.Services;
 
@@ -14,8 +10,8 @@ namespace EasySave.Core
     public class DifferentialBackupStrategy : IBackupStrategy
     {
         private readonly FileSystemService _fileSystemService;
-        private List<IBackupObserver> _observers;
-        private List<IStateObserver> _stateObservers;
+        private readonly List<IBackupObserver> _observers;
+        private readonly List<IStateObserver> _stateObservers;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DifferentialBackupStrategy"/> class.

@@ -1,32 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\EasySave.csproj": {}
+    "/Users/antonin/RiderProjects/EasySave/EasySave/EasySave/EasySave.csproj": {}
   },
   "projects": {
-    "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\EasySave.csproj": {
+    "/Users/antonin/RiderProjects/EasySave/EasySave/EasySave/EasySave.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\EasySave.csproj",
+        "projectUniqueName": "/Users/antonin/RiderProjects/EasySave/EasySave/EasySave/EasySave.csproj",
         "projectName": "EasySave",
-        "projectPath": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\EasySave.csproj",
-        "packagesPath": "C:\\Users\\anton\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\obj\\",
+        "projectPath": "/Users/antonin/RiderProjects/EasySave/EasySave/EasySave/EasySave.csproj",
+        "packagesPath": "/Users/antonin/.nuget/packages/",
+        "outputPath": "/Users/antonin/RiderProjects/EasySave/EasySave/EasySave/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\anton\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/Users/antonin/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -44,8 +37,7 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        },
-        "SdkAnalysisLevel": "9.0.200"
+        }
       },
       "frameworks": {
         "net8.0": {
@@ -66,7 +58,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.203/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/Users/antonin/.dotnet/sdk/8.0.406/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

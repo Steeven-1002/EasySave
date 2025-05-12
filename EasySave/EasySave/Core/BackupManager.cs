@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.Json;
-using EasySave.Models;
+﻿using System.Text.Json;
+using EasySave.Core.Models;
 using EasySave.Interfaces;
 using EasySave.Services;
 
@@ -15,18 +11,15 @@ namespace EasySave.Core
     public class BackupManager
     {
         private List<BackupJob> _backupJobs;
-        private StateManager _stateManager;
-        private string _jobsConfigFilePath = "backup_jobs_config.json";
+        private readonly string _jobsConfigFilePath;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BackupManager"/> class.
         /// </summary>
-        /// <param name="stateManager">The state manager to manage job states.</param>
         /// <param name="configManager">The configuration manager to retrieve settings.</param>
-        public BackupManager(StateManager stateManager, ConfigManager configManager)
+        public BackupManager(ConfigManager configManager)
         {
             _backupJobs = new List<BackupJob>();
-            _stateManager = stateManager;
             _jobsConfigFilePath = configManager.GetSetting("BackupJobsFilePath") as string ?? "backup_jobs_config.json";
             LoadJobs();
         }
@@ -39,7 +32,7 @@ namespace EasySave.Core
         /// <param name="targetPath">The target directory path.</param>
         /// <param name="type">The type of backup (Full or Differential).</param>
         /// <returns>The created <see cref="BackupJob"/> if successful, otherwise null.</returns>
-        public BackupJob? AddJob(string name, string sourcePath, string targetPath, EasySave.BackupType type)
+        public BackupJob? AddJob(string name, string sourcePath, string targetPath, BackupType type)
         {
             if (_backupJobs.Count >= 5)
             {
@@ -57,10 +50,10 @@ namespace EasySave.Core
 
             switch (type)
             {
-                case EasySave.BackupType.FULL:
+                case BackupType.FULL:
                     strategy = new FullBackupStrategy(fileSystemService);
                     break;
-                case EasySave.BackupType.DIFFERENTIAL:
+                case BackupType.DIFFERENTIAL:
                     strategy = new DifferentialBackupStrategy(fileSystemService);
                     break;
                 default:
@@ -111,16 +104,15 @@ namespace EasySave.Core
 
                 if (_backupJobs[jobIndex].Type != updatedJobData.Type)
                 {
-                    IBackupStrategy newStrategy;
                     FileSystemService fsService = new FileSystemService();
 
                     if (!updatedJobData.Type.Equals(BackupType.FULL))
                     {
-                        newStrategy = new DifferentialBackupStrategy(fsService);
+                        new DifferentialBackupStrategy(fsService);
                     }
                     else
                     {
-                        newStrategy = new FullBackupStrategy(fsService);
+                        new FullBackupStrategy(fsService);
                     }
                 }
                 else
@@ -155,7 +147,7 @@ namespace EasySave.Core
         /// Retrieves all backup jobs.
         /// </summary>
         /// <returns>A list of all <see cref="BackupJob"/> instances.</returns>
-        public List<BackupJob> GetAllJobs() => new List<BackupJob>(_backupJobs);
+        public List<BackupJob> GetAllJobs() => [.._backupJobs];
 
         /// <summary>
         /// Executes a specific backup job by its index.
@@ -190,7 +182,7 @@ namespace EasySave.Core
         /// <summary>
         /// Saves all backup jobs to a configuration file.
         /// </summary>
-        public void SaveJobs()
+        private void SaveJobs()
         {
             try
             {
@@ -199,7 +191,7 @@ namespace EasySave.Core
                     Name = j.Name,
                     SourcePath = j.SourcePath,
                     TargetPath = j.TargetPath,
-                    Type = (BackupType)j.Type,
+                    Type = j.Type,
                     LastRunTime = j.LastRunTime,
                     CreationTime = j.CreationTime
                 }).ToList();
@@ -215,7 +207,7 @@ namespace EasySave.Core
         /// <summary>
         /// Loads all backup jobs from a configuration file.
         /// </summary>
-        public void LoadJobs()
+        private void LoadJobs()
         {
             try
             {
@@ -229,9 +221,9 @@ namespace EasySave.Core
                         {
                             FileSystemService fsService = new FileSystemService();
                             IBackupStrategy strategy = dto.Type == BackupType.FULL ?
-                                (IBackupStrategy)new FullBackupStrategy(fsService) :
+                                new FullBackupStrategy(fsService) :
                                 new DifferentialBackupStrategy(fsService);
-                            return new BackupJob(dto.Name, dto.SourcePath, dto.TargetPath, (BackupType)dto.Type, strategy)
+                            return new BackupJob(dto.Name, dto.SourcePath, dto.TargetPath, dto.Type, strategy)
                             {
                                 LastRunTime = dto.LastRunTime,
                                 CreationTime = dto.CreationTime,
@@ -253,12 +245,12 @@ namespace EasySave.Core
         /// </summary>
         private class BackupJobDtoForSerialization
         {
-            public string Name { get; set; }
-            public string SourcePath { get; set; }
-            public string TargetPath { get; set; }
-            public BackupType Type { get; set; }
-            public DateTime LastRunTime { get; set; }
-            public DateTime CreationTime { get; set; }
+            public required string Name { get; init; }
+            public required string SourcePath { get; init; }
+            public required string TargetPath { get; init; }
+            public BackupType Type { get; init; }
+            public DateTime LastRunTime { get; init; }
+            public DateTime CreationTime { get; init; }
         }
     }
 }

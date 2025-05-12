@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using EasySave.Interfaces;
-using EasySave.Services;
+﻿using EasySave.Interfaces;
 
-namespace EasySave.Models
+namespace EasySave.Core.Models
 {
     /// <summary>
     /// Represents a backup job with its configuration, state, and execution logic.
@@ -43,7 +40,7 @@ namespace EasySave.Models
         /// <summary>
         /// Gets the creation time of the backup job.
         /// </summary>
-        public DateTime CreationTime { get; set; }
+        public DateTime CreationTime { get; init; }
 
         /// <summary>
         /// Gets or sets the backup strategy used for this job.
@@ -79,7 +76,7 @@ namespace EasySave.Models
             Console.WriteLine($"BackupJob '{Name}': Preparing to execute via strategy '{Strategy.GetType().Name}'.");
             this.State = BackupState.ACTIVE;
             Strategy.RegisterObserver(Services.LoggingBackup.Instance);
-            Strategy.RegisterStateObserver(Services.StateManager.Instance);
+            Strategy.RegisterStateObserver(StateManager.Instance);
             Strategy.Execute(this);
             this.LastRunTime = DateTime.Now;
         }
@@ -96,7 +93,7 @@ namespace EasySave.Models
         /// <summary>
         /// Updates the state of the backup job by loading the current state from the state manager.
         /// </summary>
-        public void UpdateState()
+        private void UpdateState()
         {
             StateManager.Instance.LoadState();
             var jobState = StateManager.Instance.GetState(Name);
