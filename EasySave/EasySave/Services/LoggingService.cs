@@ -1,6 +1,5 @@
-﻿using System;
-using EasySave.Interfaces;
-using EasySave.Models;
+﻿using EasySave.Interfaces;
+using EasySave.Core.Models;
 using LoggingLibrary;
 
 namespace EasySave.Services
@@ -32,17 +31,7 @@ namespace EasySave.Services
         /// <summary>
         /// Gets the singleton instance of the <see cref="LoggingBackup"/> class.
         /// </summary>
-        public static LoggingBackup Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    _instance = new LoggingBackup();
-                }
-                return _instance;
-            }
-        }
+        public static LoggingBackup Instance => _instance ??= new LoggingBackup();
 
         /// <summary>
         /// Updates the log with the current state of a backup job.

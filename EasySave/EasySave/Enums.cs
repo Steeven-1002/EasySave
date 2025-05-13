@@ -1,4 +1,4 @@
-﻿using EasySave.Models;
+﻿using EasySave.Core.Models;
 
 namespace EasySave
 {

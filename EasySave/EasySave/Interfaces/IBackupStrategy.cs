@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using EasySave.Models;
-using EasySave.Services;
+﻿using EasySave.Core.Models;
 
 namespace EasySave.Interfaces
 {

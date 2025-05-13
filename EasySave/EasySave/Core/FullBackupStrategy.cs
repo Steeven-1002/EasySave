@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using EasySave.Models;
+﻿using EasySave.Core.Models;
 using EasySave.Interfaces;
 using EasySave.Services;
 
@@ -13,8 +10,8 @@ namespace EasySave.Core
     public class FullBackupStrategy : IBackupStrategy
     {
         private readonly FileSystemService _fileSystemService;
-        private List<IBackupObserver> _observers;
-        private List<IStateObserver> _stateObservers;
+        private readonly List<IBackupObserver> _observers;
+        private readonly List<IStateObserver> _stateObservers;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FullBackupStrategy"/> class.
@@ -87,8 +84,8 @@ namespace EasySave.Core
                     totalSize,
                     filesToBackup.Count - filesProcessed,
                     totalSize - currentProcessedFileSize,
-                    string.Empty, // No source file for initial state
-                    string.Empty  // No target file for initial state
+                    string.Empty, // No source file for the initial state
+                    string.Empty  // No target file for the initial state
                 );
             });
 
@@ -204,8 +201,8 @@ namespace EasySave.Core
                     totalSize,
                     filesToBackup.Count - filesProcessed,
                     totalSize - currentProcessedFileSize,
-                    string.Empty, // No source file for final state
-                    string.Empty  // No target file for final state
+                    string.Empty, // No source file for the final state
+                    string.Empty  // No target file for the final state
                 );
             });
         }
