@@ -6,7 +6,7 @@ public class LogFile
     private readonly string _logDirectoryPath;
     private readonly StringBuilder _buffer = new StringBuilder();
     private readonly ILogFormatter _logFormatter;
-    private const long MaxLogFileSizeBytes = 1 * 1024 * 1024; // 1 Mo
+    private const long MaxLogFileSizeBytes = 100 * 1024; // 1 Mo
     private string _currentLogFilePath;
 
     public LogFile(string logDirectoryPath, ILogFormatter logFormatter)
@@ -26,6 +26,7 @@ public class LogFile
     {
         string baseName = DateTime.Now.ToString("yyyy-MM-dd");
         string extension = _logFormatter is JsonLogFormatter ? ".json" : ".xml";
+
 
         int index = 0;
         string path;
@@ -48,14 +49,18 @@ public class LogFile
 
     private string GetCurrentLogFilePath()
     {
-        // Si le fichier est trop gros, on en crée un nouveau
         if (new FileInfo(_currentLogFilePath).Length >= MaxLogFileSizeBytes)
         {
+            // Fermer correctement le fichier actuel
+            FinalizeLogFile(_currentLogFilePath);
+
+            // Créer un nouveau fichier
             _currentLogFilePath = GenerateNewLogFilePath();
         }
 
         return _currentLogFilePath;
     }
+
 
     ~LogFile() => Close();
 
@@ -79,19 +84,62 @@ public class LogFile
     public void Close()
     {
         FlushBuffer();
-        string logFilePath = _currentLogFilePath;
 
-        if (File.Exists(logFilePath))
+        if (!File.Exists(_currentLogFilePath))
+            return;
+
+        string content = File.ReadAllText(_currentLogFilePath, Encoding.UTF8);
+
+        // Cas JSON : on nettoie la dernière virgule avant d'ajouter le "]"
+        if (_logFormatter is JsonLogFormatter)
         {
-            string content = File.ReadAllText(logFilePath, Encoding.UTF8);
-            if (content.EndsWith(",\r\n"))
-                content = content[..^3] + Environment.NewLine + "]";
-            else if (content.EndsWith("[\r\n"))
-                content = "[]";
-            else if (!content.EndsWith("]"))
-                content += "]";
+            // Supprime la dernière virgule AVANT le dernier objet
+            int lastCommaIndex = content.LastIndexOf(',');
+            int lastBraceIndex = content.LastIndexOf('}');
 
-            File.WriteAllText(logFilePath, content, Encoding.UTF8);
+            // Si la virgule est après le dernier objet, on la supprime
+            if (lastCommaIndex > 0 && lastCommaIndex > lastBraceIndex)
+            {
+                content = content.Remove(lastCommaIndex, 1); // supprime la virgule
+            }
+
+            // Ajoute la fermeture correcte du tableau
+            content += _logFormatter.CloseLogFile();
+        }
+        else
+        {
+            content += _logFormatter.CloseLogFile(); // XML etc.
+        }
+
+        File.WriteAllText(_currentLogFilePath, content, Encoding.UTF8);
+    }
+
+
+
+
+
+    private void FinalizeLogFile(string filePath)
+    {
+        if (File.Exists(filePath))
+        {
+            string content = File.ReadAllText(filePath, Encoding.UTF8);
+            string closing = _logFormatter.CloseLogFile();
+
+            if (_logFormatter is JsonLogFormatter)
+            {
+                if (content.EndsWith(",\r\n"))
+                    content = content[..^3];
+                else if (content.EndsWith("[\r\n"))
+                    content = "["; // Vide, donc on laisse juste les crochets
+
+                content += closing;
+            }
+            else if (_logFormatter is XmlLogFormatter)
+            {
+                content += closing;
+            }
+
+            File.WriteAllText(filePath, content, Encoding.UTF8);
         }
     }
 

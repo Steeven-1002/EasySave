@@ -7,12 +7,12 @@
       "RelativeMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|solutionrelative:easysave\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|c:\\users\\doubl\\source\\repos\\steeven-1002\\easysave\\easysave\\easysave\\services\\loggingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|solutionrelative:easysave\\services\\loggingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|c:\\users\\doubl\\source\\repos\\steeven-1002\\easysave\\easysave\\easysave\\services\\iloggingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|solutionrelative:easysave\\services\\iloggingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|c:\\users\\doubl\\source\\repos\\steeven-1002\\easysave\\easysave\\easysave\\services\\loggingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|solutionrelative:easysave\\services\\loggingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|c:\\users\\doubl\\source\\repos\\steeven-1002\\easysave\\easysave\\easysave\\core\\fullbackupstrategy.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -43,7 +43,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Bookmark",
@@ -52,6 +52,32 @@
             {
               "$type": "Document",
               "DocumentIndex": 2,
+              "Title": "LoggingService.cs",
+              "DocumentMoniker": "C:\\Users\\doubl\\source\\repos\\Steeven-1002\\EasySave\\EasySave\\EasySave\\Services\\LoggingService.cs",
+              "RelativeDocumentMoniker": "EasySave\\Services\\LoggingService.cs",
+              "ToolTip": "C:\\Users\\doubl\\source\\repos\\Steeven-1002\\EasySave\\EasySave\\EasySave\\Services\\LoggingService.cs*",
+              "RelativeToolTip": "EasySave\\Services\\LoggingService.cs*",
+              "ViewState": "AgIAAB4AAAAAAAAAAAAWwDEAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-14T09:03:05.419Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\doubl\\source\\repos\\Steeven-1002\\EasySave\\EasySave\\EasySave\\Program.cs",
+              "RelativeDocumentMoniker": "EasySave\\Program.cs",
+              "ToolTip": "C:\\Users\\doubl\\source\\repos\\Steeven-1002\\EasySave\\EasySave\\EasySave\\Program.cs*",
+              "RelativeToolTip": "EasySave\\Program.cs*",
+              "ViewState": "AgIAAPkAAAAAAAAAAAAcwBUBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-09T10:30:14.242Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
               "Title": "ILoggingService.cs",
               "DocumentMoniker": "C:\\Users\\doubl\\source\\repos\\Steeven-1002\\EasySave\\EasySave\\EasySave\\Services\\ILoggingService.cs",
               "RelativeDocumentMoniker": "EasySave\\Services\\ILoggingService.cs",
@@ -64,32 +90,6 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "LoggingService.cs",
-              "DocumentMoniker": "C:\\Users\\doubl\\source\\repos\\Steeven-1002\\EasySave\\EasySave\\EasySave\\Services\\LoggingService.cs",
-              "RelativeDocumentMoniker": "EasySave\\Services\\LoggingService.cs",
-              "ToolTip": "C:\\Users\\doubl\\source\\repos\\Steeven-1002\\EasySave\\EasySave\\EasySave\\Services\\LoggingService.cs",
-              "RelativeToolTip": "EasySave\\Services\\LoggingService.cs",
-              "ViewState": "AgIAAF0AAAAAAAAAAAAIwGoAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-14T09:03:05.419Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\doubl\\source\\repos\\Steeven-1002\\EasySave\\EasySave\\EasySave\\Program.cs",
-              "RelativeDocumentMoniker": "EasySave\\Program.cs",
-              "ToolTip": "C:\\Users\\doubl\\source\\repos\\Steeven-1002\\EasySave\\EasySave\\EasySave\\Program.cs",
-              "RelativeToolTip": "EasySave\\Program.cs",
-              "ViewState": "AgIAAP4AAAAAAAAAAAAgwBMBAAANAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-09T10:30:14.242Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 3,
               "Title": "FullBackupStrategy.cs",
               "DocumentMoniker": "C:\\Users\\doubl\\source\\repos\\Steeven-1002\\EasySave\\EasySave\\EasySave\\Core\\FullBackupStrategy.cs",
@@ -98,8 +98,7 @@
               "RelativeToolTip": "EasySave\\Core\\FullBackupStrategy.cs",
               "ViewState": "AgIAACcAAAAAAAAAAAAYwA0AAAA+AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-14T09:05:00.058Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-14T09:05:00.058Z"
             },
             {
               "$type": "Document",
@@ -111,8 +110,7 @@
               "RelativeToolTip": "EasySave\\Core\\DifferentialBackupStrategy.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAuAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-14T09:04:55.746Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-14T09:04:55.746Z"
             },
             {
               "$type": "Document",
@@ -124,8 +122,7 @@
               "RelativeToolTip": "EasySave\\Core\\Models\\BackupJob.cs",
               "ViewState": "AgIAADkAAAAAAAAAAIA4wE0AAAAmAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-14T09:04:40.682Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-14T09:04:40.682Z"
             },
             {
               "$type": "Document",
