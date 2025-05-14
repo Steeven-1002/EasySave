@@ -1,5 +1,7 @@
-﻿using EasySave.Interfaces;
+﻿using System;
 using EasySave.Core.Models;
+using EasySave.Interfaces;
+
 using LoggingLibrary;
 
 namespace EasySave.Services
@@ -19,19 +21,47 @@ namespace EasySave.Services
         /// Service used for logging backup operations.
         /// </summary>
         private readonly LogService _logService;
+        
+        private static string _logState = "XML"; // Valeur par défaut
+
 
         /// <summary>
         /// Private constructor to initialize the logging service with a log file path and formatter.
         /// </summary>
         private LoggingBackup()
-        {
-            _logService = new LogService(GetLogFilePath(), new JsonLogFormatter());
+
+        {    if (_logState == "XML") { 
+
+                _logService = new LogService(GetLogFilePath(), new XmlLogFormatter());
+            }
+
+            else if (_logState == "JSON")
+            {
+                _logService = new LogService(GetLogFilePath(), new JsonLogFormatter());
+            }
+            
         }
+        public static void RecreateInstance(string newFormat)
+        {
+            _logState = newFormat;
+            _instance = new LoggingBackup(); // Forcer l’appel du constructeur avec le nouveau _logState
+        }
+
 
         /// <summary>
         /// Gets the singleton instance of the <see cref="LoggingBackup"/> class.
         /// </summary>
-        public static LoggingBackup Instance => _instance ??= new LoggingBackup();
+        public static LoggingBackup Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = new LoggingBackup();
+                }
+                return _instance;
+            }
+        }
 
         /// <summary>
         /// Updates the log with the current state of a backup job.
@@ -68,5 +98,10 @@ namespace EasySave.Services
         {
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "Logs\\");
         }
+
+
+
+
+
     }
 }

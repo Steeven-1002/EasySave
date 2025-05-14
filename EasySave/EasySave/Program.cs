@@ -1,5 +1,6 @@
 ﻿using EasySave.Services;
 using EasySave.Core;
+using LoggingLibrary;
 
 namespace EasySave
 {
@@ -99,11 +100,12 @@ namespace EasySave
                 Console.WriteLine($"4. {_localizationService.GetString("MainMenu_ExecuteMultipleJobs")}");
                 Console.WriteLine($"5. {_localizationService.GetString("MainMenu_DeleteJob")}");
                 Console.WriteLine($"6. {_localizationService.GetString("MainMenu_ChangeLanguage")}");
-                Console.WriteLine($"7. {_localizationService.GetString("MainMenu_Exit")}");
+                Console.WriteLine($"7. {_localizationService.GetString("MainMenu_ChangeLogFormat")}");
+                Console.WriteLine($"8. {_localizationService.GetString("MainMenu_Exit")}");
                 Console.Write($"{_localizationService.GetString("EnterChoice")}: ");
 
                 string? choice = Console.ReadLine();
-                if (choice == "7") exit = true;
+                if (choice == "8") exit = true;
                 else ProcessUserChoice(choice);
             }
         }
@@ -122,10 +124,11 @@ namespace EasySave
                 case "4": UiExecuteMultipleJobs(); break;
                 case "5": UiDeleteBackupJob(); break;
                 case "6": UiChangeLanguage(); break;
-                case "7": break;
+                case "7": UiChangeLog(); break;
+                case "8": break;
                 default: Console.WriteLine(_localizationService.GetString("InvalidChoice")); break;
             }
-            if (choice != "7" && choice != "6")
+            if (choice != "8" && choice != "6")
             {
                 Console.WriteLine(_localizationService.GetString("PressEnterToContinue"));
                 Console.ReadLine();
@@ -213,7 +216,7 @@ namespace EasySave
             else
             {
                 ParseCommandLine(input);
-            }   
+            }
         }
 
         /// <summary>
@@ -248,6 +251,32 @@ namespace EasySave
                 Console.WriteLine(_localizationService.GetString("InvalidJobIndex"));
             }
         }
+
+        private static void UiChangeLog()
+        {
+            Console.WriteLine(_localizationService.GetString("ChangeLogFormat_Title"));
+            Console.WriteLine(_localizationService.GetString("ChangeLogFormat_Xml"));
+            Console.WriteLine(_localizationService.GetString("ChangeLogFormat_JSON"));
+            Console.Write(_localizationService.GetString("ChangeLogFormat_Choice"));
+            string? input = Console.ReadLine();
+
+            switch (input)
+            {
+                case "1":
+                    LoggingBackup.RecreateInstance("XML");
+                    Console.WriteLine(_localizationService.GetString("ChangeLogFormat_XmlValid"));
+                    break;
+                case "2":
+                    LoggingBackup.RecreateInstance("JSON");
+                    Console.WriteLine(_localizationService.GetString("ChangeLogFormat_JsonValid"));
+                    break;
+                default:
+                    Console.WriteLine(_localizationService.GetString("ChangeLogFormat_Invalid"));
+                    break;
+            }
+        }
+
+
 
         /// <summary>
         /// Allows the user to change the application's language.

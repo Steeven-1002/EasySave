@@ -170,5 +170,10 @@ namespace EasySave.Core
                 observer.StateChanged(jobName, newState, totalFiles, totalSize, remainingFiles, remainingSize, currentSourceFile, currentTargetFile);
             }
         }
+
+        public void RegisterObserver(Func<string, LoggingBackup> instance)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
