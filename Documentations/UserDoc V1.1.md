@@ -21,3 +21,4 @@ At the start of the application, you can choose between French or English.
 ## Log and state file
 
 Every action regarding a backup job (creation or load) will automatically generate or update the log and state files.
+It's possible to choose the extension of this file : Json or XML. By default the extension selected is XML.
