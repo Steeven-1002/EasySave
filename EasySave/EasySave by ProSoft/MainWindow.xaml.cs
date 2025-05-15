@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System.Globalization;
+using System.Threading;
+using System.Windows;
 using EasySave_by_ProSoft.Views;
 
 namespace EasySave_by_ProSoft
