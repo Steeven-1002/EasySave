@@ -9,7 +9,7 @@ namespace LoggingLibrary
     {
         private readonly LogFile _logFile;
         private readonly ILogFormatter _logFormatter;
-        private readonly string _logDirectoryPath; // Stockez le chemin du fichier
+        private readonly string _logDirectoryPath;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LogService"/> class.
@@ -19,7 +19,7 @@ namespace LoggingLibrary
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="logFormatter"/> is null.</exception>
         public LogService(string logDirectoryPath, ILogFormatter logFormatter)
         {
-            _logDirectoryPath = logDirectoryPath; // Initialisez le chemin
+            _logDirectoryPath = logDirectoryPath;
             _logFile = new LogFile(logDirectoryPath, logFormatter);
             _logFormatter = logFormatter ?? throw new ArgumentNullException(nameof(logFormatter));
         }
@@ -55,7 +55,7 @@ namespace LoggingLibrary
         /// <returns>The directory path as a string.</returns>
         public string GetlogDirectoryPath()
         {
-            return _logDirectoryPath; // Retournez le chemin stocké
+            return _logDirectoryPath;
         }
     }
 }

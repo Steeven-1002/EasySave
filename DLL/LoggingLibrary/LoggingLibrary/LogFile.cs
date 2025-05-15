@@ -38,7 +38,7 @@ public class LogFile
             index++;
         } while (File.Exists(path) && new FileInfo(path).Length >= MaxLogFileSizeBytes);
 
-        // Initialise le fichier s’il est nouveau
+        // Initialise the new log file if not already done
         if (!File.Exists(path))
         {
             File.WriteAllText(path, _logFormatter.InitializeLogFile(path), Encoding.UTF8);
@@ -51,10 +51,10 @@ public class LogFile
     {
         if (new FileInfo(_currentLogFilePath).Length >= MaxLogFileSizeBytes)
         {
-            // Fermer correctement le fichier actuel
+            // Close the current log file
             FinalizeLogFile(_currentLogFilePath);
 
-            // Créer un nouveau fichier
+            // Create a new log file
             _currentLogFilePath = GenerateNewLogFilePath();
         }
 
@@ -90,25 +90,24 @@ public class LogFile
 
         string content = File.ReadAllText(_currentLogFilePath, Encoding.UTF8);
 
-        // Cas JSON : on nettoie la dernière virgule avant d'ajouter le "]"
         if (_logFormatter is JsonLogFormatter)
         {
-            // Supprime la dernière virgule AVANT le dernier objet
+            // If output is JSON, remove the last comma if it exists
             int lastCommaIndex = content.LastIndexOf(',');
             int lastBraceIndex = content.LastIndexOf('}');
 
-            // Si la virgule est après le dernier objet, on la supprime
+            // If the last comma is before the last brace, remove it
             if (lastCommaIndex > 0 && lastCommaIndex > lastBraceIndex)
             {
-                content = content.Remove(lastCommaIndex, 1); // supprime la virgule
+                content = content.Remove(lastCommaIndex, 1);
             }
 
-            // Ajoute la fermeture correcte du tableau
+            // Add the closing bracket depending on the content type
             content += _logFormatter.CloseLogFile();
         }
         else
         {
-            content += _logFormatter.CloseLogFile(); // XML etc.
+            content += _logFormatter.CloseLogFile();
         }
 
         File.WriteAllText(_currentLogFilePath, content, Encoding.UTF8);
@@ -130,7 +129,7 @@ public class LogFile
                 if (content.EndsWith(",\r\n"))
                     content = content[..^3];
                 else if (content.EndsWith("[\r\n"))
-                    content = "["; // Vide, donc on laisse juste les crochets
+                    content = "[";
 
                 content += closing;
             }

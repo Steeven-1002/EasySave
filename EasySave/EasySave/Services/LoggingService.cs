@@ -21,32 +21,35 @@ namespace EasySave.Services
         /// Service used for logging backup operations.
         /// </summary>
         private readonly LogService _logService;
-        
-        private static string _logState = "XML"; // Valeur par défaut
+
+        private static string _logState = "XML"; // Default log format is XML
 
 
         /// <summary>
         /// Private constructor to initialize the logging service with a log file path and formatter.
         /// </summary>
         private LoggingBackup()
-
-        {    if (_logState == "XML") { 
-
+        {
+            if (_logState == "XML")
+            {
                 _logService = new LogService(GetLogFilePath(), new XmlLogFormatter());
             }
-
             else if (_logState == "JSON")
             {
                 _logService = new LogService(GetLogFilePath(), new JsonLogFormatter());
             }
-            
         }
+
+        /// <summary>
+        /// Recreates the singleton instance with a new log format.
+        /// </summary>
+        /// <param name="newFormat">The new log format ("XML" or "JSON").</param>
         public static void RecreateInstance(string newFormat)
         {
             _logState = newFormat;
-            _instance = new LoggingBackup(); // Forcer l’appel du constructeur avec le nouveau _logState
+            _instance = null; // Destroy the previous instance
+            _instance = new LoggingBackup(); // Create a new instance with the updated format
         }
-
 
         /// <summary>
         /// Gets the singleton instance of the <see cref="LoggingBackup"/> class.
@@ -98,10 +101,5 @@ namespace EasySave.Services
         {
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "Logs\\");
         }
-
-
-
-
-
     }
 }
