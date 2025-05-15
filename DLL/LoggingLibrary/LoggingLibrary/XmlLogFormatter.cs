@@ -9,6 +9,14 @@ namespace LoggingLibrary
     /// </summary>
     public class XmlLogFormatter : ILogFormatter
     {
+        private static readonly XmlSerializer _serializer = new(typeof(LogEntry));
+        private static readonly XmlSerializerNamespaces _namespaces = new();
+
+        static XmlLogFormatter()
+        {
+            _namespaces.Add(string.Empty, string.Empty);
+        }
+
         /// <summary>
         /// Formats a log entry into an XML string.
         /// </summary>
@@ -16,23 +24,14 @@ namespace LoggingLibrary
         /// <returns>An XML string representation of the log entry.</returns>
         public string FormatLog(LogEntry logEntry)
         {
-            // Initialize the XML serializer for the LogEntry type
-            var serializer = new XmlSerializer(typeof(LogEntry));
-
-            // Define namespaces to suppress default namespace declarations
-            var namespaces = new XmlSerializerNamespaces();
-            namespaces.Add(string.Empty, string.Empty); // Removes namespace declarations
-
-            // Use StringWriter and XmlWriter to serialize the log entry
             using var stringWriter = new StringWriter();
             using var xmlWriter = XmlWriter.Create(stringWriter, new XmlWriterSettings
             {
-                OmitXmlDeclaration = true, // Omits the XML declaration (e.g., <?xml version="1.0"?>)
-                Indent = true // Adds indentation for better readability
+                OmitXmlDeclaration = true,
+                Indent = true
             });
 
-            // Serialize the log entry into XML format
-            serializer.Serialize(xmlWriter, logEntry, namespaces);
+            _serializer.Serialize(xmlWriter, logEntry, _namespaces);
             return stringWriter.ToString();
         }
 

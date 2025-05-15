@@ -105,15 +105,14 @@ namespace EasySave.Core
                 if (_backupJobs[jobIndex].Type != updatedJobData.Type)
                 {
                     FileSystemService fsService = new FileSystemService();
-
-                    if (!updatedJobData.Type.Equals(BackupType.FULL))
-                    {
-                        new DifferentialBackupStrategy(fsService);
-                    }
+                    if (updatedJobData.Type == BackupType.FULL)
+                        updatedJobData.Strategy = new FullBackupStrategy(fsService);
                     else
-                    {
-                        new FullBackupStrategy(fsService);
-                    }
+                        updatedJobData.Strategy = new DifferentialBackupStrategy(fsService);
+
+                    // Réenregistrement des observateurs
+                    updatedJobData.Strategy.RegisterObserver(LoggingBackup.Instance);
+                    updatedJobData.Strategy.RegisterStateObserver(StateManager.Instance);
                 }
                 else
                 {

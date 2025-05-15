@@ -264,10 +264,14 @@ namespace EasySave
             {
                 case "1":
                     LoggingBackup.RecreateInstance("XML");
+                    _configManager.LogFormat = "XML";
+                    _configManager.SaveConfiguration();
                     Console.WriteLine(_localizationService.GetString("ChangeLogFormat_XmlValid"));
                     break;
                 case "2":
                     LoggingBackup.RecreateInstance("JSON");
+                    _configManager.LogFormat = "JSON";
+                    _configManager.SaveConfiguration();
                     Console.WriteLine(_localizationService.GetString("ChangeLogFormat_JsonValid"));
                     break;
                 default:
@@ -275,8 +279,6 @@ namespace EasySave
                     break;
             }
         }
-
-
 
         /// <summary>
         /// Allows the user to change the application's language.
