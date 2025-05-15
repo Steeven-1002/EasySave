@@ -11,7 +11,7 @@ namespace EasySave.Services
         private Dictionary<string, string> _localizedStrings;
         private string _currentLanguage;
         private bool _isLanguageLoaded;
-            
+
         /// <summary>
         /// Gets the currently loaded language.
         /// </summary>
@@ -21,7 +21,7 @@ namespace EasySave.Services
         /// Indicates whether a language has been successfully loaded.
         /// </summary>
         public bool IsLanguageLoaded => _isLanguageLoaded;
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="LocalizationService"/> class with a default language.
         /// </summary>
@@ -37,7 +37,7 @@ namespace EasySave.Services
                 Console.WriteLine($"LocalizationService WARNING: Default language '{defaultLanguage}' could not be loaded. Check Resources folder and file content.");
             }
         }
-        
+
         /// <summary>
         /// Loads a JSON language file corresponding to the specified language code.
         /// </summary>
@@ -50,8 +50,7 @@ namespace EasySave.Services
 
             try
             {
-                string? exePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            string filePath = Path.Combine(exePath ?? "ASSETS", "lang", fileName);
+                string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "lang" + Path.DirectorySeparatorChar, fileName);
 
                 if (!File.Exists(filePath))
                 {
