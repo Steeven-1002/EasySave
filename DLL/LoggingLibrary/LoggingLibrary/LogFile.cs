@@ -7,7 +7,6 @@ public class LogFile
     private readonly StringBuilder _buffer = new StringBuilder();
     private readonly ILogFormatter _logFormatter;
     private const long MaxLogFileSizeBytes = 100 * 1024; // 1 Mo
-    private string _currentLogFilePath;
 
     public LogFile(string logDirectoryPath, ILogFormatter logFormatter)
     {
@@ -18,51 +17,25 @@ public class LogFile
         {
             Directory.CreateDirectory(_logDirectoryPath);
         }
-
-        _currentLogFilePath = GenerateNewLogFilePath();
     }
 
-    private string GenerateNewLogFilePath()
+    private string GetCurrentLogFile()
     {
         string baseName = DateTime.Now.ToString("yyyy-MM-dd");
         string extension = _logFormatter is JsonLogFormatter ? ".json" : ".xml";
 
-
-        int index = 0;
+        int index = 1;
         string path;
         do
         {
-            string suffix = index == 0 ? "" : $"_{index}";
+            string suffix = $"_{index}";
             string fileName = $"{baseName}{suffix}{extension}";
             path = Path.Combine(_logDirectoryPath, fileName);
             index++;
         } while (File.Exists(path) && new FileInfo(path).Length >= MaxLogFileSizeBytes);
 
-        // Initialise the new log file if not already done
-        if (!File.Exists(path))
-        {
-            File.WriteAllText(path, _logFormatter.InitializeLogFile(path), Encoding.UTF8);
-        }
-
         return path;
     }
-
-    private string GetCurrentLogFilePath()
-    {
-        if (new FileInfo(_currentLogFilePath).Length >= MaxLogFileSizeBytes)
-        {
-            // Close the current log file
-            FinalizeLogFile(_currentLogFilePath);
-
-            // Create a new log file
-            _currentLogFilePath = GenerateNewLogFilePath();
-        }
-
-        return _currentLogFilePath;
-    }
-
-
-    ~LogFile() => Close();
 
     public void WriteLogEntry(string logEntry)
     {
@@ -72,89 +45,34 @@ public class LogFile
 
     public void FlushBuffer()
     {
-        if (_buffer.Length > 0)
-        {
-            string logFilePath = GetCurrentLogFilePath();
-            Open(logFilePath);
-            File.AppendAllText(logFilePath, _buffer.ToString(), Encoding.UTF8);
-            _buffer.Clear();
-        }
-    }
-
-    public void Close()
-    {
-        FlushBuffer();
-
-        if (!File.Exists(_currentLogFilePath))
+        if (_buffer.Length == 0)
             return;
 
-        string content = File.ReadAllText(_currentLogFilePath, Encoding.UTF8);
+        string logContent = _buffer.ToString();
+        string filePath = GetCurrentLogFile();
 
-        if (_logFormatter is JsonLogFormatter)
+        // Retry logic to handle file access conflicts
+        const int maxRetries = 3;
+        const int delayBetweenRetriesMs = 100;
+
+        for (int attempt = 0; attempt < maxRetries; attempt++)
         {
-            // If output is JSON, remove the last comma if it exists
-            int lastCommaIndex = content.LastIndexOf(',');
-            int lastBraceIndex = content.LastIndexOf('}');
-
-            // If the last comma is before the last brace, remove it
-            if (lastCommaIndex > 0 && lastCommaIndex > lastBraceIndex)
+            try
             {
-                content = content.Remove(lastCommaIndex, 1);
+                string existingContent = File.Exists(filePath) ? File.ReadAllText(filePath) : string.Empty;
+                File.WriteAllText(filePath, _logFormatter.MergeLogContent(existingContent, logContent));
+
+                // Clear the buffer after successful write
+                _buffer.Clear();
+                return;
             }
-
-            // Add the closing bracket depending on the content type
-            content += _logFormatter.CloseLogFile();
-        }
-        else
-        {
-            content += _logFormatter.CloseLogFile();
-        }
-
-        File.WriteAllText(_currentLogFilePath, content, Encoding.UTF8);
-    }
-
-
-
-
-
-    private void FinalizeLogFile(string filePath)
-    {
-        if (File.Exists(filePath))
-        {
-            string content = File.ReadAllText(filePath, Encoding.UTF8);
-            string closing = _logFormatter.CloseLogFile();
-
-            if (_logFormatter is JsonLogFormatter)
+            catch (IOException)
             {
-                if (content.EndsWith(",\r\n"))
-                    content = content[..^3];
-                else if (content.EndsWith("[\r\n"))
-                    content = "[";
+                if (attempt == maxRetries - 1)
+                    throw; // Re-throw the exception if max retries are reached
 
-                content += closing;
+                Thread.Sleep(delayBetweenRetriesMs); // Wait before retrying
             }
-            else if (_logFormatter is XmlLogFormatter)
-            {
-                content += closing;
-            }
-
-            File.WriteAllText(filePath, content, Encoding.UTF8);
-        }
-    }
-
-    public void Open(string logFilePath)
-    {
-        if (File.Exists(logFilePath))
-        {
-            string content = File.ReadAllText(logFilePath, Encoding.UTF8);
-            if (content.EndsWith("]"))
-                File.WriteAllText(logFilePath, content[..^1] + ",\r\n", Encoding.UTF8);
-            else if (content.EndsWith("["))
-                File.WriteAllText(logFilePath, content + "\r\n", Encoding.UTF8);
-        }
-        else
-        {
-            File.WriteAllText(logFilePath, "[\r\n", Encoding.UTF8);
         }
     }
 }

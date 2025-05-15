@@ -27,6 +27,13 @@ namespace EasySave.Core
             _settings.TryGetValue("Language", out var val) && val.ValueKind == JsonValueKind.String
                 ? val.GetString()!
                 : "en";
+        public string LogFormat
+        {
+            get => _settings.TryGetValue("LogFormat", out var val) && val.ValueKind == JsonValueKind.String
+                ? val.GetString()!
+                : "XML";
+            set => SetSetting("LogFormat", value);
+        }
 
         /// <summary>  
         /// Gets the singleton instance of the <see cref="ConfigManager"/> class.  

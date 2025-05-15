@@ -1,8 +1,8 @@
-﻿using System;
+﻿using EasySave.Core;
 using EasySave.Core.Models;
 using EasySave.Interfaces;
-
 using LoggingLibrary;
+using System;
 
 namespace EasySave.Services
 {
@@ -20,24 +20,21 @@ namespace EasySave.Services
         /// <summary>
         /// Service used for logging backup operations.
         /// </summary>
-        private readonly LogService _logService;
-
-        private static string _logState = "XML"; // Default log format is XML
-
+        private LogService? _logService;
+        private static string? _logFormat;
 
         /// <summary>
         /// Private constructor to initialize the logging service with a log file path and formatter.
         /// </summary>
         private LoggingBackup()
         {
-            if (_logState == "XML")
+            _logFormat = ConfigManager.Instance.LogFormat;
+            _logService = _logFormat switch
             {
-                _logService = new LogService(GetLogFilePath(), new XmlLogFormatter());
-            }
-            else if (_logState == "JSON")
-            {
-                _logService = new LogService(GetLogFilePath(), new JsonLogFormatter());
-            }
+                "XML" => new LogService(GetLogFilePath(), new XmlLogFormatter()),
+                "JSON" => new LogService(GetLogFilePath(), new JsonLogFormatter()),
+                _ => throw new InvalidOperationException("Invalid log format specified.")
+            };
         }
 
         /// <summary>
@@ -46,9 +43,21 @@ namespace EasySave.Services
         /// <param name="newFormat">The new log format ("XML" or "JSON").</param>
         public static void RecreateInstance(string newFormat)
         {
-            _logState = newFormat;
-            _instance = null; // Destroy the previous instance
-            _instance = new LoggingBackup(); // Create a new instance with the updated format
+            _logFormat = newFormat;
+            ConfigManager.Instance.LogFormat = newFormat;
+            ConfigManager.Instance.SaveConfiguration();
+
+            // Ensure _instance is not null before accessing its members
+            if (_instance != null)
+            {
+                _instance._logService = null;
+                _instance._logService = newFormat switch
+                {
+                    "XML" => new LogService(_instance.GetLogFilePath(), new XmlLogFormatter()),
+                    "JSON" => new LogService(_instance.GetLogFilePath(), new JsonLogFormatter()),
+                    _ => throw new InvalidOperationException("Invalid log format specified.")
+                };
+            }
         }
 
         /// <summary>

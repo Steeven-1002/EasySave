@@ -3,27 +3,21 @@
   "WorkspaceRootPath": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|c:\\users\\anton\\documents\\github\\easysave\\easysave\\easysave\\services\\loggingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|solutionrelative:easysave\\services\\loggingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\anton\\Documents\\GitHub\\EasySave\\DLL\\LoggingLibrary\\LoggingLibrary\\JsonLogFormatter.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|c:\\users\\anton\\documents\\github\\easysave\\easysave\\easysave\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|solutionrelative:easysave\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|c:\\users\\anton\\documents\\github\\easysave\\easysave\\easysave\\core\\models\\backupjob.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|solutionrelative:easysave\\core\\models\\backupjob.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\LoggingService.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:EasySave\\LoggingService.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\anton\\Documents\\GitHub\\EasySave\\DLL\\LoggingLibrary\\LoggingLibrary\\XmlLogFormatter.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\anton\\Documents\\GitHub\\EasySave\\DLL\\LoggingLibrary\\LoggingLibrary\\LogFile.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\ConfigManager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:EasySave\\ConfigManager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|c:\\users\\anton\\documents\\github\\easysave\\easysave\\easysave\\services\\loggingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|solutionrelative:easysave\\services\\loggingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|c:\\users\\anton\\documents\\github\\easysave\\easysave\\easysave\\core\\configmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{80412718-F561-404B-BD25-A70338AA6FBB}|EasySave\\EasySave.csproj|solutionrelative:easysave\\core\\configmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -33,7 +27,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Bookmark",
@@ -45,76 +39,68 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "LoggingService.cs",
-              "DocumentMoniker": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\Services\\LoggingService.cs",
-              "RelativeDocumentMoniker": "EasySave\\Services\\LoggingService.cs",
-              "ToolTip": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\Services\\LoggingService.cs",
-              "RelativeToolTip": "EasySave\\Services\\LoggingService.cs",
-              "ViewState": "AgIAACUAAAAAAAAAAAAQwCYAAAAbAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-14T09:03:05.419Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\Program.cs",
-              "RelativeDocumentMoniker": "EasySave\\Program.cs",
-              "ToolTip": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\Program.cs",
-              "RelativeToolTip": "EasySave\\Program.cs",
-              "ViewState": "AgIAAAABAAAAAAAAAAAcwA0BAAAyAAAAAAAAAA==",
+              "Title": "XmlLogFormatter.cs",
+              "DocumentMoniker": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\DLL\\LoggingLibrary\\LoggingLibrary\\XmlLogFormatter.cs",
+              "RelativeDocumentMoniker": "..\\DLL\\LoggingLibrary\\LoggingLibrary\\XmlLogFormatter.cs",
+              "ToolTip": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\DLL\\LoggingLibrary\\LoggingLibrary\\XmlLogFormatter.cs",
+              "RelativeToolTip": "..\\DLL\\LoggingLibrary\\LoggingLibrary\\XmlLogFormatter.cs",
+              "ViewState": "AgIAACwAAAAAAAAAAAAIwEEAAAAMAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-09T10:30:14.242Z",
+              "WhenOpened": "2025-05-15T14:16:09.498Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "BackupJob.cs",
-              "DocumentMoniker": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\Core\\Models\\BackupJob.cs",
-              "RelativeDocumentMoniker": "EasySave\\Core\\Models\\BackupJob.cs",
-              "ToolTip": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\Core\\Models\\BackupJob.cs",
-              "RelativeToolTip": "EasySave\\Core\\Models\\BackupJob.cs",
-              "ViewState": "AgIAADkAAAAAAAAAAIA4wE0AAAAmAAAAAAAAAA==",
+              "DocumentIndex": 0,
+              "Title": "JsonLogFormatter.cs",
+              "DocumentMoniker": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\DLL\\LoggingLibrary\\LoggingLibrary\\JsonLogFormatter.cs",
+              "RelativeDocumentMoniker": "..\\DLL\\LoggingLibrary\\LoggingLibrary\\JsonLogFormatter.cs",
+              "ToolTip": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\DLL\\LoggingLibrary\\LoggingLibrary\\JsonLogFormatter.cs",
+              "RelativeToolTip": "..\\DLL\\LoggingLibrary\\LoggingLibrary\\JsonLogFormatter.cs",
+              "ViewState": "AgIAAB4AAAAAAAAAAAAAADUAAAAMAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-14T09:04:40.682Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "LogFile.cs",
-              "DocumentMoniker": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\DLL\\LoggingLibrary\\LoggingLibrary\\LogFile.cs",
-              "RelativeDocumentMoniker": "..\\DLL\\LoggingLibrary\\LoggingLibrary\\LogFile.cs",
-              "ToolTip": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\DLL\\LoggingLibrary\\LoggingLibrary\\LogFile.cs",
-              "RelativeToolTip": "..\\DLL\\LoggingLibrary\\LoggingLibrary\\LogFile.cs",
-              "ViewState": "AgIAADYAAAAAAAAAAAAUwDkAAAAIAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-09T11:20:11.781Z"
+              "WhenOpened": "2025-05-15T14:08:35.644Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 3,
               "Title": "LoggingService.cs",
-              "DocumentMoniker": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\LoggingService.cs",
-              "RelativeDocumentMoniker": "EasySave\\LoggingService.cs",
-              "ToolTip": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\LoggingService.cs",
-              "RelativeToolTip": "EasySave\\LoggingService.cs",
+              "DocumentMoniker": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\Services\\LoggingService.cs",
+              "RelativeDocumentMoniker": "EasySave\\Services\\LoggingService.cs",
+              "ToolTip": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\Services\\LoggingService.cs",
+              "RelativeToolTip": "EasySave\\Services\\LoggingService.cs",
+              "ViewState": "AgIAACwAAAAAAAAAAAAqwEAAAAAWAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-09T10:31:42.722Z"
+              "WhenOpened": "2025-05-15T14:01:18.239Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "ConfigManager.cs",
-              "DocumentMoniker": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\ConfigManager.cs",
-              "RelativeDocumentMoniker": "EasySave\\ConfigManager.cs",
-              "ToolTip": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\ConfigManager.cs",
-              "RelativeToolTip": "EasySave\\ConfigManager.cs",
-              "ViewState": "AgIAAGEAAAAAAAAAAAAwwBUAAAASAAAAAAAAAA==",
+              "DocumentIndex": 2,
+              "Title": "LogFile.cs",
+              "DocumentMoniker": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\DLL\\LoggingLibrary\\LoggingLibrary\\LogFile.cs",
+              "RelativeDocumentMoniker": "..\\DLL\\LoggingLibrary\\LoggingLibrary\\LogFile.cs",
+              "ToolTip": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\DLL\\LoggingLibrary\\LoggingLibrary\\LogFile.cs",
+              "RelativeToolTip": "..\\DLL\\LoggingLibrary\\LoggingLibrary\\LogFile.cs",
+              "ViewState": "AgIAADEAAAAAAAAAAAAAADwAAAANAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-09T09:12:35.685Z"
+              "WhenOpened": "2025-05-15T14:07:34.136Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "ConfigManager.cs",
+              "DocumentMoniker": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\Core\\ConfigManager.cs",
+              "RelativeDocumentMoniker": "EasySave\\Core\\ConfigManager.cs",
+              "ToolTip": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\EasySave\\EasySave\\Core\\ConfigManager.cs",
+              "RelativeToolTip": "EasySave\\Core\\ConfigManager.cs",
+              "ViewState": "AgIAAA4AAAAAAAAAAAAAwCEAAAAYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-15T14:00:46.745Z",
+              "EditorCaption": ""
             }
           ]
         }

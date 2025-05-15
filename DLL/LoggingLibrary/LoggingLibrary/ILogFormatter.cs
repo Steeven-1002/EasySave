@@ -15,16 +15,11 @@ namespace LoggingLibrary
         string FormatLog(LogEntry logEntry);
 
         /// <summary>
-        /// Initializes a log file at the specified file path.
+        /// Merges a new log entry into the existing log content.
         /// </summary>
-        /// <param name="logFilePath">The file path where the log file will be created or opened.</param>
-        /// <returns>A message indicating the result of the initialization process.</returns>
-        string InitializeLogFile(string logFilePath);
-
-        /// <summary>
-        /// Closes the currently open log file.
-        /// </summary>
-        /// <returns>A message indicating the result of the file closing process.</returns>
-        string CloseLogFile();
+        /// <param name="existingContent">The existing log content.</param>
+        /// <param name="newContent">The new log entry to add.</param>
+        /// <returns>The updated log content with the new entry added.</returns>
+        string MergeLogContent(string existingContent, string newContent);
     }
 }

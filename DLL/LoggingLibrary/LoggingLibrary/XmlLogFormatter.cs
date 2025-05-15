@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Xml;
+using System.IO;
 using System.Xml.Serialization;
 
 namespace LoggingLibrary
@@ -15,29 +16,54 @@ namespace LoggingLibrary
         /// <returns>An XML string representation of the log entry.</returns>
         public string FormatLog(LogEntry logEntry)
         {
+            // Initialize the XML serializer for the LogEntry type
             var serializer = new XmlSerializer(typeof(LogEntry));
+
+            // Define namespaces to suppress default namespace declarations
+            var namespaces = new XmlSerializerNamespaces();
+            namespaces.Add(string.Empty, string.Empty); // Removes namespace declarations
+
+            // Use StringWriter and XmlWriter to serialize the log entry
             using var stringWriter = new StringWriter();
-            serializer.Serialize(stringWriter, logEntry);
+            using var xmlWriter = XmlWriter.Create(stringWriter, new XmlWriterSettings
+            {
+                OmitXmlDeclaration = true, // Omits the XML declaration (e.g., <?xml version="1.0"?>)
+                Indent = true // Adds indentation for better readability
+            });
+
+            // Serialize the log entry into XML format
+            serializer.Serialize(xmlWriter, logEntry, namespaces);
             return stringWriter.ToString();
         }
 
         /// <summary>
-        /// Initializes the XML log file.
+        /// Adds a new log entry to the existing XML content.
         /// </summary>
-        /// <param name="logFilePath">The path of the log file to initialize.</param>
-        /// <returns>A string representing the start of an XML document.</returns>
-        public string InitializeLogFile(string logFilePath)
+        /// <param name="existingContent">The existing XML content.</param>
+        /// <param name="newContent">The new log entry to add.</param>
+        /// <returns>The updated XML content with the new log entry added.</returns>
+        public string MergeLogContent(string existingContent, string newContent)
         {
-            return "<LogEntries>" + Environment.NewLine;
-        }
+            if (string.IsNullOrEmpty(existingContent))
+            {
+                // If the existing content is empty, create a valid XML structure
+                return $"<LogEntries>{Environment.NewLine}{newContent}</LogEntries>";
+            }
 
-        /// <summary>
-        /// Closes the XML log file.
-        /// </summary>
-        /// <returns>A string representing the end of an XML document.</returns>
-        public string CloseLogFile()
-        {
-            return Environment.NewLine + "</LogEntries>";
+            // Remove the closing </LogEntries> tag from the existing content
+            int closingTagIndex = existingContent.LastIndexOf("</LogEntries>");
+            string? clearContent = null;
+            if (closingTagIndex != -1)
+            {
+                // Remove the closing tag to append the new content
+                clearContent = existingContent.Replace("</LogEntries>", string.Empty).TrimEnd();
+            }
+            else
+            {
+                clearContent = existingContent;
+            }
+            // Append the new content and close the </LogEntries> tag
+            return $"{clearContent}{newContent}</LogEntries>";
         }
     }
 }
