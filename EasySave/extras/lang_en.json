@@ -1,0 +1,85 @@
+{
+  "InitialLanguagePrompt": "Choose language / Choisissez la langue:\n1. English\n2. Français\nEnter choice / Entrez votre choix: ",
+  "WelcomeMessage": "Welcome to EasySave!",
+  "GoodbyeMessage": "Exiting EasySave. Goodbye!",
+  "InvalidChoice": "Invalid choice. Please try again.",
+  "EnterChoice": "Enter your choice",
+  "PressEnterToContinue": "Press Enter to continue...",
+
+  "MainMenu_Title": "--- EasySave Main Menu ---",
+  "MainMenu_CreateJob": "Create New Backup Job",
+  "MainMenu_ListJobs": "List Backup Jobs",
+  "MainMenu_ExecuteSingleJob": "Execute Specific Backup Job",
+  "MainMenu_ExecuteMultipleJobs": "Execute Multiple Backup Jobs",
+  "MainMenu_ExecuteJob": "Execute Job",
+  "MainMenu_DeleteJob": "Delete Backup Job",
+  "MainMenu_ChangeLanguage": "Change Language",
+  "MainMenu_ChangeLogFormat" : "Change the the Log file extension",
+  "MainMenu_Exit": "Exit Program",
+
+  "CreateJob_Title": "\n--- Create New Backup Job ---",
+  "EnterJobName": "Enter Job Name",
+  "EnterSourcePath": "Enter Source Directory Path",
+  "EnterTargetPath": "Enter Target Directory Path",
+  "EnterBackupType": "Enter Backup Type (FULL/DIFFERENTIAL)",
+  "ErrorAllFieldsRequired": "Error: Name, Source, Target, and Type are required.",
+  "ErrorInvalidBackupType": "Error: Invalid backup type entered. Please use FULL or DIFFERENTIAL.",
+  "JobCreatedSuccess": "Job '{0}' created successfully.",
+  "ErrorJobCreation": "Error creating job: {0}",
+  "ErrorUnexpected": "An unexpected error occurred: {0}",
+
+  "BackupJobsList": "\n--- Configured Backup Jobs ---",
+  "NoJobsFound": "No backup jobs are currently configured.",
+
+  "EnterJobIndexToExecute": "Enter the number of the job to execute",
+  "EnterJobNameToExecute": "Enter the name of the job to execute",
+  "InvalidJobIndex": "Invalid job number selected.",
+  "NoJobsToExecute": "No backup jobs available to execute.",
+
+  "EnterJobIndexesToExecute": "Enter job numbers to execute (e.g., 1;3 or 1-3)",
+  "NoIndexesProvided": "No job numbers/names provided for execution.",
+  "NoValidJobsSelected": "No valid jobs selected for execution.",
+  
+  "EnterJobIndexToDelete": "Enter the number of the job to delete",
+  "EnterJobNameToRemove": "Enter the name of the job to remove",
+  "ConfirmDelete": "Are you sure you want to delete job '{0}'? (yes/no): ",
+  "Yes": "yes",
+  "DeleteCancelled": "Deletion cancelled.",
+  "JobRemovedSuccess": "Job '{0}' removed successfully.",
+  "ErrorJobNotFound": "Error: Job '{0}' not found.",
+
+
+  "ChangeLanguage_Title": "\n--- Change Language ---",
+  "EnterLanguageCode": "Enter desired language code (e.g., en, fr)",
+  "LanguageChangedSuccess": "Language successfully changed to {0}.",
+  "ErrorLanguageChangeFailed": "Failed to change language to {0}. Please ensure the language file exists.",
+  "InvalidLanguageCode": "Invalid language code entered. Please use 'en' or 'fr'.",
+  "LanguageName_en": "English",
+  "LanguageName_fr": "French",
+
+  "ChangeLogFormat_Title": "Choose the log format :",
+  "ChangeLogFormat_Xml": "1. XML",
+  "ChangeLogFormat_JSON": "2. JSON",
+  "ChangeLogFormat_Choice": "Your choice : ",
+  "ChangeLogFormat_XmlValid": "The log format is now XML.",
+  "ChangeLogFormat_JsonValid": "The log format is now JSON.",
+  "ChangeLogFormat_Invalid": "Invalid Choice.",
+
+  "CommandLineExecution": "Executing jobs based on command line arguments...",
+  "ExecutingJobsViaCLI": "Executing jobs from command line: {0}",
+  "NoValidJobsForCLI": "No valid jobs found for command line execution based on provided arguments.",
+  "NoJobsSpecifiedForCommandLine": "No jobs specified for command line execution.",
+  
+  "LoggingServiceInitialized": "Logging Service (placeholder) initialized. Log path: {0}",
+
+  "ErrorJobNameRequired": "Error: Job name cannot be empty.",
+
+  "JobStatus_INACTIVE": "Inactive",
+  "JobStatus_PENDING_EXECUTION": "Pending Execution",
+  "JobStatus_ACTIVE_SCANNING_FILES": "Active (Scanning Files)",
+  "JobStatus_ACTIVE_COPYING": "Active (Copying)",
+  "JobStatus_COMPLETED_SUCCESS": "Completed Successfully",
+  "JobStatus_COMPLETED_WITH_ERRORS": "Completed with Errors",
+  "JobStatus_FAILED": "Failed",
+  "JobStatus_CANCELLED": "Cancelled"
+}
