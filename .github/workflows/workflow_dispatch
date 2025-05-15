@@ -1,0 +1,46 @@
+name: Build and Release Installer
+
+on:
+  push:
+    branches:
+      #- main
+      - dev
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and Package
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Publish app (self-contained)
+        run: dotnet publish -c Release -r win-x64 --self-contained true -o ./publish
+
+      - name: Download and Install Inno Setup
+        run: |
+          Invoke-WebRequest -Uri "https://jrsoftware.org/download.php/is.exe" -OutFile "is.exe"
+          Start-Process -Wait -FilePath ".\is.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-"
+
+      - name: Build installer with Inno Setup
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "installer\EasySave.iss"
+
+      - name: Upload installer to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.1.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: Installer\EasySave_Installer_v1.1.0.exe
