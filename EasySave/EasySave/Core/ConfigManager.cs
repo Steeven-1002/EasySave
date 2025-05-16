@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
+﻿using System.Text.Json;
 
-namespace EasySave.Services
+namespace EasySave.Core
 {
     /// <summary>  
     /// Manages the application's configuration settings, including loading and saving them to a file.  
@@ -16,7 +13,7 @@ namespace EasySave.Services
         private Dictionary<string, JsonElement> _settings;
 
         // Removed duplicate property definitions causing ambiguity  
-        public string LogFilePath =>
+        private string LogFilePath =>
             _settings.TryGetValue("LogFilePath", out var val) && val.ValueKind == JsonValueKind.String
                 ? val.GetString()!
                 : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "Logs\\");
@@ -30,21 +27,18 @@ namespace EasySave.Services
             _settings.TryGetValue("Language", out var val) && val.ValueKind == JsonValueKind.String
                 ? val.GetString()!
                 : "en";
+        public string LogFormat
+        {
+            get => _settings.TryGetValue("LogFormat", out var val) && val.ValueKind == JsonValueKind.String
+                ? val.GetString()!
+                : "XML";
+            set => SetSetting("LogFormat", value);
+        }
 
         /// <summary>  
         /// Gets the singleton instance of the <see cref="ConfigManager"/> class.  
         /// </summary>  
-        public static ConfigManager Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    _instance = new ConfigManager("app_settings.json");
-                }
-                return _instance;
-            }
-        }
+        public static ConfigManager Instance => _instance ??= new ConfigManager("app_settings.json");
 
         /// <summary>  
         /// Initializes a new instance of the <see cref="ConfigManager"/> class.  
@@ -66,7 +60,7 @@ namespace EasySave.Services
         /// Loads the configuration settings from the file.  
         /// If the file does not exist, an empty configuration is used.  
         /// </summary>  
-        public void LoadConfiguration()
+        private void LoadConfiguration()
         {
             try
             {
@@ -96,8 +90,8 @@ namespace EasySave.Services
         {
             try
             {
-                string directory = Path.GetDirectoryName(_configFilePath);
-                if (!Directory.Exists(directory) && directory != null)
+                string directory = Path.GetDirectoryName(_configFilePath) ?? string.Empty;
+                if (!Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
                 }

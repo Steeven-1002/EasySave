@@ -1,4 +1,6 @@
-﻿namespace LoggingLibrary
+﻿using LoggingLibrary;
+
+namespace EasySave.Services
 {
     /// <summary>
     /// Interface defining the contract for a logging service.

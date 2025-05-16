@@ -1,7 +1,6 @@
-﻿using System;
-using System.Text.Json;
+﻿using System.Text.Json;
 
-namespace EasySave.Models
+namespace EasySave.Core.Models
 {
     /// <summary>
     /// Represents the state of a backup job, including its metadata and progress.

@@ -1,17 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using EasySave.Models;
-using EasySave.Interfaces;
-using EasySave.Services;
+﻿using EasySave.Services;
 using EasySave.Core;
-using System.Text.Json;
 using LoggingLibrary;
 
-
-namespace EasySave.ConsoleApp
+namespace EasySave
 {
-    public class Program
+    public static class Program
     {
         private static ConfigManager _configManager = null!;
         private static BackupManager _backupManager = null!;
@@ -29,7 +22,7 @@ namespace EasySave.ConsoleApp
 
             if (args.Length > 0)
             {
-                ParseCommandLine(args.ToString());
+                ParseCommandLine(args.ToString() ?? string.Empty);
             }
             else
             {
@@ -39,7 +32,7 @@ namespace EasySave.ConsoleApp
         }
 
         /// <summary>
-        /// Initializes the main components of the application, such as configuration, localization, state, and backup managers.
+        /// Initializes the main parts of the application, such as configuration, localization, state, and backup managers.
         /// </summary>
         private static void InitializeComponents()
         {
@@ -47,7 +40,7 @@ namespace EasySave.ConsoleApp
 
             _localizationService = new LocalizationService(_configManager.Language);
             _stateManager = new StateManager(_configManager.StateFilePath);
-            _backupManager = new BackupManager(_stateManager, _configManager);
+            _backupManager = new BackupManager(_configManager);
 
             Console.WriteLine(_localizationService.GetString("WelcomeMessage"));
         }
@@ -107,11 +100,12 @@ namespace EasySave.ConsoleApp
                 Console.WriteLine($"4. {_localizationService.GetString("MainMenu_ExecuteMultipleJobs")}");
                 Console.WriteLine($"5. {_localizationService.GetString("MainMenu_DeleteJob")}");
                 Console.WriteLine($"6. {_localizationService.GetString("MainMenu_ChangeLanguage")}");
-                Console.WriteLine($"7. {_localizationService.GetString("MainMenu_Exit")}");
+                Console.WriteLine($"7. {_localizationService.GetString("MainMenu_ChangeLogFormat")}");
+                Console.WriteLine($"8. {_localizationService.GetString("MainMenu_Exit")}");
                 Console.Write($"{_localizationService.GetString("EnterChoice")}: ");
 
                 string? choice = Console.ReadLine();
-                if (choice == "7") exit = true;
+                if (choice == "8") exit = true;
                 else ProcessUserChoice(choice);
             }
         }
@@ -130,10 +124,11 @@ namespace EasySave.ConsoleApp
                 case "4": UiExecuteMultipleJobs(); break;
                 case "5": UiDeleteBackupJob(); break;
                 case "6": UiChangeLanguage(); break;
-                case "7": break;
+                case "7": UiChangeLog(); break;
+                case "8": break;
                 default: Console.WriteLine(_localizationService.GetString("InvalidChoice")); break;
             }
-            if (choice != "7" && choice != "6")
+            if (choice != "8" && choice != "6")
             {
                 Console.WriteLine(_localizationService.GetString("PressEnterToContinue"));
                 Console.ReadLine();
@@ -141,7 +136,7 @@ namespace EasySave.ConsoleApp
         }
 
         /// <summary>
-        /// Allows the user to create a new backup job by providing necessary details.
+        /// Allows the user to create a new backup job by providing the necessary details.
         /// </summary>
         private static void UiCreateBackupJob()
         {
@@ -161,12 +156,12 @@ namespace EasySave.ConsoleApp
                 Console.WriteLine(_localizationService.GetString("ErrorAllFieldsRequired"));
                 return;
             }
-            if (!Enum.TryParse<BackupType>(typeStr.ToUpperInvariant(), out BackupType type))
+            if (!Enum.TryParse(typeStr.ToUpperInvariant(), out BackupType type))
             {
                 Console.WriteLine(_localizationService.GetString("ErrorInvalidBackupType"));
                 return;
             }
-            _backupManager.AddJob(name, source, target, (BackupType)type);
+            _backupManager.AddJob(name, source, target, type);
         }
 
         /// <summary>
@@ -198,7 +193,7 @@ namespace EasySave.ConsoleApp
             Console.Write($"{_localizationService.GetString("EnterJobIndexToExecute")}: ");
             if (int.TryParse(Console.ReadLine(), out int index) && index > 0 && index <= _backupManager.GetAllJobs().Count)
             {
-                _backupManager.ExecuteJob(index - 1); // Index 0-based pour la liste
+                _backupManager.ExecuteJob(index - 1); // index 0-based
             }
             else
             {
@@ -217,12 +212,11 @@ namespace EasySave.ConsoleApp
             if (string.IsNullOrWhiteSpace(input))
             {
                 Console.WriteLine(_localizationService.GetString("NoIndexesProvided"));
-                return;
             }
             else
             {
                 ParseCommandLine(input);
-            }   
+            }
         }
 
         /// <summary>
@@ -255,6 +249,34 @@ namespace EasySave.ConsoleApp
             else
             {
                 Console.WriteLine(_localizationService.GetString("InvalidJobIndex"));
+            }
+        }
+
+        private static void UiChangeLog()
+        {
+            Console.WriteLine(_localizationService.GetString("ChangeLogFormat_Title"));
+            Console.WriteLine(_localizationService.GetString("ChangeLogFormat_Xml"));
+            Console.WriteLine(_localizationService.GetString("ChangeLogFormat_JSON"));
+            Console.Write(_localizationService.GetString("ChangeLogFormat_Choice"));
+            string? input = Console.ReadLine();
+
+            switch (input)
+            {
+                case "1":
+                    LoggingBackup.RecreateInstance("XML");
+                    _configManager.LogFormat = "XML";
+                    _configManager.SaveConfiguration();
+                    Console.WriteLine(_localizationService.GetString("ChangeLogFormat_XmlValid"));
+                    break;
+                case "2":
+                    LoggingBackup.RecreateInstance("JSON");
+                    _configManager.LogFormat = "JSON";
+                    _configManager.SaveConfiguration();
+                    Console.WriteLine(_localizationService.GetString("ChangeLogFormat_JsonValid"));
+                    break;
+                default:
+                    Console.WriteLine(_localizationService.GetString("ChangeLogFormat_Invalid"));
+                    break;
             }
         }
 

@@ -1,7 +1,8 @@
-﻿using System;
+﻿using EasySave.Core;
+using EasySave.Core.Models;
 using EasySave.Interfaces;
-using EasySave.Models;
 using LoggingLibrary;
+using System;
 
 namespace EasySave.Services
 {
@@ -19,14 +20,44 @@ namespace EasySave.Services
         /// <summary>
         /// Service used for logging backup operations.
         /// </summary>
-        private readonly LogService _logService;
+        private LogService? _logService;
+        private static string? _logFormat;
 
         /// <summary>
         /// Private constructor to initialize the logging service with a log file path and formatter.
         /// </summary>
         private LoggingBackup()
         {
-            _logService = new LogService(GetLogFilePath(), new JsonLogFormatter());
+            _logFormat = ConfigManager.Instance.LogFormat;
+            _logService = _logFormat switch
+            {
+                "XML" => new LogService(GetLogFilePath(), new XmlLogFormatter()),
+                "JSON" => new LogService(GetLogFilePath(), new JsonLogFormatter()),
+                _ => throw new InvalidOperationException("Invalid log format specified.")
+            };
+        }
+
+        /// <summary>
+        /// Recreates the singleton instance with a new log format.
+        /// </summary>
+        /// <param name="newFormat">The new log format ("XML" or "JSON").</param>
+        public static void RecreateInstance(string newFormat)
+        {
+            _logFormat = newFormat;
+            ConfigManager.Instance.LogFormat = newFormat;
+            ConfigManager.Instance.SaveConfiguration();
+
+            // Ensure _instance is not null before accessing its members
+            if (_instance != null)
+            {
+                _instance._logService = null;
+                _instance._logService = newFormat switch
+                {
+                    "XML" => new LogService(_instance.GetLogFilePath(), new XmlLogFormatter()),
+                    "JSON" => new LogService(_instance.GetLogFilePath(), new JsonLogFormatter()),
+                    _ => throw new InvalidOperationException("Invalid log format specified.")
+                };
+            }
         }
 
         /// <summary>

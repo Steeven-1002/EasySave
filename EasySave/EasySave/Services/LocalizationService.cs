@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text.Json;
 
 namespace EasySave.Services
 {
     /// <summary>
-    /// Service de localisation pour charger et récupérer des chaînes localisées à partir de fichiers JSON.
+    /// Language localization service for loading and retrieving localized strings.
     /// </summary>
     public class LocalizationService
     {
@@ -16,19 +13,19 @@ namespace EasySave.Services
         private bool _isLanguageLoaded;
 
         /// <summary>
-        /// Obtient la langue actuellement chargée.
+        /// Gets the currently loaded language.
         /// </summary>
         public string CurrentLanguage => _currentLanguage;
 
         /// <summary>
-        /// Indique si une langue a été chargée avec succès.
+        /// Indicates whether a language has been successfully loaded.
         /// </summary>
         public bool IsLanguageLoaded => _isLanguageLoaded;
 
         /// <summary>
-        /// Initialise une nouvelle instance de la classe <see cref="LocalizationService"/> avec une langue par défaut.
+        /// Initializes a new instance of the <see cref="LocalizationService"/> class with a default language.
         /// </summary>
-        /// <param name="defaultLanguage">Code de la langue par défaut (par exemple, "en").</param>
+        /// <param name="defaultLanguage">Default language code (e.g., "en").</param>
         public LocalizationService(string defaultLanguage = "en")
         {
             _localizedStrings = new Dictionary<string, string>();
@@ -42,10 +39,10 @@ namespace EasySave.Services
         }
 
         /// <summary>
-        /// Charge un fichier de langue JSON correspondant au code de langue spécifié.
+        /// Loads a JSON language file corresponding to the specified language code.
         /// </summary>
-        /// <param name="languageCode">Code de la langue à charger (par exemple, "fr").</param>
-        /// <returns>True si la langue a été chargée avec succès, sinon False.</returns>
+        /// <param name="languageCode">Language code to load (e.g., "fr").</param>
+        /// <returns>True if the language file was loaded successfully; otherwise, false.</returns>
         public bool LoadLanguage(string languageCode)
         {
             string fileName = $"lang_{languageCode}.json";
@@ -53,8 +50,7 @@ namespace EasySave.Services
 
             try
             {
-                string? exePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                string filePath = Path.Combine(exePath ?? ".", "Resources", fileName);
+                string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "lang" + Path.DirectorySeparatorChar, fileName);
 
                 if (!File.Exists(filePath))
                 {
@@ -92,23 +88,23 @@ namespace EasySave.Services
         }
 
         /// <summary>
-        /// Récupère une chaîne localisée correspondant à la clé spécifiée.
+        /// Retrieves a localized string corresponding to the specified key.
+        /// <param name="key">Key of the localized string.</param>
+        /// <param name="args">Optional arguments to format the string.</param>
+        /// <returns>The formatted localized string or an error message if the key is not found or is misformatted.</returns>
         /// </summary>
-        /// <param name="key">Clé de la chaîne localisée.</param>
-        /// <param name="args">Arguments optionnels pour formater la chaîne.</param>
-        /// <returns>La chaîne localisée formatée ou un message d'erreur si la clé est introuvable ou mal formatée.</returns>
-        public string GetString(string key, params object[] args)
+        public string GetString(string key, params object[]? args)
         {
             if (!_isLanguageLoaded)
             {
                 return $"[No Lang Loaded! Key: {key}]";
             }
 
-            if (_localizedStrings.TryGetValue(key, out string? formatString) && formatString != null)
+            if (_localizedStrings.TryGetValue(key, out string? formatString))
             {
                 try
                 {
-                    return (args != null && args.Length > 0) ? string.Format(formatString, args) : formatString;
+                    return args is { Length: > 0 } ? string.Format(formatString, args) : formatString;
                 }
                 catch (FormatException ex)
                 {
