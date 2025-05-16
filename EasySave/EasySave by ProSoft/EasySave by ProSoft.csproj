@@ -30,6 +30,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="LoggingLibrary">
+      <HintPath>ASSETS\LoggingLibrary.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Update="Localization\Resources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
