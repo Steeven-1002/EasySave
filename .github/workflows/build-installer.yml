@@ -33,7 +33,7 @@ jobs:
           Start-Process -Wait -FilePath ".\is.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-"
 
       - name: Build installer with Inno Setup
-        run: '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\EasySave.iss'
+        run: "\"C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe\" installer\\EasySave.iss"
 
       - name: Upload installer as artifact
         uses: actions/upload-artifact@v4
