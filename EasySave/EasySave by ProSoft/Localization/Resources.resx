@@ -117,6 +117,60 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="BackupTypeDifferential" xml:space="preserve">
+    <value>Differential</value>
+  </data>
+  <data name="BackupTypeFull" xml:space="preserve">
+    <value>Full</value>
+  </data>
+  <data name="BackupWorkManagement" xml:space="preserve">
+    <value>Backup Work Management</value>
+  </data>
+  <data name="BackupWorkManagementName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="BackupWorkManagementNewBackup" xml:space="preserve">
+    <value>Create a new backup job</value>
+  </data>
+  <data name="BackupWorkManagementSource" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="BackupWorkManagementStartBackupSelected" xml:space="preserve">
+    <value>Launch selected job</value>
+  </data>
+  <data name="BackupWorkManagementTarget" xml:space="preserve">
+    <value>Target</value>
+  </data>
+  <data name="BackupWorkManagementType" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Browse" xml:space="preserve">
+    <value>Browse...</value>
+  </data>
+  <data name="BusinessSoftwareCheckSetting" xml:space="preserve">
+    <value>Name of the business software process to be monitored :</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ConfigNewJobBackupType" xml:space="preserve">
+    <value>Backup type</value>
+  </data>
+  <data name="ConfigNewJobEncryptExtensions" xml:space="preserve">
+    <value>Extensions to encrypt (comma separated) :</value>
+  </data>
+  <data name="ConfigNewJobName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="ConfigNewJobSourceDirectory" xml:space="preserve">
+    <value>Source directory</value>
+  </data>
+  <data name="ConfigNewJobTargetDirectory" xml:space="preserve">
+    <value>Target directory</value>
+  </data>
+  <data name="ConfigNewJobValidate" xml:space="preserve">
+    <value>Validate the creation</value>
+  </data>
   <data name="ConfirmationTitle" xml:space="preserve">
     <value>Confirmation</value>
   </data>
@@ -125,6 +179,12 @@
   </data>
   <data name="ErrorTitle" xml:space="preserve">
     <value>Error</value>
+  </data>
+  <data name="ExtensionFileCryptSetting" xml:space="preserve">
+    <value>File extensions to encrypt by default (comma separated) :</value>
+  </data>
+  <data name="GeneralSettings" xml:space="preserve">
+    <value>General settings</value>
   </data>
   <data name="InformationTitle" xml:space="preserve">
     <value>Information</value>
@@ -138,7 +198,34 @@
   <data name="LanguageChangeRestartMessage" xml:space="preserve">
     <value>The application needs to restart the main window to apply the language change. Do you want to restart it now ?</value>
   </data>
+  <data name="LogFileFormatSetting" xml:space="preserve">
+    <value>Log file format :</value>
+  </data>
+  <data name="MainBackupManagement" xml:space="preserve">
+    <value>Backup management</value>
+  </data>
+  <data name="MainQuit" xml:space="preserve">
+    <value>Quit</value>
+  </data>
+  <data name="MainSettings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="MessageBoxLaunchJob" xml:space="preserve">
+    <value>Launch of the selected job.</value>
+  </data>
+  <data name="MessageNewJobValidated" xml:space="preserve">
+    <value>New backup job validated !</value>
+  </data>
+  <data name="MessageSelectSourceFolder" xml:space="preserve">
+    <value>Select the source folder</value>
+  </data>
+  <data name="MessageSelectTargetFolder" xml:space="preserve">
+    <value>Select the target folder</value>
+  </data>
   <data name="SettingsValidatedMessage" xml:space="preserve">
     <value>Settings validated.</value>
+  </data>
+  <data name="ValidateSettings" xml:space="preserve">
+    <value>Validate the settings</value>
   </data>
 </root>

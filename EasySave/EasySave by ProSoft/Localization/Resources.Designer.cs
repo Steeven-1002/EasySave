@@ -61,6 +61,168 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Differential.
+        /// </summary>
+        public static string BackupTypeDifferential {
+            get {
+                return ResourceManager.GetString("BackupTypeDifferential", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Full.
+        /// </summary>
+        public static string BackupTypeFull {
+            get {
+                return ResourceManager.GetString("BackupTypeFull", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Backup Work Management.
+        /// </summary>
+        public static string BackupWorkManagement {
+            get {
+                return ResourceManager.GetString("BackupWorkManagement", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Name.
+        /// </summary>
+        public static string BackupWorkManagementName {
+            get {
+                return ResourceManager.GetString("BackupWorkManagementName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Create a new backup job.
+        /// </summary>
+        public static string BackupWorkManagementNewBackup {
+            get {
+                return ResourceManager.GetString("BackupWorkManagementNewBackup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Source.
+        /// </summary>
+        public static string BackupWorkManagementSource {
+            get {
+                return ResourceManager.GetString("BackupWorkManagementSource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Launch selected job.
+        /// </summary>
+        public static string BackupWorkManagementStartBackupSelected {
+            get {
+                return ResourceManager.GetString("BackupWorkManagementStartBackupSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Target.
+        /// </summary>
+        public static string BackupWorkManagementTarget {
+            get {
+                return ResourceManager.GetString("BackupWorkManagementTarget", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Type.
+        /// </summary>
+        public static string BackupWorkManagementType {
+            get {
+                return ResourceManager.GetString("BackupWorkManagementType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Browse....
+        /// </summary>
+        public static string Browse {
+            get {
+                return ResourceManager.GetString("Browse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Name of the business software process to be monitored :.
+        /// </summary>
+        public static string BusinessSoftwareCheckSetting {
+            get {
+                return ResourceManager.GetString("BusinessSoftwareCheckSetting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Cancel.
+        /// </summary>
+        public static string Cancel {
+            get {
+                return ResourceManager.GetString("Cancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Backup type.
+        /// </summary>
+        public static string ConfigNewJobBackupType {
+            get {
+                return ResourceManager.GetString("ConfigNewJobBackupType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Extensions to encrypt (comma separated) :.
+        /// </summary>
+        public static string ConfigNewJobEncryptExtensions {
+            get {
+                return ResourceManager.GetString("ConfigNewJobEncryptExtensions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Name.
+        /// </summary>
+        public static string ConfigNewJobName {
+            get {
+                return ResourceManager.GetString("ConfigNewJobName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Source directory.
+        /// </summary>
+        public static string ConfigNewJobSourceDirectory {
+            get {
+                return ResourceManager.GetString("ConfigNewJobSourceDirectory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Target directory.
+        /// </summary>
+        public static string ConfigNewJobTargetDirectory {
+            get {
+                return ResourceManager.GetString("ConfigNewJobTargetDirectory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Validate the creation.
+        /// </summary>
+        public static string ConfigNewJobValidate {
+            get {
+                return ResourceManager.GetString("ConfigNewJobValidate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Confirmation.
         /// </summary>
         public static string ConfirmationTitle {
@@ -84,6 +246,24 @@ namespace EasySave_by_ProSoft.Localization {
         public static string ErrorTitle {
             get {
                 return ResourceManager.GetString("ErrorTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à File extensions to encrypt by default (comma separated) :.
+        /// </summary>
+        public static string ExtensionFileCryptSetting {
+            get {
+                return ResourceManager.GetString("ExtensionFileCryptSetting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à General settings.
+        /// </summary>
+        public static string GeneralSettings {
+            get {
+                return ResourceManager.GetString("GeneralSettings", resourceCulture);
             }
         }
         
@@ -124,11 +304,92 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Log file format :.
+        /// </summary>
+        public static string LogFileFormatSetting {
+            get {
+                return ResourceManager.GetString("LogFileFormatSetting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Backup management.
+        /// </summary>
+        public static string MainBackupManagement {
+            get {
+                return ResourceManager.GetString("MainBackupManagement", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Quit.
+        /// </summary>
+        public static string MainQuit {
+            get {
+                return ResourceManager.GetString("MainQuit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Settings.
+        /// </summary>
+        public static string MainSettings {
+            get {
+                return ResourceManager.GetString("MainSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Launch of the selected job..
+        /// </summary>
+        public static string MessageBoxLaunchJob {
+            get {
+                return ResourceManager.GetString("MessageBoxLaunchJob", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à New backup job validated !.
+        /// </summary>
+        public static string MessageNewJobValidated {
+            get {
+                return ResourceManager.GetString("MessageNewJobValidated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Select the source folder.
+        /// </summary>
+        public static string MessageSelectSourceFolder {
+            get {
+                return ResourceManager.GetString("MessageSelectSourceFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Select the target folder.
+        /// </summary>
+        public static string MessageSelectTargetFolder {
+            get {
+                return ResourceManager.GetString("MessageSelectTargetFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Settings validated..
         /// </summary>
         public static string SettingsValidatedMessage {
             get {
                 return ResourceManager.GetString("SettingsValidatedMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Validate the settings.
+        /// </summary>
+        public static string ValidateSettings {
+            get {
+                return ResourceManager.GetString("ValidateSettings", resourceCulture);
             }
         }
     }

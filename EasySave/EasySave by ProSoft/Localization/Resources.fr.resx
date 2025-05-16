@@ -117,6 +117,60 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="BackupTypeDifferential" xml:space="preserve">
+    <value>Différentielle</value>
+  </data>
+  <data name="BackupTypeFull" xml:space="preserve">
+    <value>Complète</value>
+  </data>
+  <data name="BackupWorkManagement" xml:space="preserve">
+    <value>Gestion des Travaux de Sauvegarde</value>
+  </data>
+  <data name="BackupWorkManagementName" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="BackupWorkManagementNewBackup" xml:space="preserve">
+    <value>Créer un nouveau travail de sauvegarde</value>
+  </data>
+  <data name="BackupWorkManagementSource" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="BackupWorkManagementStartBackupSelected" xml:space="preserve">
+    <value>Lancer le travail sélectionné</value>
+  </data>
+  <data name="BackupWorkManagementTarget" xml:space="preserve">
+    <value>Cible</value>
+  </data>
+  <data name="BackupWorkManagementType" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Browse" xml:space="preserve">
+    <value>Parcourir...</value>
+  </data>
+  <data name="BusinessSoftwareCheckSetting" xml:space="preserve">
+    <value>Nom du processus du logiciel métier à surveiller :</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="ConfigNewJobBackupType" xml:space="preserve">
+    <value>Type de sauvegarde</value>
+  </data>
+  <data name="ConfigNewJobEncryptExtensions" xml:space="preserve">
+    <value>Extensions à crypter (séparées par des virgules) :</value>
+  </data>
+  <data name="ConfigNewJobName" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="ConfigNewJobSourceDirectory" xml:space="preserve">
+    <value>Répertoire source</value>
+  </data>
+  <data name="ConfigNewJobTargetDirectory" xml:space="preserve">
+    <value>Répertoire cible</value>
+  </data>
+  <data name="ConfigNewJobValidate" xml:space="preserve">
+    <value>Valider la création</value>
+  </data>
   <data name="ConfirmationTitle" xml:space="preserve">
     <value>Confirmation.</value>
   </data>
@@ -125,6 +179,12 @@
   </data>
   <data name="ErrorTitle" xml:space="preserve">
     <value>Erreur</value>
+  </data>
+  <data name="ExtensionFileCryptSetting" xml:space="preserve">
+    <value>Extensions de fichiers à crypter par défaut (séparées par des virgules) :</value>
+  </data>
+  <data name="GeneralSettings" xml:space="preserve">
+    <value>Paramètres généraux</value>
   </data>
   <data name="InformationTitle" xml:space="preserve">
     <value>Information</value>
@@ -138,7 +198,34 @@
   <data name="LanguageChangeRestartMessage" xml:space="preserve">
     <value>L'application doit redémarrer la fenêtre principale pour appliquer le changement de langue. Voulez-vous la redémarrer maintenant ?</value>
   </data>
+  <data name="LogFileFormatSetting" xml:space="preserve">
+    <value>Format du fichier Log :</value>
+  </data>
+  <data name="MainBackupManagement" xml:space="preserve">
+    <value>Gestion des sauvegardes</value>
+  </data>
+  <data name="MainQuit" xml:space="preserve">
+    <value>Quitter</value>
+  </data>
+  <data name="MainSettings" xml:space="preserve">
+    <value>Paramètres</value>
+  </data>
+  <data name="MessageBoxLaunchJob" xml:space="preserve">
+    <value>Lancement du travail sélectionné.</value>
+  </data>
+  <data name="MessageNewJobValidated" xml:space="preserve">
+    <value>Nouveau travail de sauvegarde validé !</value>
+  </data>
+  <data name="MessageSelectSourceFolder" xml:space="preserve">
+    <value>Sélectionner le dossier source</value>
+  </data>
+  <data name="MessageSelectTargetFolder" xml:space="preserve">
+    <value>Sélectionner le dossier cible</value>
+  </data>
   <data name="SettingsValidatedMessage" xml:space="preserve">
     <value>Paramètres validés.</value>
+  </data>
+  <data name="ValidateSettings" xml:space="preserve">
+    <value>Valider les paramètres</value>
   </data>
 </root>
