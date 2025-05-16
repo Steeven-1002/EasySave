@@ -63,4 +63,15 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Models\" />
+    <Folder Include="ViewModels\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="LoggingLibrary">
+      <HintPath>..\..\Assets\LoggingLibrary.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>
