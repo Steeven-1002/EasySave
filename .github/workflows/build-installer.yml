@@ -33,16 +33,8 @@ jobs:
           Start-Process -Wait -FilePath ".\is.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-"
 
       - name: Build installer with Inno Setup
-        run: |
-          $InnoSetupPath = (Get-ChildItem -Path "C:\Program Files (x86)" -Recurse -Filter "ISCC.exe").FullName
-          & $InnoSetupPath "installer\EasySave.iss"
-        
-      - name: Verify Inno Setup Installation
-        run: |
-          if (!(Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe")) {
-              Write-Error "Inno Setup installation failed. ISCC.exe not found."
-          }
-      
+        run: '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\EasySave.iss'
+
       - name: Upload installer as artifact
         uses: actions/upload-artifact@v4
         with:
