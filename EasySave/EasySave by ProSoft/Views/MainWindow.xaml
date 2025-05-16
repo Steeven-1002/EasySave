@@ -21,7 +21,7 @@
 
         <ContentControl Grid.Row="1" x:Name="MainContentArea" Margin="10,10,10,10"/>
         <Image Margin="350,189,350,242" Grid.Row="1"/>
-        <Image HorizontalAlignment="Left" Height="68" Margin="10,15,0,0" VerticalAlignment="Top" Width="328" Source="Images/EasySave_Black.png"/>
+        <Image HorizontalAlignment="Left" Height="68" Margin="10,15,0,0" VerticalAlignment="Top" Width="328" Source="/Views/Images/EasySave_Black.png"/>
 
     </Grid>
 </Window>
