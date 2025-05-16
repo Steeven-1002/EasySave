@@ -216,5 +216,10 @@ namespace EasySave.Core
         {
             return _fileSystemService.GetFilesInDirectory(job.SourcePath);
         }
+
+        public void RegisterObserver(Func<string, LoggingBackup> instance)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

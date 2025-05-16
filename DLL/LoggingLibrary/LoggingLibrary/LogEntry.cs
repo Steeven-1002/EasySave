@@ -10,51 +10,13 @@ namespace LoggingLibrary
     /// </summary>
     public class LogEntry
     {
-        /// <summary>
-        /// Gets or sets the name of the log entry.
-        /// </summary>
-        [JsonPropertyName("Name")]
         public required string SaveName { get; set; }
-
-        /// <summary>
-        /// Gets or sets the source file path in UNC format.
-        /// </summary>
-        [JsonPropertyName("FileSource")]
         public required string SourcePathUNC { get; set; }
-
-        /// <summary>
-        /// Gets or sets the target file path in UNC format.
-        /// </summary>
-        [JsonPropertyName("FileTarget")]
         public required string TargetPathUNC { get; set; }
-
-        /// <summary>
-        /// Gets or sets the size of the file in bytes. Null if not applicable.
-        /// </summary>
-        [JsonPropertyName("FileSize")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public long? FileSize { get; set; }
-
-        /// <summary>
-        /// Gets or sets the time taken to transfer the file in milliseconds. Null if not applicable.
-        /// </summary>
-        [JsonPropertyName("FileTransferTime")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public double? FileTransferTimeMs { get; set; }
-
-        /// <summary>
-        /// Gets or sets the timestamp of the log entry.
-        /// </summary>
-        [JsonPropertyName("time")]
-        [JsonConverter(typeof(DateTimeFormatConverter))]
         public DateTime Timestamp { get; set; }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="LogEntry"/> class.
-        /// </summary>
-        public LogEntry()
-        {
-        }
+        public string? EncryptionTimsMs { get; set; }
     }
 
     /// <summary>

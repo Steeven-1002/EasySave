@@ -1,4 +1,5 @@
 ﻿using EasySave.Core.Models;
+using EasySave.Services;
 
 namespace EasySave.Interfaces
 {
@@ -31,5 +32,6 @@ namespace EasySave.Interfaces
         /// <param name="job">The backup job for which to retrieve the files.</param>
         /// <returns>A list of file paths to be backed up.</returns>
         List<string> GetFilesToBackup(BackupJob job);
+        void RegisterObserver(Func<string, LoggingBackup> instance);
     }
 }
