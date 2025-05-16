@@ -61,6 +61,28 @@ namespace EasySave.Core
         }
 
         /// <summary>
+        /// Notifies all registered backup observers of a state change or progress update.
+        /// </summary>
+        private void NotifyObservers(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile, double transferDuration)
+        {
+            foreach (var observer in _observers)
+            {
+                observer.Update(jobName, newState, totalFiles, totalSize, remainingFiles, remainingSize, currentSourceFile, currentTargetFile, transferDuration);
+            }
+        }
+
+        /// <summary>
+        /// Notifies all registered state observers of a state change.
+        /// </summary>
+        private void NotifyStateObservers(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile)
+        {
+            foreach (var observer in _stateObservers)
+            {
+                observer.StateChanged(jobName, newState, totalFiles, totalSize, remainingFiles, remainingSize, currentSourceFile, currentTargetFile);
+            }
+        }
+
+        /// <summary>
         /// Executes the full backup process for the specified backup job.
         /// </summary>
         /// <param name="job">The backup job to execute.</param>
@@ -75,19 +97,16 @@ namespace EasySave.Core
             long currentProcessedFileSize = 0;
             bool errorOccurred = false;
 
-            _stateObservers.ForEach(stateObserver =>
-            {
-                stateObserver.StateChanged(
-                    job.Name,
-                    job.State,
-                    filesToBackup.Count,
-                    totalSize,
-                    filesToBackup.Count - filesProcessed,
-                    totalSize - currentProcessedFileSize,
-                    string.Empty, // No source file for the initial state
-                    string.Empty  // No target file for the initial state
-                );
-            });
+            NotifyStateObservers(
+                job.Name,
+                job.State,
+                filesToBackup.Count,
+                totalSize,
+                filesToBackup.Count - filesProcessed,
+                totalSize - currentProcessedFileSize,
+                string.Empty, // No source file for the initial state
+                string.Empty  // No target file for the initial state
+            );
 
             foreach (var sourceFilePath in filesToBackup)
             {
@@ -102,20 +121,8 @@ namespace EasySave.Core
                     if (targetDir != null && !_fileSystemService.DirectoryExists(targetDir))
                     {
                         _fileSystemService.CreateDirectory(targetDir);
-                        _observers.ForEach(observer =>
-                        {
-                            observer.Update(
-                                job.Name,
-                                BackupState.ACTIVE,
-                                filesToBackup.Count,
-                                totalSize,
-                                filesToBackup.Count - filesProcessed,
-                                totalSize - currentProcessedFileSize,
-                                sourceFilePath,
-                                targetFilePath,
-                                0 // No transfer duration for directory creation
-                            );
-                        });
+                        _fileSystemService.CreateDirectory(targetDir);
+                        NotifyObservers(job.Name, BackupState.ACTIVE, filesToBackup.Count, totalSize, filesToBackup.Count - filesProcessed, totalSize - currentProcessedFileSize, sourceFilePath, targetFilePath, 0);
                     }
 
                     // Start timer for file transfer duration
@@ -123,35 +130,8 @@ namespace EasySave.Core
                     _fileSystemService.CopyFile(sourceFilePath, targetFilePath);
                     var endTime = DateTime.Now;
 
-                    _observers.ForEach(observer =>
-                    {
-                        observer.Update(
-                            job.Name,
-                            BackupState.ACTIVE,
-                            filesToBackup.Count,
-                            totalSize,
-                            filesToBackup.Count - filesProcessed,
-                            totalSize - currentProcessedFileSize,
-                            sourceFilePath,
-                            targetFilePath,
-                            endTime.Subtract(startTime).TotalMilliseconds
-                        );
-                    });
-
-                    _stateObservers.ForEach(stateObserver =>
-                    {
-                        stateObserver.StateChanged(
-                            job.Name,
-                            job.State,
-                            filesToBackup.Count,
-                            totalSize,
-                            filesToBackup.Count - filesProcessed,
-                            totalSize - currentProcessedFileSize,
-                            sourceFilePath,
-                            targetFilePath
-                        );
-                    });
-
+                    NotifyObservers(job.Name, BackupState.ACTIVE, filesToBackup.Count, totalSize, filesToBackup.Count - filesProcessed, totalSize - currentProcessedFileSize, sourceFilePath, targetFilePath, endTime.Subtract(startTime).TotalMilliseconds); 
+                    NotifyStateObservers(job.Name, job.State, filesToBackup.Count, totalSize, filesToBackup.Count - filesProcessed, totalSize - currentProcessedFileSize, sourceFilePath, targetFilePath);
                     filesProcessed++;
                 }
                 catch (Exception ex)
@@ -159,52 +139,15 @@ namespace EasySave.Core
                     Console.WriteLine($"ERROR during full backup of {sourceFilePath}: {ex.Message}");
                     errorOccurred = true;
 
-                    _observers.ForEach(observer =>
-                    {
-                        observer.Update(
-                            job.Name,
-                            BackupState.ERROR,
-                            filesToBackup.Count,
-                            totalSize,
-                            filesToBackup.Count - filesProcessed,
-                            totalSize - currentProcessedFileSize,
-                            sourceFilePath,
-                            targetFilePath,
-                            -1 // Indicate error in transfer duration
-                        );
-                    });
-
-                    _stateObservers.ForEach(stateObserver =>
-                    {
-                        stateObserver.StateChanged(
-                            job.Name,
-                            job.State,
-                            filesToBackup.Count,
-                            totalSize,
-                            filesToBackup.Count - filesProcessed,
-                            totalSize - currentProcessedFileSize,
-                            sourceFilePath, // Pass the current source file
-                            targetFilePath  // Pass the current target file
-                        );
-                    });
+                    NotifyObservers(job.Name, BackupState.ERROR, filesToBackup.Count, totalSize, filesToBackup.Count - filesProcessed, totalSize - currentProcessedFileSize, sourceFilePath, targetFilePath, -1);
+                    NotifyStateObservers(job.Name, job.State, filesToBackup.Count, totalSize, filesToBackup.Count - filesProcessed, totalSize - currentProcessedFileSize, sourceFilePath, targetFilePath);
                 }
             }
 
+            // Delete orphan files in the target directory
+            DeleteRemovedFilesInTarget(job);
             job.State = !errorOccurred ? BackupState.COMPLETED : BackupState.ERROR;
-
-            _stateObservers.ForEach(stateObserver =>
-            {
-                stateObserver.StateChanged(
-                    job.Name,
-                    job.State,
-                    filesToBackup.Count,
-                    totalSize,
-                    filesToBackup.Count - filesProcessed,
-                    totalSize - currentProcessedFileSize,
-                    string.Empty, // No source file for the final state
-                    string.Empty  // No target file for the final state
-                );
-            });
+            NotifyStateObservers(job.Name, job.State, filesToBackup.Count, totalSize, filesToBackup.Count - filesProcessed, totalSize - currentProcessedFileSize, string.Empty, string.Empty);
         }
 
         /// <summary>
@@ -215,6 +158,72 @@ namespace EasySave.Core
         public List<string> GetFilesToBackup(BackupJob job)
         {
             return _fileSystemService.GetFilesInDirectory(job.SourcePath);
+        }
+
+        /// <summary>
+        /// Deletes files and directories from the target directory that no longer exist in the source directory.
+        /// </summary>
+        /// <param name="job">The backup job containing source and target paths.</param>
+        public void DeleteRemovedFilesInTarget(BackupJob job)
+        {
+            // Handle files
+            var sourceFiles = _fileSystemService.GetFilesInDirectory(job.SourcePath)
+                .Select(f => f.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+                .ToHashSet();
+
+            var targetFiles = _fileSystemService.GetFilesInDirectory(job.TargetPath);
+
+            foreach (var targetFilePath in targetFiles)
+            {
+                string relativePath = targetFilePath.Substring(job.TargetPath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                if (!sourceFiles.Contains(relativePath))
+                {
+                    try
+                    {
+                        if (_fileSystemService.FileExists(targetFilePath))
+                        {
+                            _fileSystemService.DeleteFile(targetFilePath);
+                            // Notify observers about the deletion
+                            NotifyObservers(job.Name, BackupState.ACTIVE, 0, 0, 0, 0, string.Empty, targetFilePath, -1);
+                            NotifyStateObservers(job.Name, job.State, 0, 0, 0, 0, string.Empty, targetFilePath);
+                            Console.WriteLine($"Deleted file from target: {targetFilePath}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error deleting {targetFilePath}: {ex.Message}");
+                    }
+                }
+            }
+
+            // Handle directories (delete empty directories that do not exist in source)
+            var sourceDirs = Directory.GetDirectories(job.SourcePath, "*", SearchOption.AllDirectories)
+                .Select(d => d.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+                .ToHashSet();
+
+            var targetDirs = Directory.GetDirectories(job.TargetPath, "*", SearchOption.AllDirectories)
+                .OrderByDescending(d => d.Length) // Delete children first
+                .ToList();
+
+            foreach (var targetDir in targetDirs)
+            {
+                string relativePath = targetDir.Substring(job.TargetPath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                if (!sourceDirs.Contains(relativePath))
+                {
+                    try
+                    {
+                        if (_fileSystemService.DirectoryExists(targetDir) && !Directory.EnumerateFileSystemEntries(targetDir).Any())
+                        {
+                            _fileSystemService.DeleteDirectory(targetDir);
+                            Console.WriteLine($"Deleted directory from target: {targetDir}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error deleting directory {targetDir}: {ex.Message}");
+                    }
+                }
+            }
         }
 
         public void RegisterObserver(Func<string, LoggingBackup> instance)
