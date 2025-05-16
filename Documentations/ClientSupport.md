@@ -2,18 +2,16 @@
 
 This document aims to give some informations about the technical support 
 
-**1) Default Software Location :**
+**1) Software Location :**
 
-* The default installation location depends on the operating system used by the user : 
-    * **Windows (64-bit) :** "C:\Users\NameUser\source\repos\Steeven-1002"
-    * **Linux :** "/home/NameUser/source/repos/Steeven-1002"
-    * **macOS :** "/Users/NameUser/source/repos/Steeven-1002"
+* The installation location can be choose by the user during the installation.
+* **The default location is :**
+   * Windows : C:\Program Files (x86)\EasySave
+  
 **2) Minimum System Requirements:**
 
 * **Operating System :**
     * Windows 7 (at least)
-    * Linux (at least kernel 2.6.x)
-    * macOS 10.10 (Yosemite) (at least)
 * **Processor:** 1 GHz or faster x86-compatible processor
 * **RAM:** 512 MB minimum (minimum of 1 GB recommended)
 * **Disk Space:** Their is the need of 50 MB free space for software installation
@@ -23,23 +21,10 @@ This document aims to give some informations about the technical support
 
 * EasySave configuration files depends on the operating system :
     * **Windows:**
-        * "C:\Users\NameUser\AppData\Roaming\EasySave" 
-    * **Linux:**
-        * "/home/NameUser/.config/EasySave" 
-    * **macOS:**
-        * "/Users/NameUser/Library/Application Support/EasySave" 
-* **Default Log File Location:** The default location for the log file (if implemented) is normally:
+        * "C:\Users\NameUser\AppData\Roaming\EasySave"
+
+* **Default Log File Location:** The default location for the log file is :
     * **Windows:** "C:\Users\NameUser\AppData\Roaming\EasySave"
-    * **Linux:** "/home/NameUser/.config/EasySave"
-    * **macOS:** "/Library/Logs/EasySave/" or "~/Library/Logs/EasySave/"
-
-**4) Version Management:**
-
-* **Major Version (X.y.z):** Means their is a huge change in the functionality of the app, potentially incompatibilities with previous versions. Their is a need of new documentation and significant user communication
-* **Minor Version (x.Y.z):** Shares new features compatible with the current major version. Might need documentation updates
-* **Patch/Hotfix (x.y.Z):** Contains bug fixes and minor improvements without introducing major new features
-
-
 
 ## EasySave Technical Support Contact Information
 
