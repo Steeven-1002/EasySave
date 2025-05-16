@@ -541,3 +541,4 @@ FodyWeavers.xsd
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,macos,visualstudio,rider
 /EasySave/installer
+/EasySave/EasySave/obj
