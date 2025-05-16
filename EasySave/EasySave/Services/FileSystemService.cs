@@ -169,5 +169,47 @@ namespace EasySave.Services
                 return new List<string>();
             }
         }
+
+        /// <summary>
+        /// Deletes the specified file.
+        /// </summary>
+        /// <param name="path">The file path to delete.</param>
+        public void DeleteFile(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                    Console.WriteLine($"FileSystemService: Deleted '{path}'.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"FileSystemService ERROR deleting '{path}': {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Deletes the specified directory and its contents.
+        /// </summary>
+        /// <param name="path">The directory path to delete.</param>
+        public void DeleteDirectory(string path)
+        {
+            try
+            {
+                if (Directory.Exists(path))
+                {
+                    Directory.Delete(path, true);
+                    Console.WriteLine($"FileSystemService: Deleted directory '{path}'.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"FileSystemService ERROR deleting directory '{path}': {ex.Message}");
+                throw;
+            }
+        }
     }
 }

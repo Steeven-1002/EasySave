@@ -95,6 +95,9 @@ namespace EasySave.Core
                 }
             }
 
+            // Delete files in target that are not in source
+            DeleteRemovedFilesInTarget(job);
+
             job.State = !errorOccurred ? BackupState.COMPLETED : BackupState.ERROR;
             NotifyObservers(job.Name, job.State, totalFiles, totalSize, 0, 0, "", "", 0);
             NotifyStateObservers(job.Name, job.State, totalFiles, totalSize, 0, 0, "", "");
@@ -130,6 +133,74 @@ namespace EasySave.Core
                 }
             }
             return filesToBackup;
+        }
+
+        /// <summary>
+        /// Deletes files and directories from the target directory that no longer exist in the source directory.
+        /// </summary>
+        /// <param name="job">The backup job containing source and target paths.</param>
+        public void DeleteRemovedFilesInTarget(BackupJob job)
+        {
+            // Delete orphan files
+            var sourceFiles = _fileSystemService.GetFilesInDirectory(job.SourcePath)
+                .Select(f => f.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+                .ToHashSet();
+
+            var targetFiles = _fileSystemService.GetFilesInDirectory(job.TargetPath);
+
+            foreach (var targetFilePath in targetFiles)
+            {
+                string relativePath = targetFilePath.Substring(job.TargetPath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                if (!sourceFiles.Contains(relativePath))
+                {
+                    try
+                    {
+                        if (_fileSystemService.FileExists(targetFilePath))
+                        {
+                            _fileSystemService.DeleteFile(targetFilePath);
+                            // Notify observers about the deletion
+                            NotifyObservers(job.Name, BackupState.ACTIVE, 0, 0, 0, 0, "", targetFilePath, 0);
+                            NotifyStateObservers(job.Name, BackupState.ACTIVE, 0, 0, 0, 0, "", targetFilePath);
+                            Console.WriteLine($"Deleted file from target: {targetFilePath}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Notify observers about the error
+                        NotifyObservers(job.Name, BackupState.ERROR, 0, 0, 0, 0, "", targetFilePath, -1);
+                        Console.WriteLine($"Error deleting {targetFilePath}: {ex.Message}");
+                    }
+                }
+            }
+
+            // Delete orphan directories (empty and not present in source)
+            var sourceDirs = Directory.GetDirectories(job.SourcePath, "*", SearchOption.AllDirectories)
+                .Select(d => d.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+                .ToHashSet();
+
+            var targetDirs = Directory.GetDirectories(job.TargetPath, "*", SearchOption.AllDirectories)
+                .OrderByDescending(d => d.Length) // Delete children first
+                .ToList();
+
+            foreach (var targetDir in targetDirs)
+            {
+                string relativePath = targetDir.Substring(job.TargetPath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                if (!sourceDirs.Contains(relativePath))
+                {
+                    try
+                    {
+                        if (_fileSystemService.DirectoryExists(targetDir) && !Directory.EnumerateFileSystemEntries(targetDir).Any())
+                        {
+                            _fileSystemService.DeleteDirectory(targetDir);
+                            Console.WriteLine($"Deleted directory from target: {targetDir}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error deleting directory {targetDir}: {ex.Message}");
+                    }
+                }
+            }
         }
 
         /// <summary>
