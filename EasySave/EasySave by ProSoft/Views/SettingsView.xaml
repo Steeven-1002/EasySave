@@ -22,7 +22,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="2" HorizontalAlignment="Left" Margin="129,0,0,0">
-                    <Image Source="/Images/Drapeau_France.jpg" Height="70" Width="89"/>
+                    <Image Source="Images/Drapeau_France.jpg" Height="70" Width="89"/>
                     <RadioButton x:Name="FrenchRadioButton" 
                                  Content="Français" 
                                  GroupName="Language"
@@ -32,7 +32,7 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="3" HorizontalAlignment="Center">
-                    <Image Source="/Images/Drapeau_Royaume_Unis.jpg" Height="68" Width="88"/>
+                    <Image Source="Images/Drapeau_Royaume_Unis.jpg" Height="68" Width="88"/>
                     <RadioButton x:Name="EnglishRadioButton" 
                                  Content="English" 
                                  GroupName="Language"

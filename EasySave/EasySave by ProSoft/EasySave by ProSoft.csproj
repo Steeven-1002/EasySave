@@ -14,9 +14,9 @@
 
   <ItemGroup>
     <None Remove="Drapeau_Royaume_Unis.jpg" />
-    <None Remove="Images\Drapeau_France.jpg" />
-    <None Remove="Images\Drapeau_Royaume_Unis.jpg" />
-    <None Remove="Images\EasySave_Black.png" />
+    <None Remove="Views\Images\Drapeau_France.jpg" />
+    <None Remove="Views\Images\Drapeau_Royaume_Unis.jpg" />
+    <None Remove="Views\Images\EasySave_Black.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,13 +29,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Images\Drapeau_France.jpg">
+    <Content Include="Views\Images\Drapeau_France.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Images\Drapeau_Royaume_Unis.jpg">
+    <Content Include="Views\Images\Drapeau_Royaume_Unis.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Images\EasySave_Black.png">
+    <Content Include="Views\Images\EasySave_Black.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
