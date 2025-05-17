@@ -3,7 +3,7 @@ using System.Threading;
 using System.Windows;
 using EasySave_by_ProSoft.Views;
 
-namespace EasySave_by_ProSoft
+namespace EasySave_by_ProSoft.Views
 {
     public partial class MainWindow : Window
     {

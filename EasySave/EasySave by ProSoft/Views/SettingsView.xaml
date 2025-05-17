@@ -53,7 +53,12 @@
                 <ComboBoxItem Content="JSON"/>
                 <ComboBoxItem Content="XML"/>
             </ComboBox>
-            <Button Content="{x:Static localization:Resources.ValidateSettings}" HorizontalAlignment="Right" Margin="0,20,0,0" Click="ValidateSettings_Click"/>
+            
+            <Button Content="{x:Static localization:Resources.ValidateSettings}" 
+                    HorizontalAlignment="Right" 
+                    Margin="0,20,0,0" 
+                    Padding="10,5"
+                    Click="ValidateSettings_Click"/>
         </StackPanel>
     </Grid>
 </UserControl>

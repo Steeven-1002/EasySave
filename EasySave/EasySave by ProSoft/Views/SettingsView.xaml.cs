@@ -1,29 +1,33 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 using System.Windows.Controls;
 using System.Threading;
 using System.Globalization;
 using EasySave_by_ProSoft.Properties; // To access to Settings.Default
 using System.Diagnostics;             // Necessary for Process
 using EasySave_by_ProSoft.Localization;
+using EasySave_by_ProSoft.Models;
+using System.Collections.Generic;
 
 namespace EasySave_by_ProSoft.Views
 {
     public partial class SettingsView : System.Windows.Controls.UserControl
     {
         private string _initialCultureName;
+        private Settings settings;
 
         public SettingsView()
         {
             InitializeComponent();
             _initialCultureName = Thread.CurrentThread.CurrentUICulture.Name;
-            // System.Windows.System.Windows.MessageBox.Show($"SettingsView Constructor: Initial culture is '{_initialCultureName}'", "Debug SettingsView Init");
+            settings = Settings.Instance;
             UpdateLanguageRadioButtons();
+            LoadSettings();
         }
 
         private void UpdateLanguageRadioButtons()
         {
             string currentCultureUI = Thread.CurrentThread.CurrentUICulture.Name;
-            // System.Windows.System.Windows.MessageBox.Show($"UpdateLanguageRadioButtons: currentCultureUI is '{currentCultureUI}'", "Debug UpdateRadio");
 
             if (FrenchRadioButton != null) FrenchRadioButton.IsChecked = false;
             if (EnglishRadioButton != null) EnglishRadioButton.IsChecked = false;
@@ -50,11 +54,9 @@ namespace EasySave_by_ProSoft.Views
                 
                 if (selectedCultureName == Settings.Default.UserLanguage && selectedCultureName == Thread.CurrentThread.CurrentUICulture.Name)
                 {
-                    // System.Windows.MessageBox.Show($"LanguageRadioButton_Checked: Selected language ('{selectedCultureName}') is already active and saved. No action.", "Debug No Change Needed");
                     return;
                 }
 
-        
                 Settings.Default.UserLanguage = selectedCultureName;
                 Settings.Default.Save();
 
@@ -149,11 +151,77 @@ namespace EasySave_by_ProSoft.Views
             }
         }
 
+        private void LoadSettings()
+        {
+            // Set up the log format based on current settings
+            if (settings.LogFormat == LogFormat.JSON)
+            {
+                LogFormatComboBox.SelectedIndex = 0; // JSON
+            }
+            else
+            {
+                LogFormatComboBox.SelectedIndex = 1; // XML
+            }
+
+            // Load any other settings that need to be displayed
+            if (!string.IsNullOrEmpty(settings.BusinessSoftwareName))
+            {
+                BusinessSoftwareProcessNameTextBox.Text = settings.BusinessSoftwareName;
+            }
+            
+            if (settings.EncryptionExtensions != null && settings.EncryptionExtensions.Count > 0)
+            {
+                DefaultEncryptExtensionsTextBox.Text = string.Join(",", settings.EncryptionExtensions);
+            }
+        }
+
         private void ValidateSettings_Click(object sender, RoutedEventArgs e)
         {
-            System.Windows.MessageBox.Show(Localization.Resources.SettingsValidatedMessage,
-                            Localization.Resources.ConfirmationTitle,
-                            MessageBoxButton.OK, MessageBoxImage.Information);
+            // Update log format based on selection
+            LogFormat selectedFormat = LogFormatComboBox.SelectedIndex == 0 ? LogFormat.JSON : LogFormat.XML;
+            if (settings.LogFormat != selectedFormat)
+            {
+                settings.ChangeLogFormat(selectedFormat);
+                
+                // Update the LoggingService with the new format
+                LoggingService logger = LoggingService.Instance;
+                string formatString = selectedFormat.ToString();
+                logger.RecreateInstance(ref formatString);
+            }
+
+            // Update other settings
+            settings.BusinessSoftwareName = BusinessSoftwareProcessNameTextBox.Text.Trim();
+            
+            // Parse encryption extensions
+            string extensionsText = DefaultEncryptExtensionsTextBox.Text.Trim();
+            if (!string.IsNullOrEmpty(extensionsText))
+            {
+                settings.EncryptionExtensions = new List<string>(
+                    extensionsText.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                );
+            }
+            else
+            {
+                settings.EncryptionExtensions = new List<string>();
+            }
+            
+            // Save all settings
+            settings.Save();
+            
+            MessageBox.Show(Localization.Resources.SettingsValidatedMessage,
+                Localization.Resources.ConfirmationTitle,
+                MessageBoxButton.OK, 
+                MessageBoxImage.Information);
+        }
+
+        private void SaveSettings_Click(object sender, RoutedEventArgs e)
+        {
+            // Save other settings if needed
+            settings.Save();
+            MessageBox.Show(Localization.Resources.SettingsSaved,
+                Localization.Resources.Settings,
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         }
     }
 }
