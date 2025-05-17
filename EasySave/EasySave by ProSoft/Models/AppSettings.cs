@@ -15,6 +15,10 @@ namespace EasySave_by_ProSoft.Models
                 "config.json"
             );
         private Dictionary<string, JsonElement> settings = new Dictionary<string, JsonElement>();
+        private AppSettings()
+        {
+            LoadConfiguration();
+        }
         public static AppSettings Instance
         {
             get
@@ -34,6 +38,8 @@ namespace EasySave_by_ProSoft.Models
             else
             {
                 // Create default settings if the config file does not exist
+                settings["BusinessSoftwareName"] = JsonDocument.Parse("\"EasySave\"").RootElement;
+                settings["EncryptionExtensions"] = JsonDocument.Parse("[\".txt\", \".docx\"]").RootElement;
                 settings["LogFormat"] = JsonDocument.Parse("\"XML\"").RootElement;
                 settings["UserLanguage"] = JsonDocument.Parse("\"en-US\"").RootElement;
                 SaveConfiguration();

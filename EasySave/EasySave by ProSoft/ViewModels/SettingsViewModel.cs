@@ -1,8 +1,12 @@
+using EasySave_by_ProSoft.Models;
+using EasySave_by_ProSoft.Properties;
+using EasySave_by_ProSoft.Views;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Windows;
 using System.Windows.Input;
-using EasySave_by_ProSoft.Models;
 
 namespace EasySave_by_ProSoft.ViewModels
 {
@@ -30,7 +34,7 @@ namespace EasySave_by_ProSoft.ViewModels
 
         public string UserLanguage
         {
-            get => _settings.GetSetting("BusinessSoftwareName")?.ToString() ?? string.Empty;
+            get => _settings.GetSetting("UserLanguage")?.ToString() ?? string.Empty;
             set { _settings.SetSetting("UserLanguage", value); OnPropertyChanged(); }
         }
 
@@ -41,13 +45,46 @@ namespace EasySave_by_ProSoft.ViewModels
             SaveSettingsCommand = new RelayCommand(_ => SaveSettings(), _ => true);
         }
 
-        private void SaveSettings()
+        public void SaveSettings()
         {
             _settings.SaveConfiguration();
+        }
+
+        public void LanguageChanged(string newLanguage, SettingsView settingsViewInstance)
+        {
+            if (newLanguage == UserLanguage)
+            {
+                return; // No change in language
+            }
+            UserLanguage = newLanguage;
+            SaveSettings();
+
+            try
+            {
+                CultureInfo newCulture = new CultureInfo(newLanguage);
+                Thread.CurrentThread.CurrentUICulture = newCulture;
+                Thread.CurrentThread.CurrentCulture = newCulture;
+                if (Localization.Resources.Culture != null || Localization.Resources.Culture == null)
+                {
+                    Localization.Resources.Culture = newCulture;
+                }
+
+                settingsViewInstance.PromptForApplicationRestart();
+            }
+            catch (CultureNotFoundException ex)
+            {
+                System.Windows.MessageBox.Show($"Culture {newLanguage} non trouvée: {ex.Message}", Localization.Resources.ErrorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+        internal static void LoadSettings()
+        {
+            
+        }
     }
 }

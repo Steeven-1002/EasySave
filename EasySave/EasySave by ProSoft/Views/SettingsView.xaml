@@ -43,10 +43,10 @@
             </Grid>
 
             <TextBlock Text="{x:Static localization:Resources.ExtensionFileCryptSetting}" Margin="0,10,0,5"/>
-            <TextBox x:Name="DefaultEncryptExtensionsTextBox" ToolTip="Ex: .txt,.doc,.jpg" Margin="0,0,0,10"/>
+            <TextBox x:Name="DefaultEncryptExtensionsTextBox" ToolTip="Ex: .txt,.doc,.jpg" Margin="0,0,0,10" Text="{Binding EncryptExtensions}"/>
 
             <TextBlock Text="{x:Static localization:Resources.BusinessSoftwareCheckSetting}" Margin="0,0,0,5"/>
-            <TextBox x:Name="BusinessSoftwareProcessNameTextBox" ToolTip="Ex: calc.exe" Margin="0,0,0,10"/>
+            <TextBox x:Name="BusinessSoftwareProcessNameTextBox" ToolTip="Ex: calc.exe" Margin="0,0,0,10" Text="{Binding BusinessSoftwareProcessName}"/>
 
             <TextBlock Text="{x:Static localization:Resources.LogFileFormatSetting}" Margin="0,0,0,5"/>
             <ComboBox x:Name="LogFormatComboBox" Margin="0,0,0,20">
