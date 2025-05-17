@@ -102,56 +102,56 @@ namespace EasySave_by_ProSoft.Models {
             }
         }
         
-        // Nouvelles propriétés pour le suivi du job
+        // Properties for job tracking
         
         /// <summary>
-        /// Points de restauration pour la reprise de la sauvegarde
+        /// Restoration points for backup resume
         /// </summary>
         private List<string> processedFiles = new List<string>();
         public List<string> ProcessedFiles => processedFiles;
         
         /// <summary>
-        /// Heure de début de la tâche
+        /// Job start time
         /// </summary>
         public DateTime StartTime { get; private set; }
         
         /// <summary>
-        /// Heure de fin de la tâche
+        /// Job end time
         /// </summary>
         public DateTime? EndTime { get; private set; }
         
         /// <summary>
-        /// Temps écoulé depuis le début
+        /// Time elapsed since job start
         /// </summary>
         public TimeSpan ElapsedTime => (EndTime ?? DateTime.Now) - StartTime;
         
         /// <summary>
-        /// Dernière mise à jour de l'état
+        /// Last state update timestamp
         /// </summary>
         public DateTime LastStateChangeTime { get; private set; }
         
         /// <summary>
-        /// Identifiant unique de l'exécution de la tâche
+        /// Unique execution ID for this job run
         /// </summary>
         public Guid ExecutionId { get; private set; }
         
         /// <summary>
-        /// Taille totale des données transférées
+        /// Total size of transferred data
         /// </summary>
         public long TransferredSize => TotalSize - RemainingSize;
         
         /// <summary>
-        /// Pourcentage de progression
+        /// Progress percentage
         /// </summary>
         public double ProgressPercentage => TotalSize > 0 ? Math.Round((double)(TotalSize - RemainingSize) / TotalSize * 100, 2) : 0;
         
         /// <summary>
-        /// Vitesse de transfert en octets par seconde
+        /// Transfer rate in bytes per second
         /// </summary>
         public double TransferRate => ElapsedTime.TotalSeconds > 0 ? TransferredSize / ElapsedTime.TotalSeconds : 0;
         
         /// <summary>
-        /// Temps restant estimé
+        /// Estimated time remaining
         /// </summary>
         public TimeSpan EstimatedTimeRemaining {
             get {
@@ -162,12 +162,12 @@ namespace EasySave_by_ProSoft.Models {
         }
         
         /// <summary>
-        /// Messages d'erreur si applicables
+        /// Error messages if applicable
         /// </summary>
         public string ErrorMessage { get; set; } = string.Empty;
         
         /// <summary>
-        /// Gestionnaire d'événements pour notifier les observateurs
+        /// Event manager for observer notifications
         /// </summary>
         public JobEventManager Events;
         
@@ -181,7 +181,7 @@ namespace EasySave_by_ProSoft.Models {
         public long EncryptionTimeMs { get; set; }
         
         /// <summary>
-        /// Constructeur de JobStatus
+        /// JobStatus constructor
         /// </summary>
         public JobStatus() {
             Events = new JobEventManager();
@@ -192,22 +192,22 @@ namespace EasySave_by_ProSoft.Models {
         }
         
         /// <summary>
-        /// Met à jour le statut du job et notifie les observateurs
+        /// Updates the job status and notifies observers
         /// </summary>
         public void Update()
         {
-            // Notifier les observateurs des changements
+            // Notify observers of changes
             if (Events != null)
             {
-                var jobStatusCopy = this; // Créer une copie locale de l'objet
-                Events.NotifyListeners(ref jobStatusCopy); // Passer la copie locale par référence
+                var jobStatusCopy = this; // Create a local copy of the object
+                Events.NotifyListeners(ref jobStatusCopy); // Pass local copy by reference
             }
         }
         
         /// <summary>
-        /// Marque un fichier comme traité pour permettre la reprise
+        /// Marks a file as processed to enable resume functionality
         /// </summary>
-        /// <param name="filePath">Chemin du fichier traité</param>
+        /// <param name="filePath">Path of the processed file</param>
         public void AddProcessedFile(string filePath) {
             if (!processedFiles.Contains(filePath)) {
                 processedFiles.Add(filePath);
@@ -215,7 +215,7 @@ namespace EasySave_by_ProSoft.Models {
         }
         
         /// <summary>
-        /// Indique que la tâche a démarré
+        /// Indicates that the job has started
         /// </summary>
         public void Start() {
             StartTime = DateTime.Now;
@@ -225,7 +225,7 @@ namespace EasySave_by_ProSoft.Models {
         }
         
         /// <summary>
-        /// Indique que la tâche est en pause
+        /// Indicates that the job is paused
         /// </summary>
         public void Pause() {
             State = BackupState.Paused;
@@ -233,7 +233,7 @@ namespace EasySave_by_ProSoft.Models {
         }
         
         /// <summary>
-        /// Indique que la tâche est terminée
+        /// Indicates that the job is completed
         /// </summary>
         public void Complete() {
             State = BackupState.Completed;
@@ -244,9 +244,9 @@ namespace EasySave_by_ProSoft.Models {
         }
         
         /// <summary>
-        /// Indique que la tâche a rencontré une erreur
+        /// Indicates that the job encountered an error
         /// </summary>
-        /// <param name="errorMessage">Message d'erreur</param>
+        /// <param name="errorMessage">Error message</param>
         public void SetError(string errorMessage) {
             State = BackupState.Error;
             ErrorMessage = errorMessage;
@@ -255,9 +255,9 @@ namespace EasySave_by_ProSoft.Models {
         }
         
         /// <summary>
-        /// Crée un instantané de l'état actuel pour la persistance ou l'affichage
+        /// Creates a snapshot of current state for persistence or display
         /// </summary>
-        /// <returns>État du job pour sérialisation</returns>
+        /// <returns>Job state for serialization</returns>
         public JobState CreateSnapshot() {
             var snapshot = new JobState {
                 JobName = backupJob?.Name ?? string.Empty,
@@ -273,7 +273,7 @@ namespace EasySave_by_ProSoft.Models {
         }
         
         /// <summary>
-        /// Reprend l'exécution d'une tâche après une pause ou un arrêt
+        /// Resumes job execution after pause or stop
         /// </summary>
         public void Resume() {
             if (State == BackupState.Paused) {

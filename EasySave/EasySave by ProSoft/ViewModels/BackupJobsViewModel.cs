@@ -6,6 +6,9 @@ using EasySave_by_ProSoft.Models;
 
 namespace EasySave_by_ProSoft.ViewModels
 {
+    /// <summary>
+    /// View model for managing backup jobs
+    /// </summary>
     public class BackupJobsViewModel : INotifyPropertyChanged
     {
         private readonly BackupManager _backupManager;
@@ -32,8 +35,14 @@ namespace EasySave_by_ProSoft.ViewModels
             LoadJobs();
         }
 
-        private void LoadJobs()
+        /// <summary>
+        /// Loads all jobs from the BackupManager and updates the observable collection
+        /// </summary>
+        public void LoadJobs()
         {
+            // Ensure BackupManager has the latest data from JSON
+            _backupManager.LoadJobs();
+            
             Jobs.Clear();
             var jobs = _backupManager.GetAllJobs();
             foreach (var job in jobs)
@@ -42,6 +51,10 @@ namespace EasySave_by_ProSoft.ViewModels
             }
         }
 
+        /// <summary>
+        /// Adds a job to the observable collection
+        /// </summary>
+        /// <param name="job">The job to add</param>
         public void JobAdded(BackupJob job)
         {
             if (!Jobs.Contains(job))
@@ -50,11 +63,18 @@ namespace EasySave_by_ProSoft.ViewModels
             }
         }
 
+        /// <summary>
+        /// Opens the job creation panel
+        /// </summary>
         private void CreateJob()
         {
-            // TODO: Add logic to create a new job (show dialog or use bound properties)
+            // This method can be used to display a job creation dialog
+            // See the equivalent method in BackupJobsView.xaml.cs (CreateNewJob_Click)
         }
 
+        /// <summary>
+        /// Launches the selected backup job
+        /// </summary>
         private void LaunchSelectedJob()
         {
             if (SelectedJob != null)
@@ -63,6 +83,9 @@ namespace EasySave_by_ProSoft.ViewModels
             }
         }
 
+        /// <summary>
+        /// Removes the selected backup job
+        /// </summary>
         private void RemoveSelectedJob()
         {
             if (SelectedJob != null)
@@ -70,7 +93,7 @@ namespace EasySave_by_ProSoft.ViewModels
                 int index = Jobs.IndexOf(SelectedJob);
                 if (index >= 0)
                 {
-                    int indexRef = index; // Capture the index for the lambda
+                    int indexRef = index; // Required for reference
                     if (_backupManager.RemoveJob(ref indexRef))
                     {
                         Jobs.Remove(SelectedJob);
@@ -84,18 +107,23 @@ namespace EasySave_by_ProSoft.ViewModels
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
-    // Simple RelayCommand implementation for MVVM
+    /// <summary>
+    /// Simple RelayCommand implementation for MVVM pattern
+    /// </summary>
     public class RelayCommand : ICommand
     {
         private readonly Action<object?> _execute;
         private readonly Predicate<object?>? _canExecute;
+        
         public RelayCommand(Action<object?> execute, Predicate<object?>? canExecute = null)
         {
             _execute = execute;
             _canExecute = canExecute;
         }
+        
         public bool CanExecute(object? parameter) => _canExecute == null || _canExecute(parameter);
         public void Execute(object? parameter) => _execute(parameter);
+        
         public event EventHandler? CanExecuteChanged
         {
             add { CommandManager.RequerySuggested += value; }

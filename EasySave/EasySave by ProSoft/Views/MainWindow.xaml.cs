@@ -7,6 +7,9 @@ using EasySave_by_ProSoft.Views;
 
 namespace EasySave_by_ProSoft
 {
+    /// <summary>
+    /// Main window of the application
+    /// </summary>
     public partial class MainWindow : Window
     {
         private readonly BackupManager _backupManager;
@@ -15,21 +18,23 @@ namespace EasySave_by_ProSoft
 
         public MainWindow()
         {
-            // Créer l'instance du BackupManager qui sera partagée entre les ViewModels
+            // Create the BackupManager instance to be shared between ViewModels
             _backupManager = new BackupManager();
             
             InitializeComponent();
             
-            // Créer les vues avec le BackupManager
+            // Create views with the BackupManager
             _backupJobsView = new BackupJobsView(_backupManager);
             _settingsView = new SettingsView();
 
-            // Afficher la vue par défaut
+            // Show the default view
             MainContentArea.Content = _backupJobsView;
         }
 
         private void ShowBackupJobs_Click(object sender, RoutedEventArgs e)
         {
+            // Refresh jobs list when switching to backup jobs view
+            _backupJobsView.RefreshJobsList();
             MainContentArea.Content = _backupJobsView;
         }
 
