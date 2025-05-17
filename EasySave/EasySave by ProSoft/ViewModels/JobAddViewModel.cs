@@ -8,6 +8,7 @@ namespace EasySave_by_ProSoft.ViewModels
 {
     public class JobAddViewModel : INotifyPropertyChanged
     {
+        private readonly BackupManager _backupManager;
         private string _name = string.Empty;
         private string _sourcePath = string.Empty;
         private string _targetPath = string.Empty;
@@ -41,16 +42,22 @@ namespace EasySave_by_ProSoft.ViewModels
 
         public event Action<BackupJob>? JobAdded;
 
-        public JobAddViewModel()
+        public JobAddViewModel(BackupManager backupManager)
         {
+            _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
             AddJobCommand = new RelayCommand(_ => AddJob(), _ => CanAddJob());
         }
 
         private void AddJob()
         {
-            var job = new BackupJob(Name, SourcePath, TargetPath, Type, null!);
+            string sourcePath = SourcePath;
+            string targetPath = TargetPath;
+            BackupType type = Type;
+
+            var job = _backupManager.AddJob(Name, ref sourcePath, ref targetPath, ref type);
+            
             JobAdded?.Invoke(job);
-            // Optionally reset fields after add
+            
             Name = string.Empty;
             SourcePath = string.Empty;
             TargetPath = string.Empty;
