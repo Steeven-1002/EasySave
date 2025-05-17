@@ -1,33 +1,29 @@
-﻿using System;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Threading;
 using System.Globalization;
-using EasySave_by_ProSoft.Properties;
-using System.Diagnostics;
+using EasySave_by_ProSoft.Properties; // To access to Settings.Default
+using System.Diagnostics;             // Necessary for Process
 using EasySave_by_ProSoft.Localization;
-using EasySave_by_ProSoft.Models;
-using System.Collections.Generic;
 
 namespace EasySave_by_ProSoft.Views
 {
     public partial class SettingsView : System.Windows.Controls.UserControl
     {
         private string _initialCultureName;
-        private AppSettings settings;
 
         public SettingsView()
         {
             InitializeComponent();
             _initialCultureName = Thread.CurrentThread.CurrentUICulture.Name;
-            settings = AppSettings.Instance;
+            // System.Windows.System.Windows.MessageBox.Show($"SettingsView Constructor: Initial culture is '{_initialCultureName}'", "Debug SettingsView Init");
             UpdateLanguageRadioButtons();
-            LoadSettings();
         }
 
         private void UpdateLanguageRadioButtons()
         {
             string currentCultureUI = Thread.CurrentThread.CurrentUICulture.Name;
+            // System.Windows.System.Windows.MessageBox.Show($"UpdateLanguageRadioButtons: currentCultureUI is '{currentCultureUI}'", "Debug UpdateRadio");
 
             if (FrenchRadioButton != null) FrenchRadioButton.IsChecked = false;
             if (EnglishRadioButton != null) EnglishRadioButton.IsChecked = false;
@@ -54,9 +50,11 @@ namespace EasySave_by_ProSoft.Views
                 
                 if (selectedCultureName == Settings.Default.UserLanguage && selectedCultureName == Thread.CurrentThread.CurrentUICulture.Name)
                 {
+                    // System.Windows.MessageBox.Show($"LanguageRadioButton_Checked: Selected language ('{selectedCultureName}') is already active and saved. No action.", "Debug No Change Needed");
                     return;
                 }
 
+        
                 Settings.Default.UserLanguage = selectedCultureName;
                 Settings.Default.Save();
 
