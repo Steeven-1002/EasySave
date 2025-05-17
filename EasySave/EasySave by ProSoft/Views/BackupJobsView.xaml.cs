@@ -1,9 +1,13 @@
 ﻿using System.Windows; // For RoutedEventArgs and MessageBox
 using System.Windows.Controls; // For UserControl
+using EasySave_by_ProSoft.Localization;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
+using WinForms = System.Windows.Forms;
+
 
 namespace EasySave_by_ProSoft.Views
 {
-    public partial class BackupJobsView : UserControl
+    public partial class BackupJobsView : System.Windows.Controls.UserControl
     {
         public BackupJobsView()
         {
@@ -12,7 +16,7 @@ namespace EasySave_by_ProSoft.Views
 
         private void LaunchSelectedJob_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Lancement du travail sélectionné (simulation).");
+            System.Windows.MessageBox.Show(Localization.Resources.MessageBoxLaunchJob);
         }
 
         private void CreateNewJob_Click(object sender, RoutedEventArgs e)
@@ -21,25 +25,38 @@ namespace EasySave_by_ProSoft.Views
             {
                 CreateJobPanel.Visibility = Visibility.Visible;
             }
-            MessageBox.Show("Affichage du panneau de création (simulation).");
         }
 
         private void BrowseSource_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog();
-            MessageBox.Show("Parcourir source (simulation).");
+            string dialogCom = Localization.Resources.MessageSelectSourceFolder;
+            JobSourcePathTextBox.Text = Browse_Click(sender, e, dialogCom);
         }
 
         private void BrowseTarget_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Parcourir cible (simulation).");
-            // Similar logic to BrowseSource_Click
+            string dialogCom = Localization.Resources.MessageSelectTargetFolder;
+            JobTargetPathTextBox.Text = Browse_Click(sender, e, dialogCom);
+        }
+
+        private string Browse_Click(object sender, RoutedEventArgs e, string com)
+        {
+            var dialog = new WinForms.FolderBrowserDialog();
+            dialog.Description = com; // Set the description based on the button clicked
+            WinForms.DialogResult result = dialog.ShowDialog();
+
+            if (result == WinForms.DialogResult.OK)
+            {
+                string selectedFilePath = dialog.SelectedPath;
+                return selectedFilePath;
+            }
+            return string.Empty; // Return empty string if no folder is selected
         }
 
         private void ValidateNewJob_Click(object sender, RoutedEventArgs e)
         {
             // Logic to validate fields and create the job
-            MessageBox.Show("Nouveau travail validé (simulation).");
+            System.Windows.MessageBox.Show(Localization.Resources.MessageNewJobValidated);
             if (CreateJobPanel != null)
             {
                 CreateJobPanel.Visibility = Visibility.Collapsed; // Hide the panel after validation
@@ -48,7 +65,6 @@ namespace EasySave_by_ProSoft.Views
 
         private void CancelNewJob_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Création annulée (simulation).");
             if (CreateJobPanel != null)
             {
                 CreateJobPanel.Visibility = Visibility.Collapsed; // Hide the panel on cancel

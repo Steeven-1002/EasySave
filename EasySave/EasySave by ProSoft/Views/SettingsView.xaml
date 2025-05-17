@@ -9,7 +9,7 @@
              d:DesignHeight="450" d:DesignWidth="780">
     <Grid Margin="10">
         <StackPanel>
-            <TextBlock Text="Paramètres Généraux" FontSize="20" FontWeight="Bold" Margin="0,0,0,10"/>
+            <TextBlock Text="{x:Static localization:Resources.GeneralSettings}" FontSize="20" FontWeight="Bold" Margin="0,0,0,10"/>
 
             <TextBlock Text="{x:Static localization:Resources.Language}" Margin="0,0,0,5" FontWeight="SemiBold"/>
 
@@ -22,7 +22,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="2" HorizontalAlignment="Left" Margin="129,0,0,0">
-                    <Image Source="/Views/Images/Drapeau_France.jpg" Height="70" Width="89"/>
+                    <Image Source="Images/Drapeau_France.jpg" Height="70" Width="89"/>
                     <RadioButton x:Name="FrenchRadioButton" 
                                  Content="Français" 
                                  GroupName="Language"
@@ -32,7 +32,7 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="3" HorizontalAlignment="Center">
-                    <Image Source="/Views/Images/Drapeau_Royaume_Unis.jpg" Height="68" Width="88"/>
+                    <Image Source="Images/Drapeau_Royaume_Unis.jpg" Height="68" Width="88"/>
                     <RadioButton x:Name="EnglishRadioButton" 
                                  Content="English" 
                                  GroupName="Language"
@@ -42,19 +42,18 @@
                 </StackPanel>
             </Grid>
 
-            <TextBlock Text="Extensions de fichiers à crypter par défaut (séparées par des virgules):" Margin="0,10,0,5"/>
+            <TextBlock Text="{x:Static localization:Resources.ExtensionFileCryptSetting}" Margin="0,10,0,5"/>
             <TextBox x:Name="DefaultEncryptExtensionsTextBox" ToolTip="Ex: .txt,.doc,.jpg" Margin="0,0,0,10"/>
 
-            <TextBlock Text="Nom du processus du logiciel métier à surveiller:" Margin="0,0,0,5"/>
+            <TextBlock Text="{x:Static localization:Resources.BusinessSoftwareCheckSetting}" Margin="0,0,0,5"/>
             <TextBox x:Name="BusinessSoftwareProcessNameTextBox" ToolTip="Ex: calc.exe" Margin="0,0,0,10"/>
 
-            <TextBlock Text="Format du fichier Log:" Margin="0,0,0,5"/>
+            <TextBlock Text="{x:Static localization:Resources.LogFileFormatSetting}" Margin="0,0,0,5"/>
             <ComboBox x:Name="LogFormatComboBox" Margin="0,0,0,20">
                 <ComboBoxItem Content="JSON"/>
                 <ComboBoxItem Content="XML"/>
             </ComboBox>
-
-            <Button Content="Valider les Paramètres" HorizontalAlignment="Right" Margin="0,20,0,0" Click="ValidateSettings_Click"/>
+            <Button Content="{x:Static localization:Resources.ValidateSettings}" HorizontalAlignment="Right" Margin="0,20,0,0" Click="ValidateSettings_Click"/>
         </StackPanel>
     </Grid>
 </UserControl>

@@ -6,7 +6,7 @@ using EasySave_by_ProSoft.Localization;
 
 namespace EasySave_by_ProSoft
 {
-    public partial class App : Application
+    public partial class App : System.Windows.Application
     {
         private const string DefaultCultureName = "en-US"; // Default language if nothing is saved or if error
 

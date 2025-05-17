@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:EasySave_by_ProSoft.Views"
+             xmlns:localization="clr-namespace:EasySave_by_ProSoft.Localization"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="780">
     <Grid>
@@ -13,50 +14,50 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Gestion des Travaux de Sauvegarde" FontSize="20" FontWeight="Bold" Margin="10"/>
-
+        <TextBlock Grid.Row="0" Text="{x:Static localization:Resources.BackupWorkManagement}" FontSize="20" FontWeight="Bold" Margin="10"/>
         <ListView Grid.Row="1" x:Name="BackupJobsListView" Margin="10">
             <ListView.View>
                 <GridView>
-                    <GridViewColumn Header="Nom du Travail" DisplayMemberBinding="{Binding Name}" Width="200"/>
-                    <GridViewColumn Header="Source" DisplayMemberBinding="{Binding SourcePath}" Width="200"/>
-                    <GridViewColumn Header="Cible" DisplayMemberBinding="{Binding TargetPath}" Width="200"/>
-                    <GridViewColumn Header="Type" DisplayMemberBinding="{Binding BackupType}" Width="100"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementName}" DisplayMemberBinding="{Binding Name}" Width="200"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementSource}" DisplayMemberBinding="{Binding SourcePath}" Width="200"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementTarget}" DisplayMemberBinding="{Binding TargetPath}" Width="200"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementType}" DisplayMemberBinding="{Binding BackupType}" Width="100"/>
                 </GridView>
             </ListView.View>
         </ListView>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
-            <Button Content="Lancer le Travail Sélectionné" Margin="5" Click="LaunchSelectedJob_Click"/>
-            <Button Content="Créer un Nouveau Travail" Margin="5" Click="CreateNewJob_Click"/>
+            <Button Content="{x:Static localization:Resources.BackupWorkManagementStartBackupSelected}" Margin="5" Click="LaunchSelectedJob_Click"/>
+            <Button Content="{x:Static localization:Resources.BackupWorkManagementNewBackup}" Margin="5" Click="CreateNewJob_Click"/>
         </StackPanel>
 
         <Border Grid.Row="1" Grid.RowSpan="2" x:Name="CreateJobPanel" Visibility="Collapsed" Background="LightGray" Padding="15" Margin="50,20">
             <StackPanel>
-                <TextBlock Text="Créer un Nouveau Travail de Sauvegarde" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
-                <TextBlock Text="Nom du travail:"/>
+                <TextBlock Text="{x:Static localization:Resources.BackupWorkManagementNewBackup}" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobName}"/>
                 <TextBox x:Name="JobNameTextBox" Margin="0,0,0,5"/>
-                <TextBlock Text="Répertoire Source:"/>
+                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobSourceDirectory}"/>
                 <StackPanel Orientation="Horizontal">
                     <TextBox x:Name="JobSourcePathTextBox" Margin="0,0,0,5" Width="200"/>
-                    <Button Content="Parcourir..." Margin="5,0,0,5" Click="BrowseSource_Click"/>
+                    <Button Content="{x:Static localization:Resources.Browse}" Margin="5,0,0,5" Click="BrowseSource_Click"/>
                 </StackPanel>
-                <TextBlock Text="Répertoire Cible:"/>
+                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobTargetDirectory}"/>
                 <StackPanel Orientation="Horizontal">
                     <TextBox x:Name="JobTargetPathTextBox" Margin="0,0,0,5" Width="200"/>
-                    <Button Content="Parcourir..." Margin="5,0,0,5" Click="BrowseTarget_Click"/>
+                    <Button Content="{x:Static localization:Resources.Browse}" Margin="5,0,0,5" Click="BrowseTarget_Click"/>
                 </StackPanel>
-                <TextBlock Text="Type de Sauvegarde:"/>
+                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobBackupType}"/>
                 <ComboBox x:Name="JobTypeComboBox" Margin="0,0,0,5">
-                    <ComboBoxItem Content="Complète"/>
-                    <ComboBoxItem Content="Différentielle"/>
+                    <ComboBoxItem Content="{x:Static localization:Resources.BackupTypeFull}"/>
+                    <ComboBoxItem Content="{x:Static localization:Resources.BackupTypeDifferential}"/>
                 </ComboBox>
-                <TextBlock Text="Extensions à crypter (séparées par des virgules):"/>
+                <!--
+                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobEncryptExtensions}"/>
                 <TextBox x:Name="JobEncryptExtensionsTextBox" Margin="0,0,0,10" ToolTip="Ex: .docx,.xlsx,.pdf"/>
-
+                -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="Valider la Création" Margin="5" Click="ValidateNewJob_Click"/>
-                    <Button Content="Annuler" Margin="5" Click="CancelNewJob_Click"/>
+                    <Button Content="{x:Static localization:Resources.ConfigNewJobValidate}" Margin="5" Click="ValidateNewJob_Click"/>
+                    <Button Content="{x:Static localization:Resources.Cancel}" Margin="5" Click="CancelNewJob_Click"/>
                 </StackPanel>
             </StackPanel>
         </Border>

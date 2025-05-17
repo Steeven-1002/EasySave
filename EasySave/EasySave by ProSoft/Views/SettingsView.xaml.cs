@@ -8,7 +8,7 @@ using EasySave_by_ProSoft.Localization;
 
 namespace EasySave_by_ProSoft.Views
 {
-    public partial class SettingsView : UserControl
+    public partial class SettingsView : System.Windows.Controls.UserControl
     {
         private string _initialCultureName;
 
@@ -16,14 +16,14 @@ namespace EasySave_by_ProSoft.Views
         {
             InitializeComponent();
             _initialCultureName = Thread.CurrentThread.CurrentUICulture.Name;
-            // System.Windows.MessageBox.Show($"SettingsView Constructor: Initial culture is '{_initialCultureName}'", "Debug SettingsView Init");
+            // System.Windows.System.Windows.MessageBox.Show($"SettingsView Constructor: Initial culture is '{_initialCultureName}'", "Debug SettingsView Init");
             UpdateLanguageRadioButtons();
         }
 
         private void UpdateLanguageRadioButtons()
         {
             string currentCultureUI = Thread.CurrentThread.CurrentUICulture.Name;
-            // System.Windows.MessageBox.Show($"UpdateLanguageRadioButtons: currentCultureUI is '{currentCultureUI}'", "Debug UpdateRadio");
+            // System.Windows.System.Windows.MessageBox.Show($"UpdateLanguageRadioButtons: currentCultureUI is '{currentCultureUI}'", "Debug UpdateRadio");
 
             if (FrenchRadioButton != null) FrenchRadioButton.IsChecked = false;
             if (EnglishRadioButton != null) EnglishRadioButton.IsChecked = false;
@@ -44,7 +44,7 @@ namespace EasySave_by_ProSoft.Views
 
         private void LanguageRadioButton_Checked(object sender, RoutedEventArgs e)
         {
-            if (sender is RadioButton radioButton && radioButton.IsChecked == true && radioButton.Tag != null)
+            if (sender is System.Windows.Controls.RadioButton radioButton && radioButton.IsChecked == true && radioButton.Tag != null)
             {
                 string selectedCultureName = radioButton.Tag.ToString();
                 
@@ -70,7 +70,7 @@ namespace EasySave_by_ProSoft.Views
                 }
                 catch (CultureNotFoundException ex)
                 {
-                    MessageBox.Show($"Culture {selectedCultureName} non trouvée: {ex.Message}", Localization.Resources.ErrorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+                    System.Windows.MessageBox.Show($"Culture {selectedCultureName} non trouvée: {ex.Message}", Localization.Resources.ErrorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
                     Settings.Default.UserLanguage = _initialCultureName;
                     Settings.Default.Save();
                     RestoreInitialCultureAndRadioButtonState();
@@ -82,31 +82,31 @@ namespace EasySave_by_ProSoft.Views
 
         private void PromptForApplicationRestart()
         {
-            MessageBoxResult result = MessageBox.Show(
+            System.Windows.MessageBoxResult result = System.Windows.MessageBox.Show(
                 Localization.Resources.LanguageChangeRestartMessage,
                 Localization.Resources.ConfirmationTitle,
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Question);
 
-            if (result == MessageBoxResult.Yes)
+            if (result == System.Windows.MessageBoxResult.Yes)
             {
                 try
                 {
                     string applicationPath = Process.GetCurrentProcess().MainModule.FileName;
                     if (string.IsNullOrEmpty(applicationPath))
                     {
-                        applicationPath = Application.ResourceAssembly.Location;
+                        applicationPath = System.Windows.Application.ResourceAssembly.Location;
                     }
                     Process.Start(applicationPath);
-                    Application.Current.Shutdown();
+                    System.Windows.Application.Current.Shutdown();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(
+                    System.Windows.MessageBox.Show(
                         $"{Localization.Resources.ErrorRestartingApplicationMessage}\n{ex.Message}",
                         Localization.Resources.ErrorTitle,
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Error);
                     Settings.Default.UserLanguage = _initialCultureName;
                     Settings.Default.Save();
                     RestoreInitialCultureAndRadioButtonState();
@@ -114,11 +114,11 @@ namespace EasySave_by_ProSoft.Views
             }
             else
             {
-                MessageBox.Show(
+                System.Windows.MessageBox.Show(
                     Localization.Resources.LanguageChangeCancelledMessage,
                     Localization.Resources.InformationTitle,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
 
                 Settings.Default.UserLanguage = _initialCultureName;
                 Settings.Default.Save();
@@ -141,17 +141,17 @@ namespace EasySave_by_ProSoft.Views
             }
             catch (CultureNotFoundException cnfEx)
             {
-                MessageBox.Show(
+                System.Windows.MessageBox.Show(
                     $"Erreur critique en tentant de restaurer la culture initiale '{_initialCultureName}'.\n{cnfEx.Message}",
                     Localization.Resources.ErrorTitle,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error);
             }
         }
 
         private void ValidateSettings_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(Localization.Resources.SettingsValidatedMessage,
+            System.Windows.MessageBox.Show(Localization.Resources.SettingsValidatedMessage,
                             Localization.Resources.ConfirmationTitle,
                             MessageBoxButton.OK, MessageBoxImage.Information);
         }
