@@ -1,127 +1,77 @@
-﻿using System.IO;
+﻿using LoggingLibrary;
 using System.Text;
-using System;
 
-namespace LoggingLibrary
+public class LogFile
 {
-    /// <summary>
-    /// Represents a log file that manages writing and formatting log entries.
-    /// </summary>
-    public class LogFile
+    private readonly string _logDirectoryPath;
+    private readonly StringBuilder _buffer = new StringBuilder();
+    private readonly ILogFormatter _logFormatter;
+    private const long MaxLogFileSizeBytes = 100 * 1024; // 1 Mo
+
+    public LogFile(string logDirectoryPath, ILogFormatter logFormatter)
     {
-        private readonly string _logDirectoryPath;
-        private readonly StringBuilder _buffer = new StringBuilder();
-        private readonly ILogFormatter _logFormatter;
+        _logDirectoryPath = logDirectoryPath;
+        _logFormatter = logFormatter;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="LogFile"/> class.
-        /// </summary>
-        /// <param name="logDirectoryPath">The directory path where log files will be stored.</param>
-        /// <param name="logFormatter">The formatter used to format log entries.</param>
-        public LogFile(string logDirectoryPath, ILogFormatter logFormatter)
+        if (!Directory.Exists(_logDirectoryPath))
         {
-            _logDirectoryPath = logDirectoryPath;
-            _logFormatter = logFormatter;
+            Directory.CreateDirectory(_logDirectoryPath);
+        }
+    }
 
-            if (!Directory.Exists(_logDirectoryPath))
+    private string GetCurrentLogFile()
+    {
+        string baseName = DateTime.Now.ToString("yyyy-MM-dd");
+        string extension = _logFormatter is JsonLogFormatter ? ".json" : ".xml";
+
+        int index = 1;
+        string path;
+        do
+        {
+            string suffix = $"_{index}";
+            string fileName = $"{baseName}{suffix}{extension}";
+            path = Path.Combine(_logDirectoryPath, fileName);
+            index++;
+        } while (File.Exists(path) && new FileInfo(path).Length >= MaxLogFileSizeBytes);
+
+        return path;
+    }
+
+    public void WriteLogEntry(string logEntry)
+    {
+        _buffer.AppendLine(logEntry);
+        FlushBuffer();
+    }
+
+    public void FlushBuffer()
+    {
+        if (_buffer.Length == 0)
+            return;
+
+        string logContent = _buffer.ToString();
+        string filePath = GetCurrentLogFile();
+
+        // Retry logic to handle file access conflicts
+        const int maxRetries = 3;
+        const int delayBetweenRetriesMs = 100;
+
+        for (int attempt = 0; attempt < maxRetries; attempt++)
+        {
+            try
             {
-                Directory.CreateDirectory(_logDirectoryPath);
-            }
-        }
+                string existingContent = File.Exists(filePath) ? File.ReadAllText(filePath) : string.Empty;
+                File.WriteAllText(filePath, _logFormatter.MergeLogContent(existingContent, logContent));
 
-        /// <summary>
-        /// Gets the file path of the current log file based on the current date.
-        /// </summary>
-        /// <returns>The full path of the log file.</returns>
-        private string GetLogFilePath()
-        {
-            string fileName = DateTime.Now.ToString("yyyy-MM-dd") + ".log";
-            return Path.Combine(_logDirectoryPath, fileName);
-        }
-
-        /// <summary>
-        /// Destructor for the <see cref="LogFile"/> class. Ensures the buffer is flushed and the log file is properly closed.
-        /// </summary>
-        ~LogFile()
-        {
-            Close();
-        }
-
-        /// <summary>
-        /// Writes a log entry to the buffer and flushes it to the log file.
-        /// </summary>
-        /// <param name="logEntry">The log entry to write.</param>
-        public void WriteLogEntry(string logEntry)
-        {
-            _buffer.AppendLine(logEntry);
-            FlushBuffer();
-        }
-
-        /// <summary>
-        /// Flushes the buffer content to the log file. If the log file does not exist, it initializes it.
-        /// </summary>
-        public void FlushBuffer()
-        {
-            if (_buffer.Length > 0)
-            {
-                string logFilePath = GetLogFilePath();
-                if (!File.Exists(logFilePath) || new FileInfo(logFilePath).Length == 0)
-                {
-                    File.AppendAllText(logFilePath, _logFormatter.InitializeLogFile(logFilePath), Encoding.UTF8);
-                }
-                Open();
-                File.AppendAllText(logFilePath, _buffer.ToString(), Encoding.UTF8);
+                // Clear the buffer after successful write
                 _buffer.Clear();
+                return;
             }
-        }
+            catch (IOException)
+            {
+                if (attempt == maxRetries - 1)
+                    throw; // Re-throw the exception if max retries are reached
 
-        /// <summary>
-        /// Closes the log file by ensuring the buffer is flushed and the file is properly formatted.
-        /// </summary>
-        public void Close()
-        {
-            FlushBuffer();
-            string logFilePath = GetLogFilePath();
-            if (File.Exists(logFilePath))
-            {
-                string content = File.ReadAllText(logFilePath, Encoding.UTF8);
-                if (content.EndsWith(",\r\n"))
-                {
-                    content = content.Substring(0, content.Length - 3);
-                    File.WriteAllText(logFilePath, content + Environment.NewLine + "]", Encoding.UTF8);
-                }
-                else if (content.EndsWith("[\r\n"))
-                {
-                    File.WriteAllText(logFilePath, "[]", Encoding.UTF8);
-                }
-                else if (!content.EndsWith("]"))
-                {
-                    File.AppendAllText(logFilePath, "]", Encoding.UTF8);
-                }
-            }
-        }
-        /// <summary>
-        /// Opens the log file for writing. Remove end bracket if exists and add comma.
-        /// <summary>
-        public void Open()
-        {
-            string logFilePath = GetLogFilePath();
-            if (File.Exists(logFilePath))
-            {
-                string content = File.ReadAllText(logFilePath, Encoding.UTF8);
-                if (content.EndsWith("]"))
-                {
-                    content = content.Substring(0, content.Length - 1);
-                    File.WriteAllText(logFilePath, content + ",\r\n", Encoding.UTF8);
-                }
-                else if (content.EndsWith("["))
-                {
-                    File.WriteAllText(logFilePath, content + "\r\n", Encoding.UTF8);
-                }
-            }
-            else
-            {
-                File.WriteAllText(logFilePath, "[\r\n", Encoding.UTF8);
+                Thread.Sleep(delayBetweenRetriesMs); // Wait before retrying
             }
         }
     }
