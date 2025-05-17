@@ -1,42 +1,52 @@
-﻿using System;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Threading;
 using System.Globalization;
 using EasySave_by_ProSoft.Properties;
 using System.Diagnostics;
 using EasySave_by_ProSoft.Localization;
-using EasySave_by_ProSoft.Models;
-using System.Collections.Generic;
+using EasySave_by_ProSoft.ViewModels;
 
 namespace EasySave_by_ProSoft.Views
 {
     public partial class SettingsView : System.Windows.Controls.UserControl
     {
         private string _initialCultureName;
-        private AppSettings settings;
+        private SettingsViewModel _settingsViewModel;
 
         public SettingsView()
         {
+            _settingsViewModel = new SettingsViewModel();
+            DataContext = _settingsViewModel;
+            
             InitializeComponent();
-            _initialCultureName = Thread.CurrentThread.CurrentUICulture.Name;
-            settings = AppSettings.Instance;
+            _initialCultureName = _settingsViewModel.UserLanguage;
             UpdateLanguageRadioButtons();
-            LoadSettings();
+            
+            // Initialiser le ComboBox de format de log
+            if (LogFormatComboBox != null)
+            {
+                if (_settingsViewModel.LogFormat.ToUpper() == "XML")
+                {
+                    LogFormatComboBox.SelectedIndex = 1; // XML
+                }
+                else
+                {
+                    LogFormatComboBox.SelectedIndex = 0; // JSON par défaut
+                }
+            }
         }
 
         private void UpdateLanguageRadioButtons()
         {
-            string currentCultureUI = Thread.CurrentThread.CurrentUICulture.Name;
-
             if (FrenchRadioButton != null) FrenchRadioButton.IsChecked = false;
             if (EnglishRadioButton != null) EnglishRadioButton.IsChecked = false;
 
-            if (currentCultureUI.StartsWith("fr") && FrenchRadioButton != null)
+            if (_initialCultureName.StartsWith("fr") && FrenchRadioButton != null)
             {
                 FrenchRadioButton.IsChecked = true;
             }
-            else if (currentCultureUI.StartsWith("en") && EnglishRadioButton != null)
+            else if (_initialCultureName.StartsWith("en") && EnglishRadioButton != null)
             {
                 EnglishRadioButton.IsChecked = true;
             }
@@ -44,45 +54,19 @@ namespace EasySave_by_ProSoft.Views
             {
                 if (EnglishRadioButton != null) EnglishRadioButton.IsChecked = true;
             }
+            
         }
 
         private void LanguageRadioButton_Checked(object sender, RoutedEventArgs e)
         {
             if (sender is System.Windows.Controls.RadioButton radioButton && radioButton.IsChecked == true && radioButton.Tag != null)
             {
-                string selectedCultureName = radioButton.Tag.ToString();
-                
-                if (selectedCultureName == Settings.Default.UserLanguage && selectedCultureName == Thread.CurrentThread.CurrentUICulture.Name)
-                {
-                    return;
-                }
-
-                Settings.Default.UserLanguage = selectedCultureName;
-                Settings.Default.Save();
-
-                try
-                {
-                    CultureInfo newCulture = new CultureInfo(selectedCultureName);
-                    Thread.CurrentThread.CurrentUICulture = newCulture;
-                    Thread.CurrentThread.CurrentCulture = newCulture;
-                    if (Localization.Resources.Culture != null || Localization.Resources.Culture == null)
-                    {
-                        Localization.Resources.Culture = newCulture;
-                    }
-                }
-                catch (CultureNotFoundException ex)
-                {
-                    System.Windows.MessageBox.Show($"Culture {selectedCultureName} non trouvée: {ex.Message}", Localization.Resources.ErrorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
-                    Settings.Default.UserLanguage = _initialCultureName;
-                    Settings.Default.Save();
-                    RestoreInitialCultureAndRadioButtonState();
-                    return;
-                }
-                PromptForApplicationRestart();
+                string selectedCultureName = radioButton.Tag.ToString() ?? string.Empty;
+                _settingsViewModel.LanguageChanged(selectedCultureName, this);
             }
         }
 
-        private void PromptForApplicationRestart()
+        public void PromptForApplicationRestart()
         {
             System.Windows.MessageBoxResult result = System.Windows.MessageBox.Show(
                 Localization.Resources.LanguageChangeRestartMessage,
@@ -111,7 +95,6 @@ namespace EasySave_by_ProSoft.Views
                         System.Windows.MessageBoxImage.Error);
                     Settings.Default.UserLanguage = _initialCultureName;
                     Settings.Default.Save();
-                    RestoreInitialCultureAndRadioButtonState();
                 }
             }
             else
@@ -124,108 +107,22 @@ namespace EasySave_by_ProSoft.Views
 
                 Settings.Default.UserLanguage = _initialCultureName;
                 Settings.Default.Save();
-                RestoreInitialCultureAndRadioButtonState();
             }
         }
-
-        private void RestoreInitialCultureAndRadioButtonState()
-        {
-            try
-            {
-                CultureInfo initialCulture = new CultureInfo(_initialCultureName);
-                Thread.CurrentThread.CurrentUICulture = initialCulture;
-                Thread.CurrentThread.CurrentCulture = initialCulture;
-                if (Localization.Resources.Culture != null || Localization.Resources.Culture == null)
-                {
-                    Localization.Resources.Culture = initialCulture;
-                }
-                UpdateLanguageRadioButtons();
-            }
-            catch (CultureNotFoundException cnfEx)
-            {
-                System.Windows.MessageBox.Show(
-                    $"Erreur critique en tentant de restaurer la culture initiale '{_initialCultureName}'.\n{cnfEx.Message}",
-                    Localization.Resources.ErrorTitle,
-                    System.Windows.MessageBoxButton.OK,
-                    System.Windows.MessageBoxImage.Error);
-            }
-        }
-
-        private void LoadSettings()
-        {
-            // Set up the log format based on current settings
-            if (settings.GetSetting("LogFormat")?.ToString() == "JSON")
-            {
-                LogFormatComboBox.SelectedIndex = 0; // JSON
-            }
-            else
-            {
-                LogFormatComboBox.SelectedIndex = 1; // XML
-            }
-
-            // Load any other settings that need to be displayed
-            if (!string.IsNullOrEmpty(settings.GetSetting("BusinessSoftwareName")?.ToString()))
-            {
-                BusinessSoftwareProcessNameTextBox.Text = settings.GetSetting("BusinessSoftwareName").ToString();
-            }
-            else
-            {
-                BusinessSoftwareProcessNameTextBox.Text = string.Empty;
-            }
-            
-            if (settings.GetSetting("EncryptionExtensions") is List<string> extensions && extensions.Count > 0)
-            {
-                DefaultEncryptExtensionsTextBox.Text = string.Join(", ", extensions);
-            }
-            else
-            {
-                DefaultEncryptExtensionsTextBox.Text = string.Empty;
-            }
-        }
-
+        
         private void ValidateSettings_Click(object sender, RoutedEventArgs e)
         {
-            // Update log format based on selection
-            string selectedFormat = LogFormatComboBox.SelectedIndex == 0 ? "JSON" : "XML";
-            if (settings.GetSetting("LogFormat")?.ToString() != selectedFormat)
+            // Mettre à jour le format de log depuis le ComboBox
+            if (LogFormatComboBox.SelectedItem is ComboBoxItem selectedItem)
             {
-                settings.SetSetting("LogFormat", selectedFormat);
-
-                // Update the LoggingService with the new format
-                LoggingService logger = LoggingService.Instance;
-                string formatString = selectedFormat.ToString();
-                LoggingService.RecreateInstance(selectedFormat);
-            }
-
-            // Update other settings
-            settings.SetSetting("BusinessSoftwareName", BusinessSoftwareProcessNameTextBox.Text.Trim());
-
-            // Parse encryption extensions
-            string extensionsText = DefaultEncryptExtensionsTextBox.Text.Trim();
-            if (!string.IsNullOrEmpty(extensionsText))
-            {
-                settings.SetSetting("EncryptionExtensions", new List<string>(extensionsText.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)));
-            }
-            else
-            {
-                settings.SetSetting("EncryptionExtensions", new List<string>());
+                _settingsViewModel.LogFormat = selectedItem.Content.ToString();
             }
             
-            // Save all settings
-            settings.SaveConfiguration();
-
-            System.Windows.MessageBox.Show(Localization.Resources.SettingsValidatedMessage,
-                Localization.Resources.ConfirmationTitle,
-                MessageBoxButton.OK, 
-                MessageBoxImage.Information);
-        }
-
-        private void SaveSettings_Click(object sender, RoutedEventArgs e)
-        {
-            // Save other settings if needed
-            settings.SaveConfiguration();
-            System.Windows.MessageBox.Show(Localization.Resources.SettingsSaved,
-                Localization.Resources.Settings,
+            _settingsViewModel.SaveSettings();
+            
+            System.Windows.MessageBox.Show(
+                Localization.Resources.SettingsSaved ?? "Settings saved successfully!",
+                Localization.Resources.InformationTitle ?? "Information",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
         }
