@@ -3,8 +3,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Threading;
 using System.Globalization;
-using EasySave_by_ProSoft.Properties; // To access to Settings.Default
-using System.Diagnostics;             // Necessary for Process
+using EasySave_by_ProSoft.Properties;
+using System.Diagnostics;
 using EasySave_by_ProSoft.Localization;
 using EasySave_by_ProSoft.Models;
 using System.Collections.Generic;
@@ -14,13 +14,13 @@ namespace EasySave_by_ProSoft.Views
     public partial class SettingsView : System.Windows.Controls.UserControl
     {
         private string _initialCultureName;
-        private Settings settings;
+        private AppSettings settings;
 
         public SettingsView()
         {
             InitializeComponent();
             _initialCultureName = Thread.CurrentThread.CurrentUICulture.Name;
-            settings = Settings.Instance;
+            settings = AppSettings.Instance;
             UpdateLanguageRadioButtons();
             LoadSettings();
         }
@@ -154,7 +154,7 @@ namespace EasySave_by_ProSoft.Views
         private void LoadSettings()
         {
             // Set up the log format based on current settings
-            if (settings.LogFormat == LogFormat.JSON)
+            if (settings.GetSetting("LogFormat")?.ToString() == "JSON")
             {
                 LogFormatComboBox.SelectedIndex = 0; // JSON
             }
@@ -164,51 +164,57 @@ namespace EasySave_by_ProSoft.Views
             }
 
             // Load any other settings that need to be displayed
-            if (!string.IsNullOrEmpty(settings.BusinessSoftwareName))
+            if (!string.IsNullOrEmpty(settings.GetSetting("BusinessSoftwareName")?.ToString()))
             {
-                BusinessSoftwareProcessNameTextBox.Text = settings.BusinessSoftwareName;
+                BusinessSoftwareProcessNameTextBox.Text = settings.GetSetting("BusinessSoftwareName").ToString();
+            }
+            else
+            {
+                BusinessSoftwareProcessNameTextBox.Text = string.Empty;
             }
             
-            if (settings.EncryptionExtensions != null && settings.EncryptionExtensions.Count > 0)
+            if (settings.GetSetting("EncryptionExtensions") is List<string> extensions && extensions.Count > 0)
             {
-                DefaultEncryptExtensionsTextBox.Text = string.Join(",", settings.EncryptionExtensions);
+                DefaultEncryptExtensionsTextBox.Text = string.Join(", ", extensions);
+            }
+            else
+            {
+                DefaultEncryptExtensionsTextBox.Text = string.Empty;
             }
         }
 
         private void ValidateSettings_Click(object sender, RoutedEventArgs e)
         {
             // Update log format based on selection
-            LogFormat selectedFormat = LogFormatComboBox.SelectedIndex == 0 ? LogFormat.JSON : LogFormat.XML;
-            if (settings.LogFormat != selectedFormat)
+            string selectedFormat = LogFormatComboBox.SelectedIndex == 0 ? "JSON" : "XML";
+            if (settings.GetSetting("LogFormat")?.ToString() != selectedFormat)
             {
-                settings.ChangeLogFormat(selectedFormat);
-                
+                settings.SetSetting("LogFormat", selectedFormat);
+
                 // Update the LoggingService with the new format
                 LoggingService logger = LoggingService.Instance;
                 string formatString = selectedFormat.ToString();
-                logger.RecreateInstance(ref formatString);
+                LoggingService.RecreateInstance(selectedFormat);
             }
 
             // Update other settings
-            settings.BusinessSoftwareName = BusinessSoftwareProcessNameTextBox.Text.Trim();
-            
+            settings.SetSetting("BusinessSoftwareName", BusinessSoftwareProcessNameTextBox.Text.Trim());
+
             // Parse encryption extensions
             string extensionsText = DefaultEncryptExtensionsTextBox.Text.Trim();
             if (!string.IsNullOrEmpty(extensionsText))
             {
-                settings.EncryptionExtensions = new List<string>(
-                    extensionsText.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                );
+                settings.SetSetting("EncryptionExtensions", new List<string>(extensionsText.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)));
             }
             else
             {
-                settings.EncryptionExtensions = new List<string>();
+                settings.SetSetting("EncryptionExtensions", new List<string>());
             }
             
             // Save all settings
-            settings.Save();
-            
-            MessageBox.Show(Localization.Resources.SettingsValidatedMessage,
+            settings.SaveConfiguration();
+
+            System.Windows.MessageBox.Show(Localization.Resources.SettingsValidatedMessage,
                 Localization.Resources.ConfirmationTitle,
                 MessageBoxButton.OK, 
                 MessageBoxImage.Information);
@@ -217,8 +223,8 @@ namespace EasySave_by_ProSoft.Views
         private void SaveSettings_Click(object sender, RoutedEventArgs e)
         {
             // Save other settings if needed
-            settings.Save();
-            MessageBox.Show(Localization.Resources.SettingsSaved,
+            settings.SaveConfiguration();
+            System.Windows.MessageBox.Show(Localization.Resources.SettingsSaved,
                 Localization.Resources.Settings,
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);

@@ -63,15 +63,25 @@ namespace EasySave_by_ProSoft.Models
         /// Notifie tous les listeners d'un changement d'état du job et met à jour le fichier state.json
         /// </summary>
         /// <param name="jobStatus">Le statut du job qui a été modifié</param>
-        public void NotifyListeners(ref JobStatus jobStatus) 
+        public void NotifyListeners(ref JobStatus jobStatus)
         {
             // Mise à jour du fichier state.json en temps réel
             UpdateStateFile(jobStatus);
-            
+
             // Notification de tous les listeners (logs, interfaces, etc.)
-            foreach (var listener in listeners) 
+            foreach (var listener in listeners)
             {
-                listener.Update(ref jobStatus);
+                listener.Update(
+                    jobStatus.ExecutionId.ToString(),
+                    jobStatus.State,
+                    jobStatus.TotalFiles,
+                    jobStatus.TotalSize,
+                    jobStatus.RemainingFiles,
+                    jobStatus.RemainingSize,
+                    jobStatus.CurrentSourceFile,
+                    jobStatus.CurrentTargetFIle,
+                    jobStatus.TransferRate
+                );
             }
         }
         
@@ -131,7 +141,7 @@ namespace EasySave_by_ProSoft.Models
                 
                 // Sérialiser et enregistrer dans le fichier
                 string serializedData = JsonSerializer.Serialize(allJobStates, options);
-                File.WriteAllText(stateFilePath, serializedData);
+                File.WriteAllText(stateFilePath, serializedData.Replace("},", "},\n")); // Add newlines for readability
             }
             catch (Exception ex)
             {

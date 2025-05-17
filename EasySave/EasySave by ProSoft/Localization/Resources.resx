@@ -223,6 +223,15 @@
     <value>Select the target folder</value>
   </data>
   <data name="SettingsValidatedMessage" xml:space="preserve">
+    <value>Settings have been validated and saved.</value>
+  </data>
+  <data name="SettingsSaved" xml:space="preserve">
+    <value>Settings saved successfully.</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="SettingsValidatedMessage" xml:space="preserve">
     <value>Settings validated.</value>
   </data>
   <data name="ValidateSettings" xml:space="preserve">

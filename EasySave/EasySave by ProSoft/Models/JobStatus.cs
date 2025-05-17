@@ -176,6 +176,11 @@ namespace EasySave_by_ProSoft.Models {
         private BackupJob backupJob;
         
         /// <summary>
+        /// Optionally, implement this interface for logging encryption time
+        /// </summary>
+        public long EncryptionTimeMs { get; set; }
+        
+        /// <summary>
         /// Constructeur de JobStatus
         /// </summary>
         public JobStatus() {
@@ -189,10 +194,13 @@ namespace EasySave_by_ProSoft.Models {
         /// <summary>
         /// Met à jour le statut du job et notifie les observateurs
         /// </summary>
-        public void Update() {
+        public void Update()
+        {
             // Notifier les observateurs des changements
-            if (Events != null) {
-                Events.NotifyListeners(ref this);
+            if (Events != null)
+            {
+                var jobStatusCopy = this; // Créer une copie locale de l'objet
+                Events.NotifyListeners(ref jobStatusCopy); // Passer la copie locale par référence
             }
         }
         
