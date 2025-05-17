@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
 
@@ -20,13 +21,21 @@ namespace EasySave_by_ProSoft.ViewModels
             set { _settings.SetSetting("BusinessSoftwareName", value); OnPropertyChanged(); }
         }
 
-        public ObservableCollection<string> EncryptionExtensions
+        public string EncryptionExtensions
         {
-            get => new(_settings.GetSetting("EncryptionExtensions")?.ToString().Split(',') ?? Array.Empty<string>());
-            set { _settings.SetSetting("EncryptionExtensions", value); OnPropertyChanged(); }
+            get
+            {
+               var setting = _settings.GetSetting("EncryptionExtensions");
+                return string.Join(", ", setting.ToString());
+            }
+            set
+            {
+                _settings.SetSetting("EncryptionExtensions", value);
+                OnPropertyChanged();
+            }
         }
 
-        public String LogFormat
+        public string LogFormat
         {
             get => _settings.GetSetting("LogFormat")?.ToString() ?? string.Empty;
             set { _settings.SetSetting("LogFormat", value); OnPropertyChanged(); }
@@ -61,6 +70,8 @@ namespace EasySave_by_ProSoft.ViewModels
 
             try
             {
+                Settings.Default.UserLanguage = newLanguage;
+                Settings.Default.Save();
                 CultureInfo newCulture = new CultureInfo(newLanguage);
                 Thread.CurrentThread.CurrentUICulture = newCulture;
                 Thread.CurrentThread.CurrentCulture = newCulture;
@@ -81,10 +92,5 @@ namespace EasySave_by_ProSoft.ViewModels
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-
-        internal static void LoadSettings()
-        {
-            
-        }
     }
 }

@@ -63,7 +63,7 @@ namespace EasySave_by_ProSoft.Models
                     JsonValueKind.Number => value.GetDouble(),
                     JsonValueKind.True => true,
                     JsonValueKind.False => false,
-                    JsonValueKind.Array => value.EnumerateArray(),
+                    JsonValueKind.Array => value,
                     _ => null
                 };
             }

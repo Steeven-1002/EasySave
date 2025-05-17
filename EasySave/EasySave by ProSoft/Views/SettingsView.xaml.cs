@@ -12,27 +12,41 @@ namespace EasySave_by_ProSoft.Views
     public partial class SettingsView : System.Windows.Controls.UserControl
     {
         private string _initialCultureName;
-        private SettingsViewModel _settingsViewModel = new SettingsViewModel();
+        private SettingsViewModel _settingsViewModel;
 
         public SettingsView()
         {
+            _settingsViewModel = new SettingsViewModel();
+            DataContext = _settingsViewModel;
+            
             InitializeComponent();
-            _initialCultureName = Thread.CurrentThread.CurrentUICulture.Name;
+            _initialCultureName = _settingsViewModel.UserLanguage;
             UpdateLanguageRadioButtons();
+            
+            // Initialiser le ComboBox de format de log
+            if (LogFormatComboBox != null)
+            {
+                if (_settingsViewModel.LogFormat.ToUpper() == "XML")
+                {
+                    LogFormatComboBox.SelectedIndex = 1; // XML
+                }
+                else
+                {
+                    LogFormatComboBox.SelectedIndex = 0; // JSON par défaut
+                }
+            }
         }
 
         private void UpdateLanguageRadioButtons()
         {
-            string currentCultureUI = Thread.CurrentThread.CurrentUICulture.Name;
-
             if (FrenchRadioButton != null) FrenchRadioButton.IsChecked = false;
             if (EnglishRadioButton != null) EnglishRadioButton.IsChecked = false;
 
-            if (currentCultureUI.StartsWith("fr") && FrenchRadioButton != null)
+            if (_initialCultureName.StartsWith("fr") && FrenchRadioButton != null)
             {
                 FrenchRadioButton.IsChecked = true;
             }
-            else if (currentCultureUI.StartsWith("en") && EnglishRadioButton != null)
+            else if (_initialCultureName.StartsWith("en") && EnglishRadioButton != null)
             {
                 EnglishRadioButton.IsChecked = true;
             }
@@ -51,7 +65,6 @@ namespace EasySave_by_ProSoft.Views
                 _settingsViewModel.LanguageChanged(selectedCultureName, this);
             }
         }
-
 
         public void PromptForApplicationRestart()
         {
@@ -82,7 +95,6 @@ namespace EasySave_by_ProSoft.Views
                         System.Windows.MessageBoxImage.Error);
                     Settings.Default.UserLanguage = _initialCultureName;
                     Settings.Default.Save();
-                    RestoreInitialCultureAndRadioButtonState();
                 }
             }
             else
@@ -95,18 +107,24 @@ namespace EasySave_by_ProSoft.Views
 
                 Settings.Default.UserLanguage = _initialCultureName;
                 Settings.Default.Save();
-                RestoreInitialCultureAndRadioButtonState();
             }
         }
-
-        private void RestoreInitialCultureAndRadioButtonState()
-        {
-
-        }
-
+        
         private void ValidateSettings_Click(object sender, RoutedEventArgs e)
         {
+            // Mettre à jour le format de log depuis le ComboBox
+            if (LogFormatComboBox.SelectedItem is ComboBoxItem selectedItem)
+            {
+                _settingsViewModel.LogFormat = selectedItem.Content.ToString();
+            }
+            
             _settingsViewModel.SaveSettings();
+            
+            System.Windows.MessageBox.Show(
+                Localization.Resources.SettingsSaved ?? "Settings saved successfully!",
+                Localization.Resources.InformationTitle ?? "Information",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         }
     }
 }
