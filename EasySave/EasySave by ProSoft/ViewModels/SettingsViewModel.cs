@@ -8,30 +8,30 @@ namespace EasySave_by_ProSoft.ViewModels
 {
     public class SettingsViewModel : INotifyPropertyChanged
     {
-        private readonly Settings _settings = Settings.Instance;
+        private readonly AppSettings _settings = AppSettings.Instance;
 
         public string BusinessSoftwareName
         {
-            get => _settings.BusinessSoftwareName;
-            set { _settings.BusinessSoftwareName = value; OnPropertyChanged(); }
+            get => _settings.GetSetting("BusinessSoftwareName")?.ToString() ?? string.Empty;
+            set { _settings.SetSetting("BusinessSoftwareName", value); OnPropertyChanged(); }
         }
 
         public ObservableCollection<string> EncryptionExtensions
         {
-            get => new(_settings.EncryptionExtensions ?? new());
-            set { _settings.EncryptionExtensions = new List<string>(value); OnPropertyChanged(); }
+            get => new(_settings.GetSetting("EncryptionExtensions")?.ToString().Split(',') ?? Array.Empty<string>());
+            set { _settings.SetSetting("EncryptionExtensions", value); OnPropertyChanged(); }
         }
 
-        public LogFormat LogFormat
+        public String LogFormat
         {
-            get => _settings.LogFormat;
-            set { _settings.ChangeLogFormat(value); OnPropertyChanged(); }
+            get => _settings.GetSetting("LogFormat")?.ToString() ?? string.Empty;
+            set { _settings.SetSetting("LogFormat", value); OnPropertyChanged(); }
         }
 
         public string UserLanguage
         {
-            get => _settings.UserLanguage;
-            set { _settings.UserLanguage = value; OnPropertyChanged(); }
+            get => _settings.GetSetting("BusinessSoftwareName")?.ToString() ?? string.Empty;
+            set { _settings.SetSetting("UserLanguage", value); OnPropertyChanged(); }
         }
 
         public ICommand SaveSettingsCommand { get; }
@@ -43,7 +43,7 @@ namespace EasySave_by_ProSoft.ViewModels
 
         private void SaveSettings()
         {
-            _settings.Save();
+            _settings.SaveConfiguration();
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

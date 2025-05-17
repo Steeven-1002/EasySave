@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EasySave_by_ProSoft.Localization {
+namespace EasySave_by_ProSoft.Views.Localization {
     using System;
     
     
