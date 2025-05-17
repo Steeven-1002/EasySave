@@ -8,6 +8,7 @@ namespace EasySave_by_ProSoft.ViewModels
 {
     public class BackupJobsViewModel : INotifyPropertyChanged
     {
+        private readonly BackupManager _backupManager;
         public ObservableCollection<BackupJob> Jobs { get; set; } = new();
         private BackupJob? _selectedJob;
         public BackupJob? SelectedJob
@@ -20,11 +21,33 @@ namespace EasySave_by_ProSoft.ViewModels
         public ICommand LaunchJobCommand { get; }
         public ICommand RemoveJobCommand { get; }
 
-        public BackupJobsViewModel()
+        public BackupJobsViewModel(BackupManager backupManager)
         {
+            _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
+            
             CreateJobCommand = new RelayCommand(_ => CreateJob(), _ => true);
             LaunchJobCommand = new RelayCommand(_ => LaunchSelectedJob(), _ => SelectedJob != null);
             RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(), _ => SelectedJob != null);
+            
+            LoadJobs();
+        }
+
+        private void LoadJobs()
+        {
+            Jobs.Clear();
+            var jobs = _backupManager.GetAllJobs();
+            foreach (var job in jobs)
+            {
+                Jobs.Add(job);
+            }
+        }
+
+        public void JobAdded(BackupJob job)
+        {
+            if (!Jobs.Contains(job))
+            {
+                Jobs.Add(job);
+            }
         }
 
         private void CreateJob()
@@ -34,13 +57,26 @@ namespace EasySave_by_ProSoft.ViewModels
 
         private void LaunchSelectedJob()
         {
-            SelectedJob?.Start();
+            if (SelectedJob != null)
+            {
+                SelectedJob.Start();
+            }
         }
 
         private void RemoveSelectedJob()
         {
             if (SelectedJob != null)
-                Jobs.Remove(SelectedJob);
+            {
+                int index = Jobs.IndexOf(SelectedJob);
+                if (index >= 0)
+                {
+                    int indexRef = index; // Capture the index for the lambda
+                    if (_backupManager.RemoveJob(ref indexRef))
+                    {
+                        Jobs.Remove(SelectedJob);
+                    }
+                }
+            }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
