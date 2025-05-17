@@ -149,83 +149,11 @@ namespace EasySave_by_ProSoft.Views
             }
         }
 
-        private void LoadSettings()
-        {
-            // Set up the log format based on current settings
-            if (settings.GetSetting("LogFormat")?.ToString() == "JSON")
-            {
-                LogFormatComboBox.SelectedIndex = 0; // JSON
-            }
-            else
-            {
-                LogFormatComboBox.SelectedIndex = 1; // XML
-            }
-
-            // Load any other settings that need to be displayed
-            if (!string.IsNullOrEmpty(settings.GetSetting("BusinessSoftwareName")?.ToString()))
-            {
-                BusinessSoftwareProcessNameTextBox.Text = settings.GetSetting("BusinessSoftwareName").ToString();
-            }
-            else
-            {
-                BusinessSoftwareProcessNameTextBox.Text = string.Empty;
-            }
-            
-            if (settings.GetSetting("EncryptionExtensions") is List<string> extensions && extensions.Count > 0)
-            {
-                DefaultEncryptExtensionsTextBox.Text = string.Join(", ", extensions);
-            }
-            else
-            {
-                DefaultEncryptExtensionsTextBox.Text = string.Empty;
-            }
-        }
-
         private void ValidateSettings_Click(object sender, RoutedEventArgs e)
         {
-            // Update log format based on selection
-            string selectedFormat = LogFormatComboBox.SelectedIndex == 0 ? "JSON" : "XML";
-            if (settings.GetSetting("LogFormat")?.ToString() != selectedFormat)
-            {
-                settings.SetSetting("LogFormat", selectedFormat);
-
-                // Update the LoggingService with the new format
-                LoggingService logger = LoggingService.Instance;
-                string formatString = selectedFormat.ToString();
-                LoggingService.RecreateInstance(selectedFormat);
-            }
-
-            // Update other settings
-            settings.SetSetting("BusinessSoftwareName", BusinessSoftwareProcessNameTextBox.Text.Trim());
-
-            // Parse encryption extensions
-            string extensionsText = DefaultEncryptExtensionsTextBox.Text.Trim();
-            if (!string.IsNullOrEmpty(extensionsText))
-            {
-                settings.SetSetting("EncryptionExtensions", new List<string>(extensionsText.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)));
-            }
-            else
-            {
-                settings.SetSetting("EncryptionExtensions", new List<string>());
-            }
-            
-            // Save all settings
-            settings.SaveConfiguration();
-
             System.Windows.MessageBox.Show(Localization.Resources.SettingsValidatedMessage,
-                Localization.Resources.ConfirmationTitle,
-                MessageBoxButton.OK, 
-                MessageBoxImage.Information);
-        }
-
-        private void SaveSettings_Click(object sender, RoutedEventArgs e)
-        {
-            // Save other settings if needed
-            settings.SaveConfiguration();
-            System.Windows.MessageBox.Show(Localization.Resources.SettingsSaved,
-                Localization.Resources.Settings,
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                            Localization.Resources.ConfirmationTitle,
+                            MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 }
