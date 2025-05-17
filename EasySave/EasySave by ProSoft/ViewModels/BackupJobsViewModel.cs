@@ -12,7 +12,17 @@ namespace EasySave_by_ProSoft.ViewModels
     public class BackupJobsViewModel : INotifyPropertyChanged
     {
         private readonly BackupManager _backupManager;
-        public ObservableCollection<BackupJob> Jobs { get; set; } = new();
+        private ObservableCollection<BackupJob> _jobs;
+        public ObservableCollection<BackupJob> Jobs
+        {
+            get => _jobs;
+            set
+            {
+                _jobs = value;
+                OnPropertyChanged();
+            }
+        }
+        
         private BackupJob? _selectedJob;
         public BackupJob? SelectedJob
         {
@@ -27,6 +37,7 @@ namespace EasySave_by_ProSoft.ViewModels
         public BackupJobsViewModel(BackupManager backupManager)
         {
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
+            _jobs = new ObservableCollection<BackupJob>();
             
             CreateJobCommand = new RelayCommand(_ => CreateJob(), _ => true);
             LaunchJobCommand = new RelayCommand(_ => LaunchSelectedJob(), _ => SelectedJob != null);
@@ -49,6 +60,7 @@ namespace EasySave_by_ProSoft.ViewModels
             {
                 Jobs.Add(job);
             }
+            OnPropertyChanged(nameof(Jobs));
         }
 
         /// <summary>
@@ -60,6 +72,7 @@ namespace EasySave_by_ProSoft.ViewModels
             if (!Jobs.Contains(job))
             {
                 Jobs.Add(job);
+                OnPropertyChanged(nameof(Jobs));
             }
         }
 
@@ -97,6 +110,7 @@ namespace EasySave_by_ProSoft.ViewModels
                     if (_backupManager.RemoveJob(ref indexRef))
                     {
                         Jobs.Remove(SelectedJob);
+                        OnPropertyChanged(nameof(Jobs));
                     }
                 }
             }

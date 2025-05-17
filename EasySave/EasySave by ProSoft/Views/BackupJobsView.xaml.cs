@@ -6,7 +6,6 @@ using EasySave_by_ProSoft.ViewModels;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 using WinForms = System.Windows.Forms;
 
-
 namespace EasySave_by_ProSoft.Views
 {
     /// <summary>
@@ -41,6 +40,18 @@ namespace EasySave_by_ProSoft.Views
                 CreateJobPanel.DataContext = _jobAddViewModel;
             }
 
+            // Make sure ListBox is properly bound to the Jobs collection
+            if (BackupJobsListView != null)
+            {
+                BackupJobsListView.ItemsSource = _backupJobsViewModel.Jobs;
+                BackupJobsListView.SelectionChanged += (s, e) => {
+                    if (BackupJobsListView.SelectedItem != null)
+                    {
+                        _backupJobsViewModel.SelectedJob = BackupJobsListView.SelectedItem as BackupJob;
+                    }
+                };
+            }
+
             // Refresh jobs from JSON file
             RefreshJobsList();
         }
@@ -58,6 +69,12 @@ namespace EasySave_by_ProSoft.Views
 
         private void LaunchSelectedJob_Click(object sender, RoutedEventArgs e)
         {
+            if (_backupJobsViewModel.SelectedJob == null)
+            {
+                System.Windows.MessageBox.Show("");
+                return;
+            }
+            
             _backupJobsViewModel.LaunchJobCommand.Execute(null);
             System.Windows.MessageBox.Show(Localization.Resources.MessageBoxLaunchJob);
         }
@@ -126,6 +143,12 @@ namespace EasySave_by_ProSoft.Views
                 {
                     CreateJobPanel.Visibility = Visibility.Collapsed; // Hide the panel after validation
                 }
+                
+                // Clear input fields
+                JobNameTextBox.Text = string.Empty;
+                JobSourcePathTextBox.Text = string.Empty;
+                JobTargetPathTextBox.Text = string.Empty;
+                JobTypeComboBox.SelectedIndex = 0;
                 
                 // Refresh the jobs list after adding a new job
                 RefreshJobsList();
