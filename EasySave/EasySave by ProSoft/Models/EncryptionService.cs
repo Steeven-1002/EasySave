@@ -49,7 +49,8 @@ namespace EasySave_by_ProSoft.Models
         /// <param name="fileIn">Source file path</param>
         /// <param name="fileOut">Destination file path</param>
         /// <returns>Time taken to encrypt the file in milliseconds</returns>
-        public long EncryptFile(ref string fileIn, ref string fileOut)
+        public long EncryptFile(ref string fileIn, string key)
+
         {
             if (!File.Exists(cryptoSoftPath))
             {
@@ -62,7 +63,7 @@ namespace EasySave_by_ProSoft.Models
             try
             {
                 // Create destination directory if it doesn't exist
-                string? destDir = Path.GetDirectoryName(fileOut);
+                string? destDir = Path.GetDirectoryName(fileIn);
                 if (!string.IsNullOrEmpty(destDir) && !Directory.Exists(destDir))
                 {
                     Directory.CreateDirectory(destDir);
@@ -72,7 +73,7 @@ namespace EasySave_by_ProSoft.Models
                 using (Process process = new Process())
                 {
                     process.StartInfo.FileName = cryptoSoftPath;
-                    process.StartInfo.Arguments = $"\"{fileIn}\" \"{fileOut}\"";
+                    process.StartInfo.Arguments = $"\"{fileIn}\" \"{key}\"";
                     process.StartInfo.UseShellExecute = false;
                     process.StartInfo.CreateNoWindow = true;
                     process.StartInfo.RedirectStandardOutput = true;
