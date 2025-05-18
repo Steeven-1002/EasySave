@@ -12,10 +12,10 @@ namespace EasySave_by_ProSoft.Models {
 		private List<BackupJob> backupJobs;
 		private string jobsConfigFilePath;
 		
-		/// <summary>
-		/// Initializes a new instance of the BackupManager class
-		/// </summary>
-		public BackupManager() {
+        /// <summary>
+        /// Initializes a new instance of the BackupManager class
+        /// </summary>
+        public BackupManager() {
 			backupJobs = new List<BackupJob>();
 			// Define the jobs configuration file path in LocalApplicationData/EasySave
 			jobsConfigFilePath = Path.Combine(
