@@ -72,7 +72,7 @@ namespace EasySave_by_ProSoft.Models
             foreach (var listener in listeners)
             {
                 listener.Update(
-                    jobStatus.ExecutionId.ToString(),
+                    jobStatus.BackupJob.Name,
                     jobStatus.State,
                     jobStatus.TotalFiles,
                     jobStatus.TotalSize,
@@ -80,7 +80,8 @@ namespace EasySave_by_ProSoft.Models
                     jobStatus.RemainingSize,
                     jobStatus.CurrentSourceFile,
                     jobStatus.CurrentTargetFile,
-                    jobStatus.TransferRate
+                    jobStatus.TransferRate,
+                    jobStatus.EncryptionTimeMs
                 );
             }
         }
