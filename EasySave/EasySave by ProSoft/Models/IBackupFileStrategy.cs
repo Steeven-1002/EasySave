@@ -19,6 +19,6 @@ namespace EasySave_by_ProSoft.Models
         /// - Update job status with file counts and sizes
         /// - Prepare the job for execution
         /// </remarks>
-        void GetFiles(ref BackupJob job);
+        List<String> GetFiles(ref BackupJob job);
     }
 }

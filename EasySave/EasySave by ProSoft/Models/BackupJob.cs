@@ -25,6 +25,7 @@ namespace EasySave_by_ProSoft.Models
         private bool _isRunning = false;
         private bool _isPaused = false;
         private bool _stopRequested = false;
+        private List<string> toProcessFiles = new List<string>();
 
         /// <summary>
         /// Initializes a new backup job
@@ -85,12 +86,12 @@ namespace EasySave_by_ProSoft.Models
 
                 // Get files using the selected strategy
                 BackupJob jobRef = this;
-                _backupFileStrategy.GetFiles(ref jobRef);
+                toProcessFiles = _backupFileStrategy.GetFiles(ref jobRef);
 
                 // Process files if we have a valid status
                 if (Status.State == BackupState.Running)
                 {
-                    ProcessFiles();
+                    ProcessFiles(toProcessFiles);
                 }
 
                 // Complete the job if it wasn't paused or stopped
@@ -112,7 +113,7 @@ namespace EasySave_by_ProSoft.Models
         /// <summary>
         /// Processes all files that need to be backed up
         /// </summary>
-        private void ProcessFiles()
+        private void ProcessFiles(List<String> toProcessFiles)
         {
             // Create target directory if it doesn't exist
             if (!Directory.Exists(TargetPath))
@@ -121,7 +122,7 @@ namespace EasySave_by_ProSoft.Models
             }
 
             // Process each file that needs to be backed up
-            foreach (string sourceFile in Status.ProcessedFiles)
+            foreach (string sourceFile in toProcessFiles)
             {
                 // Check if stop or pause was requested
                 if (_stopRequested || _isPaused)
@@ -210,8 +211,8 @@ namespace EasySave_by_ProSoft.Models
                 Status.Resume();
                 
                 // Continue processing files
-                ProcessFiles();
-                
+                ProcessFiles(toProcessFiles);
+
                 // Complete the job if we finished successfully
                 if (Status.State == BackupState.Running)
                 {

@@ -1,4 +1,6 @@
-﻿using System.Windows; // For RoutedEventArgs and MessageBox
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Windows; // For RoutedEventArgs and MessageBox
 using System.Windows.Controls; // For UserControl
 using EasySave_by_ProSoft.Localization;
 using EasySave_by_ProSoft.Models;
@@ -14,7 +16,7 @@ namespace EasySave_by_ProSoft.Views
     public partial class BackupJobsView : System.Windows.Controls.UserControl
     {
         private readonly BackupManager _backupManager;
-        private readonly BackupJobsViewModel _backupJobsViewModel;
+        private readonly MainViewModel _backupJobsViewModel;
         private readonly JobAddViewModel _jobAddViewModel;
         
         public BackupJobsView()
@@ -27,7 +29,7 @@ namespace EasySave_by_ProSoft.Views
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
             
             // Create ViewModels with the BackupManager
-            _backupJobsViewModel = new BackupJobsViewModel(_backupManager);
+            _backupJobsViewModel = new MainViewModel(_backupManager);
             _jobAddViewModel = new JobAddViewModel(_backupManager);
             
             // Connect events
@@ -44,10 +46,25 @@ namespace EasySave_by_ProSoft.Views
             if (BackupJobsListView != null)
             {
                 BackupJobsListView.ItemsSource = _backupJobsViewModel.Jobs;
+                BackupJobsListView.SelectionMode = System.Windows.Controls.SelectionMode.Extended;
                 BackupJobsListView.SelectionChanged += (s, e) => {
-                    if (BackupJobsListView.SelectedItem != null)
+                    if (BackupJobsListView.SelectedItems.Count == 1)
                     {
                         _backupJobsViewModel.SelectedJob = BackupJobsListView.SelectedItem as BackupJob;
+                    }
+                    else if (BackupJobsListView.SelectedItems.Count > 1)
+                    {
+                        // When multiple items are selected, set SelectedJob to null
+                        // but keep track of all selected items
+                        _backupJobsViewModel.SelectedJob = null;
+                        
+                        var selectedJobs = BackupJobsListView.SelectedItems.Cast<BackupJob>().ToList();
+                        _backupJobsViewModel.SelectedJobs = selectedJobs;
+                    }
+                    else
+                    {
+                        _backupJobsViewModel.SelectedJob = null;
+                        _backupJobsViewModel.SelectedJobs = new List<BackupJob>();
                     }
                 };
             }
@@ -67,6 +84,9 @@ namespace EasySave_by_ProSoft.Views
             }
         }
 
+        /// <summary>
+        /// Launches a single selected backup job
+        /// </summary>
         private void LaunchSelectedJob_Click(object sender, RoutedEventArgs e)
         {
             if (_backupJobsViewModel.SelectedJob == null)
@@ -77,6 +97,21 @@ namespace EasySave_by_ProSoft.Views
             
             _backupJobsViewModel.LaunchJobCommand.Execute(null);
             System.Windows.MessageBox.Show(Localization.Resources.MessageBoxLaunchJob);
+        }
+
+        /// <summary>
+        /// Launches multiple selected backup jobs
+        /// </summary>
+        private void LaunchMultipleJobs_Click(object sender, RoutedEventArgs e)
+        {
+            if (BackupJobsListView.SelectedItems.Count == 0)
+            {
+                System.Windows.MessageBox.Show("Please select at least one job to launch.");
+                return;
+            }
+            
+            _backupJobsViewModel.LaunchMultipleJobsCommand.Execute(null);
+            System.Windows.MessageBox.Show($"{BackupJobsListView.SelectedItems.Count} jobs have been launched.");
         }
 
         private void CreateNewJob_Click(object sender, RoutedEventArgs e)

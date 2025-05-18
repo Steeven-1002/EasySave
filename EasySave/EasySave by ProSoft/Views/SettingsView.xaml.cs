@@ -23,7 +23,7 @@ namespace EasySave_by_ProSoft.Views
             _initialCultureName = _settingsViewModel.UserLanguage;
             UpdateLanguageRadioButtons();
             
-            // Initialiser le ComboBox de format de log
+            // Initialize the log format ComboBox
             if (LogFormatComboBox != null)
             {
                 if (_settingsViewModel.LogFormat.ToUpper() == "XML")
@@ -32,7 +32,7 @@ namespace EasySave_by_ProSoft.Views
                 }
                 else
                 {
-                    LogFormatComboBox.SelectedIndex = 0; // JSON par défaut
+                    LogFormatComboBox.SelectedIndex = 0; // JSON by default
                 }
             }
         }
@@ -112,7 +112,7 @@ namespace EasySave_by_ProSoft.Views
         
         private void ValidateSettings_Click(object sender, RoutedEventArgs e)
         {
-            // Mettre à jour le format de log depuis le ComboBox
+            // Update log format from ComboBox
             if (LogFormatComboBox.SelectedItem is ComboBoxItem selectedItem)
             {
                 _settingsViewModel.LogFormat = selectedItem.Content.ToString();
