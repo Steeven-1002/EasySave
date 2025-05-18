@@ -195,6 +195,6 @@ namespace EasySave_by_ProSoft.Views
             {
                 CreateJobPanel.Visibility = Visibility.Collapsed; // Hide the panel on cancel
             }
-        }       
+        }
     }
 }

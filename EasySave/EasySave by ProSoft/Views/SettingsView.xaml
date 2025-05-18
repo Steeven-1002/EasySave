@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:EasySave_by_ProSoft.Views"
              xmlns:localization="clr-namespace:EasySave_by_ProSoft.Localization"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="780">
+             d:DesignHeight="450" d:DesignWidth="980">
     <Grid Margin="10">
         <StackPanel>
             <TextBlock Text="{x:Static localization:Resources.GeneralSettings}" FontSize="20" FontWeight="Bold" Margin="0,0,0,10"/>
@@ -49,7 +49,7 @@
             <TextBox x:Name="BusinessSoftwareProcessNameTextBox" ToolTip="Ex: calc.exe" Margin="0,0,0,10" Text="{Binding BusinessSoftwareName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
             <TextBlock Text="{x:Static localization:Resources.LogFileFormatSetting}" Margin="0,0,0,5"/>
-            <ComboBox x:Name="LogFormatComboBox" Margin="0,0,0,20">
+            <ComboBox x:Name="LogFormatComboBox" Margin="0,0,0,20" Text="{Binding LogFormat, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                 <ComboBoxItem Content="JSON"/>
                 <ComboBoxItem Content="XML"/>
             </ComboBox>

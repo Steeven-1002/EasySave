@@ -225,7 +225,19 @@
   <data name="SettingsValidatedMessage" xml:space="preserve">
     <value>Paramètres validés.</value>
   </data>
+  <data name="SettingsSaved" xml:space="preserve">
+    <value>Paramètres sauvegardé avec succes</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Paramètres</value>
+  </data>
   <data name="ValidateSettings" xml:space="preserve">
     <value>Valider les paramètres</value>
+  </data>
+  <data name="BackupWorkManagementStatus" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="BackupWorkManagementProgressPercentage" xml:space="preserve">
+    <value>Progrès (%)</value>
   </data>
 </root>

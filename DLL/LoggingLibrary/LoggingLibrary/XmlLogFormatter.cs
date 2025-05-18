@@ -9,7 +9,10 @@ namespace LoggingLibrary
     /// </summary>
     public class XmlLogFormatter : ILogFormatter
     {
-        private static readonly XmlSerializer _serializer = new(typeof(LogEntry));
+        private static readonly XmlSerializer _serializer = new XmlSerializer(
+                typeof(LogEntry),
+                new XmlRootAttribute("LogEntry")
+            );
         private static readonly XmlSerializerNamespaces _namespaces = new();
 
         static XmlLogFormatter()

@@ -234,4 +234,10 @@
   <data name="ValidateSettings" xml:space="preserve">
     <value>Validate the settings</value>
   </data>
+  <data name="BackupWorkManagementStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="BackupWorkManagementProgressPercentage" xml:space="preserve">
+    <value>Progress (%)</value>
+  </data>
 </root>

@@ -43,7 +43,7 @@ namespace EasySave_by_ProSoft.ViewModels
         public string LogFormat
         {
             get => _settings.GetSetting("LogFormat")?.ToString() ?? string.Empty;
-            set { _settings.SetSetting("LogFormat", value); OnPropertyChanged(); SaveSettings(); }
+            set { _settings.SetSetting("LogFormat", value); OnPropertyChanged(); SaveSettings(); LoggingService.RecreateInstance(value); }
         }
 
         public string SelectedLogFormat
