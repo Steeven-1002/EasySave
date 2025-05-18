@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text.Json;
 
 namespace EasySave_by_ProSoft.Models
 {
@@ -148,15 +149,27 @@ namespace EasySave_by_ProSoft.Models
                     // Get file size for progress tracking
                     long fileSize = new FileInfo(sourceFile).Length;
 
-                    // Check if the file needs encryption
-                    if (_encryptionService.ShouldEncrypt(sourceFile, AppSettings.Instance.GetSetting("EncryptExtensions") as List<string>))
+                    // Récupération sécurisée de la liste d'extensions
+                    List<string> encryptionExtensions = new();
+
+                    var extensionsElement = AppSettings.Instance.GetSetting("EncryptionExtensions");
+                    if (extensionsElement is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
                     {
-                        // Encrypt the file
+                        foreach (var ext in jsonElement.EnumerateArray())
+                        {
+                            if (ext.ValueKind == JsonValueKind.String && ext.GetString() is string strExt)
+                            {
+                                encryptionExtensions.Add(strExt);
+                            }
+                        }
+                    }
+
+                    // Check if the file needs encryption
+                    if (_encryptionService.ShouldEncrypt(sourceFile, encryptionExtensions))
+                    {
                         string? encryptionKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
                         if (string.IsNullOrEmpty(encryptionKey))
-                        {
-                            throw new InvalidOperationException("Aucune cl  de chiffrement d finie dans les param tres.");
-                        }
+                            throw new InvalidOperationException("Aucune clé de chiffrement définie dans les paramètres.");
 
                         string sourceFileRef = sourceFile;
                         long encryptionTime = _encryptionService.EncryptFile(ref sourceFileRef, encryptionKey);
