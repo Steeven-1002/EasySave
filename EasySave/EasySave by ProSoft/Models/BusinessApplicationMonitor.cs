@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 
+using System.Windows;
+
 namespace EasySave_by_ProSoft.Models
 {
     /// <summary>
@@ -26,7 +28,7 @@ namespace EasySave_by_ProSoft.Models
         public bool IsRunning()
         {
             if (string.IsNullOrWhiteSpace(monitoredApplication))
-                return false;
+            return false;
 
             try
             {
@@ -39,6 +41,7 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (Exception ex)
             {
+
                 System.Windows.Forms.MessageBox.Show($"Unexpected error: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 return false;
             }

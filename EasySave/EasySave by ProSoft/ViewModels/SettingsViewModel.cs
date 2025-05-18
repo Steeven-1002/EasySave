@@ -29,16 +29,36 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             get
             {
-               var setting = _settings.GetSetting("EncryptionExtensions");
-                return string.Join(", ", setting.ToString());
+                var setting = _settings.GetSetting("EncryptionExtensions");
+                if (setting is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
+                {
+                    var list = new List<string>();
+                    foreach (var item in jsonElement.EnumerateArray())
+                    {
+                        list.Add(item.GetString() ?? "");
+                    }
+                    return string.Join(", ", list);
+                }
+                return string.Empty;
             }
             set
             {
-                _settings.SetSetting("EncryptionExtensions", value);
+                // Ajoute un espace avant chaque '.' sauf le premier caractère (pour gérer les cas concaténés)
+                var cleaned = System.Text.RegularExpressions.Regex.Replace(value, @"(?<!^)\.", " .");
+
+                var list = cleaned.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                                 .Select(s => s.Trim())
+                                 .ToList();
+
+                _settings.SetSetting("EncryptionExtensions", list);
                 OnPropertyChanged();
                 SaveSettings();
             }
+
         }
+
+
+
 
         public string LogFormat
         {

@@ -234,4 +234,10 @@
   <data name="ValidateSettings" xml:space="preserve">
     <value>Validate the settings</value>
   </data>
+  <data name="BusinessApplicationError" xml:space="preserve">
+    <value>The management software is running. The backup job will be paused after processing the file </value>
+  </data>
+  <data name="Warning" xml:space="preserve">
+    <value>Warning !</value>
+  </data>
 </root>

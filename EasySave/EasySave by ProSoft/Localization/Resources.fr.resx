@@ -225,7 +225,19 @@
   <data name="SettingsValidatedMessage" xml:space="preserve">
     <value>Paramètres validés.</value>
   </data>
+  <data name="SettingsSaved" xml:space="preserve">
+    <value>Paramètres sauvegardés.</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Paramètres</value>
+  </data>
   <data name="ValidateSettings" xml:space="preserve">
     <value>Valider les paramètres</value>
+  </data>
+  <data name="BusinessApplicationError" xml:space="preserve">
+    <value>Le logiciel de gestion est en cours d'exécution. Le travail de sauvegarde sera mis en pause après le traitement du fichier </value>
+  </data>
+  <data name="Warning" xml:space="preserve">
+    <value>Avertissement !</value>
   </data>
 </root>

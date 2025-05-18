@@ -6,6 +6,7 @@ using EasySave_by_ProSoft.Properties;
 using System.Diagnostics;
 using EasySave_by_ProSoft.Localization;
 using EasySave_by_ProSoft.ViewModels;
+using EasySave_by_ProSoft.Models;
 
 namespace EasySave_by_ProSoft.Views
 {
@@ -21,11 +22,18 @@ namespace EasySave_by_ProSoft.Views
         {
             _settingsViewModel = new SettingsViewModel();
             DataContext = _settingsViewModel;
-            
+
             InitializeComponent();
             _initialCultureName = _settingsViewModel.UserLanguage;
             UpdateLanguageRadioButtons();
-            
+
+            // Recharge la clé de chiffrement si elle existe
+            string? savedKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
+            if (!string.IsNullOrEmpty(savedKey))
+            {
+                EncryptionKeyBox.Password = savedKey;
+            }
+
             // Initialize the log format ComboBox
             if (LogFormatComboBox != null)
             {
@@ -57,6 +65,7 @@ namespace EasySave_by_ProSoft.Views
             {
                 if (EnglishRadioButton != null) EnglishRadioButton.IsChecked = true;
             }
+
         }
 
         private void LanguageRadioButton_Checked(object sender, RoutedEventArgs e)
@@ -111,26 +120,5 @@ namespace EasySave_by_ProSoft.Views
                 Settings.Default.Save();
             }
         }
-        
-        // This method is no longer used as it's replaced by command binding
-        // Keeping it commented for reference
-        /*
-        private void ValidateSettings_Click(object sender, RoutedEventArgs e)
-        {
-            // Update log format from ComboBox
-            if (LogFormatComboBox.SelectedItem is ComboBoxItem selectedItem)
-            {
-                _settingsViewModel.LogFormat = selectedItem.Content.ToString();
-            }
-            
-            _settingsViewModel.SaveSettings();
-            
-            System.Windows.MessageBox.Show(
-                Localization.Resources.SettingsSaved ?? "Settings saved successfully!",
-                Localization.Resources.InformationTitle ?? "Information",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-        }
-        */
     }
 }

@@ -72,16 +72,33 @@ namespace EasySave_by_ProSoft.Models
 
         public void SetSetting(string key, object value)
         {
-            JsonElement jsonValue = value switch
+            JsonElement jsonValue;
+
+            if (value is string str)
             {
-                string str => JsonDocument.Parse($"\"{str}\"").RootElement,
-                int num => JsonDocument.Parse(num.ToString()).RootElement,
-                double dbl => JsonDocument.Parse(dbl.ToString()).RootElement,
-                bool b => JsonDocument.Parse(b.ToString().ToLower()).RootElement,
-                _ => throw new ArgumentException("Unsupported value type")
-            };
+                jsonValue = JsonDocument.Parse($"\"{str}\"").RootElement;
+            }
+            else if (value is int or double or bool)
+            {
+                string jsonString = JsonSerializer.Serialize(value);
+                jsonValue = JsonDocument.Parse(jsonString).RootElement;
+            }
+            else if (value is IEnumerable<string> stringList)
+            {
+                string jsonList = JsonSerializer.Serialize(stringList);
+                jsonValue = JsonDocument.Parse(jsonList).RootElement;
+            }
+            else
+            {
+                throw new ArgumentException("Unsupported value type");
+            }
 
             settings[key] = jsonValue;
         }
+
+
+
+
+
     }
 }

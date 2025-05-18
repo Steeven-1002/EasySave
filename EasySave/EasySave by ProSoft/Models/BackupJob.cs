@@ -1,7 +1,10 @@
+using EasySave_by_ProSoft.Localization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text.Json;
+using System.Windows;
 
 namespace EasySave_by_ProSoft.Models
 {
@@ -41,8 +44,11 @@ namespace EasySave_by_ProSoft.Models
             // Link this job to its status for proper state tracking
             Status.BackupJob = this;
 
+            string appNameToMonitor = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
+            _businessMonitor = new BusinessApplicationMonitor(appNameToMonitor);
+
             // Initialize services
-            _businessMonitor = new BusinessApplicationMonitor(AppSettings.Instance.GetSetting("BusinessSoftwareName") as string);
+            //_businessMonitor = new BusinessApplicationMonitor(AppSettings.Instance.GetSetting("BusinessSoftwareName") as string);
             _encryptionService = new EncryptionService();
             _backupManager = manager;
 
@@ -165,52 +171,76 @@ namespace EasySave_by_ProSoft.Models
             // Process each file that needs to be backed up
             foreach (string sourceFile in toProcessFiles)
             {
-                // Check if stop or pause was requested
                 if (_stopRequested || _isPaused)
                     break;
 
                 try
                 {
-                    // Update current file being processed
                     Status.CurrentSourceFile = sourceFile;
 
-                    // Calculate relative path to maintain directory structure
+                    // Build relative and full path to the destination file
                     string relativePath = sourceFile.Substring(SourcePath.Length).TrimStart('\\', '/');
                     string targetFile = Path.Combine(TargetPath, relativePath);
                     Status.CurrentTargetFile = targetFile;
 
-                    // Create target directory if needed
+                    // Create the target directory if it doesn't exist
                     string? targetDir = Path.GetDirectoryName(targetFile);
                     if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
-                    {
                         Directory.CreateDirectory(targetDir);
-                    }
 
-                    // Get file size for progress tracking
+                    // Get the size for tracking
                     long fileSize = new FileInfo(sourceFile).Length;
 
-                    // Check if the file needs encryption
-                    if (_encryptionService.ShouldEncrypt(sourceFile, AppSettings.Instance.GetSetting("EncryptExtensions") as List<string>))
+                    // Step 1: copy the source file to the destination
+                    File.Copy(sourceFile, targetFile, true);
+
+                    // Step 2: if necessary, encrypt the destination file
+                    List<string> encryptionExtensions = new();
+                    var extensionsElement = AppSettings.Instance.GetSetting("EncryptionExtensions");
+                    if (extensionsElement is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
                     {
+
+                        /*foreach (var ext in jsonElement.EnumerateArray())
+                        {
+                            if (ext.ValueKind == JsonValueKind.String && ext.GetString() is string strExt)
+                                encryptionExtensions.Add(strExt);
+                        }*/
+
                         // Encrypt the file
                         string targetFileRef = targetFile;
                         string encryptionKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
                         long encryptionTime = _encryptionService.EncryptFile(ref targetFile, encryptionKey);
                         _totalEncryptionTime += encryptionTime;
                     }
-                    else
+
+                    // Check if this destination file should be encrypted
+                    if (_encryptionService.ShouldEncrypt(targetFile, encryptionExtensions))
                     {
-                        // Simple copy if no encryption needed
-                        File.Copy(sourceFile, targetFile, true);
+                        string? encryptionKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
+                        if (string.IsNullOrEmpty(encryptionKey))
+                            throw new InvalidOperationException("No encryption key defined in settings.");
+
+                        long encryptionTime = _encryptionService.EncryptFile(ref targetFile, encryptionKey);
+                        _totalEncryptionTime += encryptionTime;
                     }
 
-                    // Update progress
                     Status.RemainingFiles--;
                     Status.RemainingSize -= fileSize;
                     Status.Update();
+                    if (_businessMonitor.IsRunning())
+                    {
+                        Console.WriteLine($"Business software {AppSettings.Instance.GetSetting("BusinessSoftwareName")} detected. " +
+                                          $"Backup job {Name} will pause after processing file {sourceFile}.");
+
+                        //Pause();
+                        Stop();
+
+                        break;
+                    }
                 }
                 catch (Exception ex)
                 {
+
                     System.Windows.Forms.MessageBox.Show($"Error processing file {sourceFile}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                     // Continue with next file instead of failing the entire job
                 }

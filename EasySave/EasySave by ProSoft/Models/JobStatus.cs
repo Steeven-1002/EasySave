@@ -230,6 +230,9 @@ namespace EasySave_by_ProSoft.Models
         /// </summary>
         public long EncryptionTimeMs { get; set; }
 
+        public string CurrentTargetFile { get; internal set; }
+
+
         /// <summary>
         /// JobStatus constructor that initializes from a saved state
         /// </summary>
