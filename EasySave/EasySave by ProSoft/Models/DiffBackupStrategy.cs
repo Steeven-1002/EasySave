@@ -45,7 +45,7 @@ namespace EasySave_by_ProSoft.Models
 
                 // Get all files from source
                 List<string> sourceFiles = _fileSystemService.GetFilesInDirectory(job.SourcePath);
-                
+
                 // List to store files that need to be copied
                 List<string> filesToCopy = new List<string>();
                 long totalSize = 0;
@@ -63,7 +63,6 @@ namespace EasySave_by_ProSoft.Models
                     {
                         // File doesn't exist in target, needs to be copied
                         needsCopy = true;
-                        Console.WriteLine($"Diff backup: File not found in target directory: {relativePath}");
                     }
                     else
                     {
@@ -75,7 +74,6 @@ namespace EasySave_by_ProSoft.Models
                         {
                             // Hash is different, file has changed
                             needsCopy = true;
-                            Console.WriteLine($"Diff backup: Hash changed for file: {relativePath}");
                         }
                     }
 
@@ -99,7 +97,7 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"DiffBackupStrategy ERROR: {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error getting files for differential backup: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 job.Status.State = BackupState.Error;
                 throw;
             }
