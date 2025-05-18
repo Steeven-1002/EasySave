@@ -16,7 +16,8 @@ namespace LoggingLibrary
         /// <param name="targetPath">The target path of the file.</param>
         /// <param name="fileSize">The size of the file in bytes, if available.</param>
         /// <param name="durationMs">The duration of the operation in milliseconds, if available.</param>
-        void Log(DateTime timestamp, string saveName, string sourcePath, string targetPath, long? fileSize = null, double? durationMs = null);
+        /// <param name="details">Additional details about the operation, if available.</param>
+        void Log(DateTime timestamp, string saveName, string sourcePath, string targetPath, long? fileSize = null, double? durationMs = null, string? details = null);
 
         /// <summary>
         /// Gets the file path of the log file.

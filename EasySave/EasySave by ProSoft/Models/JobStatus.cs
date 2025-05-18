@@ -203,6 +203,7 @@ namespace EasySave_by_ProSoft.Models {
         {
             // Initialize the event manager for observer notifications
             Events = new JobEventManager();
+            Events.AddListener(LoggingService.Instance);
             ExecutionId = Guid.NewGuid();
             
             LoadStateFromPrevious(jobName);
