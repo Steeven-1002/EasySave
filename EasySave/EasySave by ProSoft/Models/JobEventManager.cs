@@ -223,9 +223,6 @@ namespace EasySave_by_ProSoft.Models
                         writer.Write(serializedData);
                         writer.Flush();
                     }
-
-                    // Ensure data is written to disk
-                    fileStream.Flush(true);
                 }
             }
             catch (IOException ex)
