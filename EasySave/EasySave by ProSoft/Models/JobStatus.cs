@@ -312,7 +312,7 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading previous state for job {jobName}: {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error loading state from file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
             }
 
             return false;
