@@ -172,7 +172,7 @@ namespace EasySave_by_ProSoft.Models
             {
                 if (string.IsNullOrEmpty(stateFilePath))
                 {
-                    Console.WriteLine("Cannot serialize state: stateFilePath is not set");
+                    System.Windows.Forms.MessageBox.Show("State file path is not set.", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                     return;
                 }
 
@@ -203,7 +203,7 @@ namespace EasySave_by_ProSoft.Models
             catch (Exception ex)
             {
                 // Log error or handle exception
-                Console.WriteLine($"Error serializing state to file: {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error serializing state to file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
             }
         }
 
@@ -253,7 +253,7 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading state from file for job {jobName}: {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error loading state from file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
             }
 
             return null;
