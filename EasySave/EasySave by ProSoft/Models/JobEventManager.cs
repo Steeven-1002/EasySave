@@ -138,7 +138,7 @@ namespace EasySave_by_ProSoft.Models
                         catch (JsonException)
                         {
                             // In case of deserialization error, start with an empty list
-                            Console.WriteLine("Warning: Could not deserialize state.json, creating new state file.");
+                            System.Windows.Forms.MessageBox.Show("Error reading state.json file. Starting with an empty list.");
                             allJobStates = new List<JobState>();
                         }
                     }
@@ -230,12 +230,12 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (IOException ex)
             {
-                Console.WriteLine($"Error accessing state.json file: {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error writing to state.json file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 // File might be locked by another process, try again later
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error updating state.json file: {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Unexpected error: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 // Don't propagate error to avoid disrupting main flow
             }
         }
@@ -271,12 +271,12 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (JsonException ex)
             {
-                Console.WriteLine($"Error deserializing state.json: {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error deserializing state.json file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 // File might be corrupted, consider backing it up and creating a new one
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error reading state.json file: {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Unexpected error: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
             }
 
             return new List<JobState>();
@@ -304,7 +304,7 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error cleaning up state.json file: {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Unexpected error: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
             }
         }
     }
