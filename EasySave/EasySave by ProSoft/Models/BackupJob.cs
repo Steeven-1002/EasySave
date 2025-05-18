@@ -164,7 +164,6 @@ namespace EasySave_by_ProSoft.Models
                     }
 
                     // Update progress
-                    toProcessFiles.Remove(sourceFile);
                     Status.RemainingFiles--;
                     Status.RemainingSize -= fileSize;
                     Status.Update();
