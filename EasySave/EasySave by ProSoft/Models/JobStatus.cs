@@ -414,8 +414,6 @@ namespace EasySave_by_ProSoft.Models
                 ProcessedFiles = new List<string>(this.ProcessedFiles)
             };
 
-            System.Diagnostics.Debug.WriteLine($"JobStatus: {snapshot.JobName} - State: {snapshot.State} - Progress: {snapshot.ProgressPercentage}% - Remaining Size: {snapshot.RemainingSize} bytes");
-
             return snapshot;
         }
 
