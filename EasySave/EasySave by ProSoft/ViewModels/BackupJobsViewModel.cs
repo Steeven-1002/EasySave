@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using EasySave_by_ProSoft.Models;
@@ -29,9 +31,20 @@ namespace EasySave_by_ProSoft.ViewModels
             get => _selectedJob;
             set { _selectedJob = value; OnPropertyChanged(); }
         }
+        
+        private List<BackupJob> _selectedJobs = new List<BackupJob>();
+        /// <summary>
+        /// Gets or sets the list of selected backup jobs for multiple execution
+        /// </summary>
+        public List<BackupJob> SelectedJobs
+        {
+            get => _selectedJobs;
+            set { _selectedJobs = value; OnPropertyChanged(); }
+        }
 
         public ICommand CreateJobCommand { get; }
         public ICommand LaunchJobCommand { get; }
+        public ICommand LaunchMultipleJobsCommand { get; }
         public ICommand RemoveJobCommand { get; }
 
         public BackupJobsViewModel(BackupManager backupManager)
@@ -41,6 +54,7 @@ namespace EasySave_by_ProSoft.ViewModels
             
             CreateJobCommand = new RelayCommand(_ => CreateJob(), _ => true);
             LaunchJobCommand = new RelayCommand(_ => LaunchSelectedJob(), _ => SelectedJob != null);
+            LaunchMultipleJobsCommand = new RelayCommand(_ => LaunchMultipleJobs(), _ => SelectedJobs != null && SelectedJobs.Count > 0);
             RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(), _ => SelectedJob != null);
             
             LoadJobs();
@@ -93,6 +107,33 @@ namespace EasySave_by_ProSoft.ViewModels
             if (SelectedJob != null)
             {
                 SelectedJob.Start();
+            }
+        }
+        
+        /// <summary>
+        /// Launches multiple backup jobs that are selected in the UI
+        /// </summary>
+        private void LaunchMultipleJobs()
+        {
+            if (SelectedJobs == null || SelectedJobs.Count == 0)
+                return;
+                
+            // Get indices of selected jobs
+            var jobIndices = new List<int>();
+            foreach (var job in SelectedJobs)
+            {
+                int index = Jobs.IndexOf(job);
+                if (index >= 0)
+                {
+                    jobIndices.Add(index);
+                }
+            }
+            
+            // Execute selected jobs using BackupManager
+            if (jobIndices.Count > 0)
+            {
+                var jobIndicesRef = jobIndices; // Create a reference variable
+                _backupManager.ExecuteJobs(ref jobIndicesRef);
             }
         }
 
