@@ -39,7 +39,10 @@ namespace EasySave_by_ProSoft.Models
             SourcePath = sourcePath;
             TargetPath = targetPath;
             Type = type;
-            Status = new JobStatus();
+            Status = new JobStatus(name);
+
+            // Link this job to its status for proper state tracking
+            Status.BackupJob = this;
 
             string appNameToMonitor = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
             _businessMonitor = new BusinessApplicationMonitor(appNameToMonitor);
@@ -51,6 +54,44 @@ namespace EasySave_by_ProSoft.Models
 
             // Select strategy based on backup type
             SetBackupStrategy(type);
+
+            // Attempt to load existing state from state.json
+            LoadStateFromPrevious();
+        }
+
+        /// <summary>
+        /// Loads state information from previous runs if available
+        /// </summary>
+        private void LoadStateFromPrevious()
+        {
+            if (Status.Events != null)
+            {
+                var states = Status.Events.GetAllJobStates();
+                var previousState = states.Find(s => s.JobName == Name);
+
+                if (previousState != null &&
+                    (previousState.State == BackupState.Paused ||
+                     previousState.State == BackupState.Error))
+                {
+                    // Apply relevant state properties for potential resume
+                    Status.TotalFiles = previousState.TotalFiles;
+                    Status.TotalSize = previousState.TotalSize;
+                    Status.RemainingFiles = previousState.RemainingFiles;
+                    Status.RemainingSize = previousState.RemainingSize;
+
+                    // Copy processed files for resume capability
+                    if (previousState.ProcessedFiles != null)
+                    {
+                        foreach (var file in previousState.ProcessedFiles)
+                        {
+                            Status.AddProcessedFile(file);
+                        }
+                    }
+
+                    // Update the UI
+                    Status.Update();
+                }
+            }
         }
 
         /// <summary>
@@ -140,7 +181,7 @@ namespace EasySave_by_ProSoft.Models
                     // Build relative and full path to the destination file
                     string relativePath = sourceFile.Substring(SourcePath.Length).TrimStart('\\', '/');
                     string targetFile = Path.Combine(TargetPath, relativePath);
-                    Status.CurrentTargetFIle = targetFile;
+                    Status.CurrentTargetFile = targetFile;
 
                     // Create the target directory if it doesn't exist
                     string? targetDir = Path.GetDirectoryName(targetFile);
@@ -158,11 +199,18 @@ namespace EasySave_by_ProSoft.Models
                     var extensionsElement = AppSettings.Instance.GetSetting("EncryptionExtensions");
                     if (extensionsElement is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
                     {
-                        foreach (var ext in jsonElement.EnumerateArray())
+
+                        /*foreach (var ext in jsonElement.EnumerateArray())
                         {
                             if (ext.ValueKind == JsonValueKind.String && ext.GetString() is string strExt)
                                 encryptionExtensions.Add(strExt);
-                        }
+                        }*/
+
+                        // Encrypt the file
+                        string targetFileRef = targetFile;
+                        string encryptionKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
+                        long encryptionTime = _encryptionService.EncryptFile(ref targetFile, encryptionKey);
+                        _totalEncryptionTime += encryptionTime;
                     }
 
                     // Check if this destination file should be encrypted
@@ -192,8 +240,9 @@ namespace EasySave_by_ProSoft.Models
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error processing file {sourceFile}: {ex.Message}");
-                    // Continue processing other files
+
+                    System.Windows.Forms.MessageBox.Show($"Error processing file {sourceFile}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                    // Continue with next file instead of failing the entire job
                 }
             }
         }

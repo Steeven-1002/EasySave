@@ -33,14 +33,14 @@ namespace EasySave_by_ProSoft.Models
                 return false;
 
             string extension = Path.GetExtension(filePath).ToLowerInvariant();
-            
+
             foreach (string ext in encryptExtensions)
             {
                 string normalizedExt = ext.StartsWith(".") ? ext.ToLowerInvariant() : $".{ext.ToLowerInvariant()}";
                 if (normalizedExt == extension)
                     return true;
             }
-            
+
             return false;
         }
 
@@ -79,7 +79,7 @@ namespace EasySave_by_ProSoft.Models
                     process.StartInfo.CreateNoWindow = true;
                     process.StartInfo.RedirectStandardOutput = true;
                     process.StartInfo.RedirectStandardError = true;
-                    
+
                     process.Start();
                     process.WaitForExit();
 
@@ -96,7 +96,7 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error during encryption: {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Unexpected error: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 throw;
             }
         }

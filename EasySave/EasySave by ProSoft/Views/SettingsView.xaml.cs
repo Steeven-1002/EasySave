@@ -10,6 +10,9 @@ using EasySave_by_ProSoft.Models;
 
 namespace EasySave_by_ProSoft.Views
 {
+    /// <summary>
+    /// View for application settings - implements MVVM pattern
+    /// </summary>
     public partial class SettingsView : System.Windows.Controls.UserControl
     {
         private string _initialCultureName;
@@ -116,29 +119,6 @@ namespace EasySave_by_ProSoft.Views
                 Settings.Default.UserLanguage = _initialCultureName;
                 Settings.Default.Save();
             }
-        }
-
-        private void ValidateSettings_Click(object sender, RoutedEventArgs e)
-        {
-
-            string encryptionKey = EncryptionKeyBox.Password;
-
-
-            AppSettings.Instance.SetSetting("EncryptionKey", encryptionKey);
-
-
-            if (LogFormatComboBox.SelectedItem is ComboBoxItem selectedItem)
-            {
-                _settingsViewModel.LogFormat = selectedItem.Content.ToString();
-            }
-
-            _settingsViewModel.SaveSettings();
-
-            System.Windows.MessageBox.Show(
-                Localization.Resources.SettingsSaved ?? "Settings saved successfully!",
-                Localization.Resources.InformationTitle ?? "Information",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
         }
     }
 }

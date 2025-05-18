@@ -33,7 +33,9 @@ namespace LoggingLibrary
         /// <param name="targetPath">The target file path in UNC format.</param>
         /// <param name="fileSize">The size of the file being logged, in bytes. Optional.</param>
         /// <param name="durationMs">The duration of the file transfer, in milliseconds. Optional.</param>
-        public void Log(DateTime timestamp, string saveName, string sourcePath, string targetPath, long? fileSize = null, double? durationMs = null, string? encryptionTimeMs = null)
+        /// <param name="encryptionTimeMs">The duration of the encryption process, in milliseconds. Optional.</param>
+        /// <param name="details">Additional details about the operation. Optional.</param>
+        public void Log(DateTime timestamp, string saveName, string sourcePath, string targetPath, long? fileSize = null, double? durationMs = null, double? encryptionTimeMs = null, string? details = null)
         {
             var logEntry = new LogEntry
             {
@@ -43,13 +45,13 @@ namespace LoggingLibrary
                 TargetPathUNC = targetPath,
                 FileSize = fileSize,
                 FileTransferTimeMs = durationMs,
-                EncryptionTimsMs = encryptionTimeMs
+                EncryptionTimsMs = encryptionTimeMs,
+                Details = details
             };
 
             string formattedLog = _logFormatter.FormatLog(logEntry);
             _logFile.WriteLogEntry(formattedLog);
         }
-
 
         /// <summary>
         /// Gets the directory path where log files are stored.

@@ -349,7 +349,7 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
-        ///   Recherche une chaîne localisée semblable à Launch of the selected job..
+        ///   Recherche une chaîne localisée semblable à Selected job finish.
         /// </summary>
         public static string MessageBoxLaunchJob {
             get {

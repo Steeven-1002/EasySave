@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using LoggingLibrary;
 
-namespace EasySave_by_ProSoft.Models 
+namespace EasySave_by_ProSoft.Models
 {
     public class LoggingService : JobEventListeners
     {
@@ -15,7 +15,7 @@ namespace EasySave_by_ProSoft.Models
         /// Service used for logging backup operations.
         /// </summary>
         private LogService? _logService;
-        private static string? _logFormat;
+        private static string _logFormat = AppSettings.Instance.GetSetting("LogFormat")?.ToString() ?? "XML";
 
         /// <summary>
         /// Private constructor to initialize the logging service with a log file path and formatter.
@@ -80,7 +80,7 @@ namespace EasySave_by_ProSoft.Models
         /// <param name="currentSourceFile">The current source file being processed.</param>
         /// <param name="currentTargetFile">The current target file being processed.</param>
         /// <param name="transfertDuration">The duration of the file transfer, in seconds.</param>
-        public void Update(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile, double transfertDuration)
+        public void Update(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile, double transfertDuration, double encryptionTimeMs, string details = null)
         {
             var timestamp = DateTime.Now;
             _logService.Log(
@@ -89,10 +89,11 @@ namespace EasySave_by_ProSoft.Models
                 currentSourceFile,
                 currentTargetFile,
                 totalSize - remainingSize,
-                transfertDuration
+                transfertDuration,
+                encryptionTimeMs,
+                details
             );
 
-            Console.WriteLine($"[LOG] {timestamp}: Job '{jobName}' updated. State: {newState}, Remaining Files: {remainingFiles}, Remaining Size: {remainingSize} bytes.");
         }
 
         /// <summary>

@@ -34,13 +34,15 @@ namespace EasySave_by_ProSoft.Models
             {
                 // Extract process name without extension
                 string processName = System.IO.Path.GetFileNameWithoutExtension(monitoredApplication);
-                
+
                 // Check if any process with this name is running
                 Process[] processes = Process.GetProcessesByName(processName);
                 return processes.Length > 0;
             }
             catch (Exception ex)
             {
+
+                System.Windows.Forms.MessageBox.Show($"Unexpected error: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 return false;
             }
         }

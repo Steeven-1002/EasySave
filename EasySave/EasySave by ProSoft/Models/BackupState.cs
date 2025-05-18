@@ -6,6 +6,7 @@ namespace EasySave_by_ProSoft.Models {
         Running,
         Paused,
         Completed,
-        Error
+        Error,
+        Initialise
     }
 }

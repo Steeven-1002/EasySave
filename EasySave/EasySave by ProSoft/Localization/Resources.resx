@@ -211,7 +211,7 @@
     <value>Settings</value>
   </data>
   <data name="MessageBoxLaunchJob" xml:space="preserve">
-    <value>Launch of the selected job.</value>
+    <value>Selected job finish</value>
   </data>
   <data name="MessageNewJobValidated" xml:space="preserve">
     <value>New backup job validated !</value>
