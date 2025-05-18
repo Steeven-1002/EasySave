@@ -81,7 +81,8 @@ namespace EasySave_by_ProSoft.Models
                     jobStatus.CurrentSourceFile,
                     jobStatus.CurrentTargetFile,
                     jobStatus.TransferRate,
-                    jobStatus.EncryptionTimeMs
+                    jobStatus.EncryptionTimeMs,
+                    jobStatus.Details
                 );
             }
         }
