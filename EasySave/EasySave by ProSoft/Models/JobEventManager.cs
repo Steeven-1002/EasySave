@@ -119,8 +119,6 @@ namespace EasySave_by_ProSoft.Models
                                 if (!string.IsNullOrEmpty(jsonContent))
                                 {
 
-                                    Console.WriteLine(jobStatus.BackupJob.Name);
-
                                     allJobStates = JsonSerializer.Deserialize<List<JobState>>(jsonContent) ?? new List<JobState>();
 
                                     // Ensure proper state for each job
@@ -132,6 +130,7 @@ namespace EasySave_by_ProSoft.Models
                                             state.State = JobState.ConvertStringToState(state.StateAsString);
                                         }
                                     }
+
                                 }
                             }
                         }
@@ -202,8 +201,6 @@ namespace EasySave_by_ProSoft.Models
                                 // If a job is in Initialise state, set it to Waiting (this is safe)
                                 allJobStates[i].State = BackupState.Waiting;
                             }
-
-                            System.Diagnostics.Debug.WriteLine($"JobEventManager.cs | Job {allJobStates[i].JobName} is in state {allJobStates[i].State}");
 
                             // Otherwise leave the job in its current state (Running, Paused, or Waiting)
                         }
