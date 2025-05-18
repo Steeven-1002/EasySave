@@ -32,12 +32,29 @@ namespace EasySave_by_ProSoft.Models
         [JsonPropertyName("TargetFilePath")]
         public string CurrentTargetFile { get; set; } = string.Empty;
 
-        // Job status properties with correct JSON property names
-        [JsonPropertyName("State")]
-        public string StateAsString => ConvertStateToString(State);
+        [JsonIgnore]
+        private string stateStringValue;
 
-        [JsonIgnore] // Use StateAsString for serialization instead
+        [JsonPropertyName("State")]
+        public string StateAsString
+        {
+            get => stateStringValue ?? ConvertStateToString(State);
+            set
+            {
+                stateStringValue = value;
+                State = ConvertStringToState(value);
+            }
+        }
+
+        [JsonIgnore]
         public BackupState State { get; set; } = BackupState.Initialise;
+
+
+
+
+
+
+
 
         [JsonPropertyName("TotalFilesToCopy")]
         public int TotalFiles { get; set; }
@@ -213,8 +230,6 @@ namespace EasySave_by_ProSoft.Models
                     };
 
                     var allStates = JsonSerializer.Deserialize<List<JobState>>(jsonContent, options);
-
-                    System.Diagnostics.Debug.WriteLine($"Loaded {allStates?.Count} states from {statesFilePath}");
 
                     if (allStates == null)
                         return null;
