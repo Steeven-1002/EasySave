@@ -36,7 +36,10 @@ namespace EasySave_by_ProSoft.Models
             SourcePath = sourcePath;
             TargetPath = targetPath;
             Type = type;
-            Status = new JobStatus();
+            Status = new JobStatus(name);
+            
+            // Link this job to its status for proper state tracking
+            Status.BackupJob = this;
 
             // Initialize services
             _businessMonitor = new BusinessApplicationMonitor(AppSettings.Instance.GetSetting("BusinessSoftwareName") as string);
@@ -45,6 +48,44 @@ namespace EasySave_by_ProSoft.Models
 
             // Select strategy based on backup type
             SetBackupStrategy(type);
+            
+            // Attempt to load existing state from state.json
+            LoadStateFromPrevious();
+        }
+
+        /// <summary>
+        /// Loads state information from previous runs if available
+        /// </summary>
+        private void LoadStateFromPrevious()
+        {
+            if (Status.Events != null)
+            {
+                var states = Status.Events.GetAllJobStates();
+                var previousState = states.Find(s => s.JobName == Name);
+                
+                if (previousState != null && 
+                    (previousState.State == BackupState.Paused || 
+                     previousState.State == BackupState.Error))
+                {
+                    // Apply relevant state properties for potential resume
+                    Status.TotalFiles = previousState.TotalFiles;
+                    Status.TotalSize = previousState.TotalSize;
+                    Status.RemainingFiles = previousState.RemainingFiles;
+                    Status.RemainingSize = previousState.RemainingSize;
+                    
+                    // Copy processed files for resume capability
+                    if (previousState.ProcessedFiles != null)
+                    {
+                        foreach (var file in previousState.ProcessedFiles)
+                        {
+                            Status.AddProcessedFile(file);
+                        }
+                    }
+                    
+                    // Update the UI
+                    Status.Update();
+                }
+            }
         }
 
         /// <summary>
@@ -136,7 +177,7 @@ namespace EasySave_by_ProSoft.Models
                     // Calculate relative path to maintain directory structure
                     string relativePath = sourceFile.Substring(SourcePath.Length).TrimStart('\\', '/');
                     string targetFile = Path.Combine(TargetPath, relativePath);
-                    Status.CurrentTargetFIle = targetFile;
+                    Status.CurrentTargetFile = targetFile;
 
                     // Create target directory if needed
                     string? targetDir = Path.GetDirectoryName(targetFile);
@@ -152,9 +193,9 @@ namespace EasySave_by_ProSoft.Models
                     if (_encryptionService.ShouldEncrypt(sourceFile, AppSettings.Instance.GetSetting("EncryptExtensions") as List<string>))
                     {
                         // Encrypt the file
-                        string sourceFileRef = sourceFile;
                         string targetFileRef = targetFile;
-                        long encryptionTime = _encryptionService.EncryptFile(ref sourceFileRef, ref targetFileRef);
+                        string encryptionKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
+                        long encryptionTime = _encryptionService.EncryptFile(ref targetFile, encryptionKey);
                         _totalEncryptionTime += encryptionTime;
                     }
                     else

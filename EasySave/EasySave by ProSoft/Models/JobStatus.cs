@@ -1,6 +1,8 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
+using System.IO;
 
 namespace EasySave_by_ProSoft.Models {
     /// <summary>
@@ -77,7 +79,7 @@ namespace EasySave_by_ProSoft.Models {
         }
         
         private string currentTargetFIle;
-        public string CurrentTargetFIle {
+        public string CurrentTargetFile {
             get {
                 return currentTargetFIle;
             }
@@ -174,21 +176,110 @@ namespace EasySave_by_ProSoft.Models {
         private BackupState backupState;
         private JobEventManager jobEventManager;
         private BackupJob backupJob;
-        
+
+        /// <summary>
+        /// Backup job associated with this status
+        /// </summary>
+        public BackupJob BackupJob {
+            get { return backupJob; }
+            set {
+                if (backupJob != value) {
+                    backupJob = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         /// <summary>
         /// Optionally, implement this interface for logging encryption time
         /// </summary>
         public long EncryptionTimeMs { get; set; }
         
         /// <summary>
-        /// JobStatus constructor
+        /// JobStatus constructor that initializes from a saved state
         /// </summary>
-        public JobStatus() {
+        /// <param name="jobName">Name of the job to load state for</param>
+        public JobStatus(string jobName)
+        {
+            // Initialize the event manager for observer notifications
             Events = new JobEventManager();
             ExecutionId = Guid.NewGuid();
-            StartTime = DateTime.Now;
-            State = BackupState.Waiting;
-            LastStateChangeTime = StartTime;
+            
+            LoadStateFromPrevious(jobName);
+        }
+        
+        /// <summary>
+        /// Loads previous state from state.json file for a specific job
+        /// </summary>
+        /// <param name="jobName">Name of the job to load state for</param>
+        /// <returns>True if a previous state was successfully loaded</returns>
+        public bool LoadStateFromPrevious(string jobName)
+        {
+            if (string.IsNullOrEmpty(jobName))
+                return false;
+                
+            try
+            {
+                // Get the state.json file path 
+                string stateFilePath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "EasySave", 
+                    "state.json"
+                );
+                
+                // Attempt to load the state from file
+                var previousState = JobState.LoadFromStateFile(jobName, stateFilePath);
+                if (previousState != null)
+                {
+                    // Apply the loaded state to this JobStatus
+                    if (backupJob != null)
+                    {
+                        // If we already have a job reference, make sure the names match
+                        if (!backupJob.Name.Equals(previousState.JobName, StringComparison.OrdinalIgnoreCase))
+                            return false;
+                    }
+                    
+                    // Set properties from the loaded state
+                    TotalFiles = previousState.TotalFiles;
+                    TotalSize = previousState.TotalSize;
+                    RemainingFiles = previousState.RemainingFiles;
+                    RemainingSize = previousState.TotalSize - (long)(previousState.TotalSize * previousState.ProgressPercentage / 100);
+                    
+                    // Only initialize these if we actually have values
+                    if (!string.IsNullOrEmpty(previousState.CurrentSourceFile))
+                        CurrentSourceFile = previousState.CurrentSourceFile;
+                    
+                    if (!string.IsNullOrEmpty(previousState.CurrentTargetFile))
+                        CurrentTargetFile = previousState.CurrentTargetFile;
+                    
+                    // Only use the previous state if it's not completed or error
+                    if (previousState.State == BackupState.Running || previousState.State == BackupState.Paused)
+                    {
+                        // Set to waiting instead of the previous state to avoid automatic resumption
+                        State = BackupState.Waiting;
+                        
+                        // Import processed files for resuming capability
+                        if (previousState.ProcessedFiles?.Count > 0)
+                        {
+                            foreach (var file in previousState.ProcessedFiles)
+                            {
+                                AddProcessedFile(file);
+                            }
+                        }
+                        
+                        // Initialize time-related fields
+                        StartTime = previousState.StartTime != DateTime.MinValue ? previousState.StartTime : DateTime.Now;
+                        
+                        return true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading previous state for job {jobName}: {ex.Message}");
+            }
+            
+            return false;
         }
         
         /// <summary>
@@ -199,8 +290,7 @@ namespace EasySave_by_ProSoft.Models {
             // Notify observers of changes
             if (Events != null)
             {
-                var jobStatusCopy = this; // Create a local copy of the object
-                Events.NotifyListeners(ref jobStatusCopy); // Pass local copy by reference
+                Events.NotifyListeners(this);
             }
         }
         
@@ -261,12 +351,24 @@ namespace EasySave_by_ProSoft.Models {
         public JobState CreateSnapshot() {
             var snapshot = new JobState {
                 JobName = backupJob?.Name ?? string.Empty,
+                SourcePath = backupJob?.SourcePath ?? string.Empty,
+                TargetPath = backupJob?.TargetPath ?? string.Empty,
+                Type = backupJob?.Type ?? BackupType.Full,
                 Timestamp = DateTime.Now,
                 State = this.State,
                 TotalFiles = this.TotalFiles,
                 TotalSize = this.TotalSize,
-                CurrentSourceFile = this.CurrentSourceFile,
-                CurrentTargetFile = this.CurrentTargetFIle
+                RemainingFiles = this.RemainingFiles,
+                RemainingSize = this.RemainingSize,
+                CurrentSourceFile = this.CurrentSourceFile ?? string.Empty,
+                CurrentTargetFile = this.CurrentTargetFile ?? string.Empty,
+                StartTime = this.StartTime,
+                EndTime = this.EndTime,
+                TransferRate = this.TransferRate,
+                ProgressPercentage = this.ProgressPercentage,
+                ExecutionId = this.ExecutionId,
+                EncryptionTimeMs = this.EncryptionTimeMs,
+                ProcessedFiles = new List<string>(this.ProcessedFiles)
             };
             
             return snapshot;
@@ -290,4 +392,5 @@ namespace EasySave_by_ProSoft.Models {
         }
         #endregion
     }
+
 }

@@ -5,7 +5,6 @@ using System.Windows.Controls; // For UserControl
 using EasySave_by_ProSoft.Localization;
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.ViewModels;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 using WinForms = System.Windows.Forms;
 
 namespace EasySave_by_ProSoft.Views

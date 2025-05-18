@@ -211,7 +211,7 @@
     <value>Settings</value>
   </data>
   <data name="MessageBoxLaunchJob" xml:space="preserve">
-    <value>Launch of the selected job.</value>
+    <value>Selected job finish</value>
   </data>
   <data name="MessageNewJobValidated" xml:space="preserve">
     <value>New backup job validated !</value>
@@ -223,16 +223,13 @@
     <value>Select the target folder</value>
   </data>
   <data name="SettingsValidatedMessage" xml:space="preserve">
-    <value>Settings have been validated and saved.</value>
+    <value>Settings validated.</value>
   </data>
   <data name="SettingsSaved" xml:space="preserve">
     <value>Settings saved successfully.</value>
   </data>
   <data name="Settings" xml:space="preserve">
     <value>Settings</value>
-  </data>
-  <data name="SettingsValidatedMessage" xml:space="preserve">
-    <value>Settings validated.</value>
   </data>
   <data name="ValidateSettings" xml:space="preserve">
     <value>Validate the settings</value>
