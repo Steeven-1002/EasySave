@@ -123,7 +123,9 @@ namespace EasySave_by_ProSoft.Models
                 // Check if business software is running
                 if (_businessMonitor.IsRunning())
                 {
-                    Status.SetError($"Cannot start backup: Business software {AppSettings.Instance.GetSetting("BusinessSoftwareName")} is running.");
+                    System.Windows.Forms.MessageBox.Show($"Business software {AppSettings.Instance.GetSetting("BusinessSoftwareName")} detected. " +
+                                          $"Backup job {Name} will pause after processing file {SourcePath}.",
+                                          "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
                     _isRunning = false;
                     return;
                 }
@@ -229,8 +231,10 @@ namespace EasySave_by_ProSoft.Models
                     Status.Update();
                     if (_businessMonitor.IsRunning())
                     {
-                        Console.WriteLine($"Business software {AppSettings.Instance.GetSetting("BusinessSoftwareName")} detected. " +
-                                          $"Backup job {Name} will pause after processing file {sourceFile}.");
+
+                        System.Windows.Forms.MessageBox.Show($"Business software {AppSettings.Instance.GetSetting("BusinessSoftwareName")} detected. " +
+                                          $"Backup job {Name} will pause after processing file {sourceFile}.",
+                                          "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
 
                         //Pause();
                         Stop();
