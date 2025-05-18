@@ -123,15 +123,21 @@ namespace EasySave_by_ProSoft.Models
                 // Check if business software is running
                 if (_businessMonitor.IsRunning())
                 {
-                    System.Windows.Forms.MessageBox.Show($"Business software {AppSettings.Instance.GetSetting("BusinessSoftwareName")} detected. " +
-                                          $"Backup job {Name} will pause after processing file {SourcePath}.",
-                                          "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
+                    string businessSoftwareName = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
+                    string message = $"Business software {businessSoftwareName} detected. Cannot start backup job {Name}.";
+
+                    System.Windows.Forms.MessageBox.Show($"{message}",
+                                      "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
+
+                    Status.Details = message;
+                    Status.SetError(message);
                     _isRunning = false;
                     return;
                 }
 
-                // Start the job
-                Status.Start();
+                // Start the job with start details
+                string startDetails = null;
+                Status.Start(startDetails);
 
                 // Get files using the selected strategy
                 BackupJob jobRef = this;
@@ -201,13 +207,6 @@ namespace EasySave_by_ProSoft.Models
                     var extensionsElement = AppSettings.Instance.GetSetting("EncryptionExtensions");
                     if (extensionsElement is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
                     {
-
-                        /*foreach (var ext in jsonElement.EnumerateArray())
-                        {
-                            if (ext.ValueKind == JsonValueKind.String && ext.GetString() is string strExt)
-                                encryptionExtensions.Add(strExt);
-                        }*/
-
                         // Encrypt the file
                         string targetFileRef = targetFile;
                         string encryptionKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
@@ -229,14 +228,18 @@ namespace EasySave_by_ProSoft.Models
                     Status.RemainingFiles--;
                     Status.RemainingSize -= fileSize;
                     Status.Update();
+
                     if (_businessMonitor.IsRunning())
                     {
+                        string businessSoftwareName = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
+                        string message = $"Backup stopped due to business software {businessSoftwareName} being detected while processing file {sourceFile}";
 
-                        System.Windows.Forms.MessageBox.Show($"Business software {AppSettings.Instance.GetSetting("BusinessSoftwareName")} detected. " +
-                                          $"Backup job {Name} will pause after processing file {sourceFile}.",
-                                          "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
+                        System.Windows.Forms.MessageBox.Show($"Business software {businessSoftwareName} detected. " +
+                                        $"Backup job {Name} will stop after processing file {sourceFile}.",
+                                        "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
 
-                        //Pause();
+                        // Add details about the business software stop reason
+                        Status.Details = message;
                         Stop();
 
                         break;
@@ -244,7 +247,6 @@ namespace EasySave_by_ProSoft.Models
                 }
                 catch (Exception ex)
                 {
-
                     System.Windows.Forms.MessageBox.Show($"Error processing file {sourceFile}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                     // Continue with next file instead of failing the entire job
                 }
@@ -271,7 +273,15 @@ namespace EasySave_by_ProSoft.Models
             if (_isRunning)
             {
                 _stopRequested = true;
-                Status.SetError("Backup stopped by user");
+
+                // If Details property is not already set with a specific reason,
+                // set a generic reason for stopping
+                if (string.IsNullOrEmpty(Status.Details))
+                {
+                    Status.Details = "Backup stopped by user";
+                }
+
+                Status.SetError(Status.Details);
             }
         }
 
