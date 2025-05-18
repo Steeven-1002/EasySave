@@ -211,7 +211,7 @@
     <value>Paramètres</value>
   </data>
   <data name="MessageBoxLaunchJob" xml:space="preserve">
-    <value>Lancement du travail sélectionné.</value>
+    <value>Travail sélectionné terminé.</value>
   </data>
   <data name="MessageNewJobValidated" xml:space="preserve">
     <value>Nouveau travail de sauvegarde validé !</value>
