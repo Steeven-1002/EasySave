@@ -100,18 +100,18 @@ namespace EasySave_by_ProSoft.Models
             }
         }
 
-        private string currentTargetFIle;
+        private string currentTargetFile;
         public string CurrentTargetFile
         {
             get
             {
-                return currentTargetFIle;
+                return currentTargetFile;
             }
             set
             {
-                if (currentTargetFIle != value)
+                if (currentTargetFile != value)
                 {
-                    currentTargetFIle = value;
+                    currentTargetFile = value;
                     OnPropertyChanged();
                 }
             }
@@ -205,7 +205,6 @@ namespace EasySave_by_ProSoft.Models
         /// </summary>
         public JobEventManager Events;
 
-
         private JobEventManager jobEventManager;
         private BackupJob backupJob;
 
@@ -230,9 +229,6 @@ namespace EasySave_by_ProSoft.Models
         /// </summary>
         public long EncryptionTimeMs { get; set; }
 
-        public string CurrentTargetFile { get; internal set; }
-
-
         /// <summary>
         /// JobStatus constructor that initializes from a saved state
         /// </summary>
@@ -243,6 +239,8 @@ namespace EasySave_by_ProSoft.Models
             Events = new JobEventManager();
             Events.AddListener(LoggingService.Instance);
             ExecutionId = Guid.NewGuid();
+            LastStateChangeTime = DateTime.Now;
+            StartTime = DateTime.Now;
 
             LoadStateFromPrevious(jobName);
         }
