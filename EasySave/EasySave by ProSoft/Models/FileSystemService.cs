@@ -24,11 +24,10 @@ namespace EasySave.Services
                     Directory.CreateDirectory(destDir);
                 }
                 File.Copy(source, destination, true); // true for overwrite existing files
-                Console.WriteLine($"FileSystemService: Copied '{source}' to '{destination}'.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"FileSystemService ERROR copying '{source}' to '{destination}': {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error copying file from '{source}' to '{destination}': {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 throw;
             }
         }
@@ -40,7 +39,6 @@ namespace EasySave.Services
         /// <returns>The SHA-256 hash as a hexadecimal string, or an empty string if an error occurs.</returns>
         public string GetFileHash(string path)
         {
-            Console.WriteLine($"FileSystemService: GetFileHash for '{path}' (stub).");
             try
             {
                 using var sha256 = SHA256.Create();
@@ -50,7 +48,7 @@ namespace EasySave.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"FileSystemService ERROR GetFileHash for '{path}': {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error computing hash for '{path}': {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 return string.Empty;
             }
         }
@@ -68,7 +66,7 @@ namespace EasySave.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"FileSystemService ERROR GetSize for '{path}': {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error getting size for '{path}': {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 return 0;
             }
         }
@@ -83,11 +81,10 @@ namespace EasySave.Services
             try
             {
                 Directory.CreateDirectory(path);
-                // Console.WriteLine($"FileSystemService: Created directory '{path}'.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"FileSystemService ERROR creating directory '{path}': {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error creating directory '{path}': {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 throw;
             }
         }
@@ -105,7 +102,7 @@ namespace EasySave.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"FileSystemService ERROR GetFilesInDirectory for '{path}': {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error computing hash for '{path}': {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 return new List<string>();
             }
         }
@@ -145,7 +142,7 @@ namespace EasySave.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"FileSystemService ERROR GetAllContents for '{path}': {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error computing hash for '{path}': {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 return new List<string>();
             }
         }
@@ -161,12 +158,11 @@ namespace EasySave.Services
                 if (File.Exists(path))
                 {
                     File.Delete(path);
-                    Console.WriteLine($"FileSystemService: Deleted '{path}'.");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"FileSystemService ERROR deleting '{path}': {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error computing hash for '{path}': {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 throw;
             }
         }
@@ -182,12 +178,11 @@ namespace EasySave.Services
                 if (Directory.Exists(path))
                 {
                     Directory.Delete(path, true);
-                    Console.WriteLine($"FileSystemService: Deleted directory '{path}'.");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"FileSystemService ERROR deleting directory '{path}': {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error computing hash for '{path}': {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 throw;
             }
         }
