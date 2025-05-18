@@ -179,7 +179,8 @@ namespace EasySave_by_ProSoft.Models {
         /// Optionally, implement this interface for logging encryption time
         /// </summary>
         public long EncryptionTimeMs { get; set; }
-        
+        public string CurrentTargetFile { get; internal set; }
+
         /// <summary>
         /// JobStatus constructor
         /// </summary>

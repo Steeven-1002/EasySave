@@ -151,6 +151,15 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à The management software is running. The backup job will be paused after processing the file .
+        /// </summary>
+        public static string BusinessApplicationError {
+            get {
+                return ResourceManager.GetString("BusinessApplicationError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Name of the business software process to be monitored :.
         /// </summary>
         public static string BusinessSoftwareCheckSetting {
@@ -408,6 +417,15 @@ namespace EasySave_by_ProSoft.Localization {
         public static string ValidateSettings {
             get {
                 return ResourceManager.GetString("ValidateSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Warning !.
+        /// </summary>
+        public static string Warning {
+            get {
+                return ResourceManager.GetString("Warning", resourceCulture);
             }
         }
     }

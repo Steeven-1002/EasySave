@@ -1,8 +1,10 @@
+using EasySave_by_ProSoft.Localization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+using System.Windows;
 
 namespace EasySave_by_ProSoft.Models
 {
@@ -39,8 +41,11 @@ namespace EasySave_by_ProSoft.Models
             Type = type;
             Status = new JobStatus();
 
+            string appNameToMonitor = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
+            _businessMonitor = new BusinessApplicationMonitor(appNameToMonitor);
+
             // Initialize services
-            _businessMonitor = new BusinessApplicationMonitor(AppSettings.Instance.GetSetting("BusinessSoftwareName") as string);
+            //_businessMonitor = new BusinessApplicationMonitor(AppSettings.Instance.GetSetting("BusinessSoftwareName") as string);
             _encryptionService = new EncryptionService();
             _backupManager = manager;
 
@@ -132,23 +137,23 @@ namespace EasySave_by_ProSoft.Models
                 {
                     Status.CurrentSourceFile = sourceFile;
 
-                    // Construire chemin relatif et complet vers le fichier destination
+                    // Build relative and full path to the destination file
                     string relativePath = sourceFile.Substring(SourcePath.Length).TrimStart('\\', '/');
                     string targetFile = Path.Combine(TargetPath, relativePath);
                     Status.CurrentTargetFIle = targetFile;
 
-                    // Créer le répertoire cible s’il n’existe pas
+                    // Create the target directory if it doesn't exist
                     string? targetDir = Path.GetDirectoryName(targetFile);
                     if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
                         Directory.CreateDirectory(targetDir);
 
-                    // Obtenir la taille pour le suivi
+                    // Get the size for tracking
                     long fileSize = new FileInfo(sourceFile).Length;
 
-                    // Étape 1 : copie du fichier source vers destination
+                    // Step 1: copy the source file to the destination
                     File.Copy(sourceFile, targetFile, true);
 
-                    // Étape 2 : si besoin, on chiffre le fichier destination
+                    // Step 2: if necessary, encrypt the destination file
                     List<string> encryptionExtensions = new();
                     var extensionsElement = AppSettings.Instance.GetSetting("EncryptionExtensions");
                     if (extensionsElement is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
@@ -160,26 +165,35 @@ namespace EasySave_by_ProSoft.Models
                         }
                     }
 
-                    // Vérifie si on doit chiffrer ce fichier destination
+                    // Check if this destination file should be encrypted
                     if (_encryptionService.ShouldEncrypt(targetFile, encryptionExtensions))
                     {
                         string? encryptionKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
                         if (string.IsNullOrEmpty(encryptionKey))
-                            throw new InvalidOperationException("Aucune clé de chiffrement définie dans les paramètres.");
+                            throw new InvalidOperationException("No encryption key defined in settings.");
 
                         long encryptionTime = _encryptionService.EncryptFile(ref targetFile, encryptionKey);
                         _totalEncryptionTime += encryptionTime;
                     }
 
-                    // Suivi de progression
                     Status.RemainingFiles--;
                     Status.RemainingSize -= fileSize;
                     Status.Update();
+                    if (_businessMonitor.IsRunning())
+                    {
+                        Console.WriteLine($"Business software {AppSettings.Instance.GetSetting("BusinessSoftwareName")} detected. " +
+                                          $"Backup job {Name} will pause after processing file {sourceFile}.");
+
+                        //Pause();
+                        Stop();
+
+                        break;
+                    }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error processing file {sourceFile}: {ex.Message}");
-                    // On continue le traitement des autres fichiers
+                    // Continue processing other files
                 }
             }
         }

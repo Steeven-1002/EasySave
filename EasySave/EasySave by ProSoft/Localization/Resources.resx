@@ -223,7 +223,7 @@
     <value>Select the target folder</value>
   </data>
   <data name="SettingsValidatedMessage" xml:space="preserve">
-    <value>Settings have been validated and saved.</value>
+    <value>Settings validated.</value>
   </data>
   <data name="SettingsSaved" xml:space="preserve">
     <value>Settings saved successfully.</value>
@@ -231,10 +231,13 @@
   <data name="Settings" xml:space="preserve">
     <value>Settings</value>
   </data>
-  <data name="SettingsValidatedMessage" xml:space="preserve">
-    <value>Settings validated.</value>
-  </data>
   <data name="ValidateSettings" xml:space="preserve">
     <value>Validate the settings</value>
+  </data>
+  <data name="BusinessApplicationError" xml:space="preserve">
+    <value>The management software is running. The backup job will be paused after processing the file </value>
+  </data>
+  <data name="Warning" xml:space="preserve">
+    <value>Warning !</value>
   </data>
 </root>
