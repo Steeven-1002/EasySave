@@ -110,7 +110,7 @@ namespace EasySave_by_ProSoft.Models
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error executing job {backupJobs[index].Name}: {ex.Message}");
+                        System.Windows.Forms.MessageBox.Show($"Error executing job at index {index}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                     }
                 }
             }
@@ -146,7 +146,6 @@ namespace EasySave_by_ProSoft.Models
                                 // Add the job using existing method
                                 var job = new BackupJob(jobData.Name, sourcePath, targetPath, jobData.Type, this);
 
-                                System.Diagnostics.Debug.WriteLine($"Loaded job: {job.Name} from {sourcePath} to {targetPath} of type {type}");
 
                                 backupJobs.Add(job);
                             }
@@ -156,7 +155,9 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading jobs from file: {ex.Message}");
+                // Notify user with a popup
+                System.Windows.Forms.MessageBox.Show($"Error loading jobs from file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+
                 // Initialize with empty list if loading fails
                 backupJobs = new List<BackupJob>();
             }
@@ -196,7 +197,7 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error saving jobs to file: {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error saving jobs to file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
             }
         }
 

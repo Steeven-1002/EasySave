@@ -1,7 +1,10 @@
+using EasySave_by_ProSoft.Localization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text.Json;
+using System.Windows;
 
 namespace EasySave_by_ProSoft.Models
 {
@@ -37,18 +40,21 @@ namespace EasySave_by_ProSoft.Models
             TargetPath = targetPath;
             Type = type;
             Status = new JobStatus(name);
-            
+
             // Link this job to its status for proper state tracking
             Status.BackupJob = this;
 
+            string appNameToMonitor = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
+            _businessMonitor = new BusinessApplicationMonitor(appNameToMonitor);
+
             // Initialize services
-            _businessMonitor = new BusinessApplicationMonitor(AppSettings.Instance.GetSetting("BusinessSoftwareName") as string);
+            //_businessMonitor = new BusinessApplicationMonitor(AppSettings.Instance.GetSetting("BusinessSoftwareName") as string);
             _encryptionService = new EncryptionService();
             _backupManager = manager;
 
             // Select strategy based on backup type
             SetBackupStrategy(type);
-            
+
             // Attempt to load existing state from state.json
             LoadStateFromPrevious();
         }
@@ -62,9 +68,9 @@ namespace EasySave_by_ProSoft.Models
             {
                 var states = Status.Events.GetAllJobStates();
                 var previousState = states.Find(s => s.JobName == Name);
-                
-                if (previousState != null && 
-                    (previousState.State == BackupState.Paused || 
+
+                if (previousState != null &&
+                    (previousState.State == BackupState.Paused ||
                      previousState.State == BackupState.Error))
                 {
                     // Apply relevant state properties for potential resume
@@ -72,7 +78,7 @@ namespace EasySave_by_ProSoft.Models
                     Status.TotalSize = previousState.TotalSize;
                     Status.RemainingFiles = previousState.RemainingFiles;
                     Status.RemainingSize = previousState.RemainingSize;
-                    
+
                     // Copy processed files for resume capability
                     if (previousState.ProcessedFiles != null)
                     {
@@ -81,7 +87,7 @@ namespace EasySave_by_ProSoft.Models
                             Status.AddProcessedFile(file);
                         }
                     }
-                    
+
                     // Update the UI
                     Status.Update();
                 }
@@ -117,13 +123,21 @@ namespace EasySave_by_ProSoft.Models
                 // Check if business software is running
                 if (_businessMonitor.IsRunning())
                 {
-                    Status.SetError($"Cannot start backup: Business software {AppSettings.Instance.GetSetting("BusinessSoftwareName")} is running.");
+                    string businessSoftwareName = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
+                    string message = $"Business software {businessSoftwareName} detected. Cannot start backup job {Name}.";
+
+                    System.Windows.Forms.MessageBox.Show($"{message}",
+                                      "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
+
+                    Status.Details = message;
+                    Status.SetError(message);
                     _isRunning = false;
                     return;
                 }
 
-                // Start the job
-                Status.Start();
+                // Start the job with start details
+                string startDetails = null;
+                Status.Start(startDetails);
 
                 // Get files using the selected strategy
                 BackupJob jobRef = this;
@@ -165,32 +179,33 @@ namespace EasySave_by_ProSoft.Models
             // Process each file that needs to be backed up
             foreach (string sourceFile in toProcessFiles)
             {
-                // Check if stop or pause was requested
                 if (_stopRequested || _isPaused)
                     break;
 
                 try
                 {
-                    // Update current file being processed
                     Status.CurrentSourceFile = sourceFile;
 
-                    // Calculate relative path to maintain directory structure
+                    // Build relative and full path to the destination file
                     string relativePath = sourceFile.Substring(SourcePath.Length).TrimStart('\\', '/');
                     string targetFile = Path.Combine(TargetPath, relativePath);
                     Status.CurrentTargetFile = targetFile;
 
-                    // Create target directory if needed
+                    // Create the target directory if it doesn't exist
                     string? targetDir = Path.GetDirectoryName(targetFile);
                     if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
-                    {
                         Directory.CreateDirectory(targetDir);
-                    }
 
-                    // Get file size for progress tracking
+                    // Get the size for tracking
                     long fileSize = new FileInfo(sourceFile).Length;
 
-                    // Check if the file needs encryption
-                    if (_encryptionService.ShouldEncrypt(sourceFile, AppSettings.Instance.GetSetting("EncryptExtensions") as List<string>))
+                    // Step 1: copy the source file to the destination
+                    File.Copy(sourceFile, targetFile, true);
+
+                    // Step 2: if necessary, encrypt the destination file
+                    List<string> encryptionExtensions = new();
+                    var extensionsElement = AppSettings.Instance.GetSetting("EncryptionExtensions");
+                    if (extensionsElement is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
                     {
                         // Encrypt the file
                         string targetFileRef = targetFile;
@@ -198,20 +213,41 @@ namespace EasySave_by_ProSoft.Models
                         long encryptionTime = _encryptionService.EncryptFile(ref targetFile, encryptionKey);
                         _totalEncryptionTime += encryptionTime;
                     }
-                    else
+
+                    // Check if this destination file should be encrypted
+                    if (_encryptionService.ShouldEncrypt(targetFile, encryptionExtensions))
                     {
-                        // Simple copy if no encryption needed
-                        File.Copy(sourceFile, targetFile, true);
+                        string? encryptionKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
+                        if (string.IsNullOrEmpty(encryptionKey))
+                            throw new InvalidOperationException("No encryption key defined in settings.");
+
+                        long encryptionTime = _encryptionService.EncryptFile(ref targetFile, encryptionKey);
+                        _totalEncryptionTime += encryptionTime;
                     }
 
-                    // Update progress
                     Status.RemainingFiles--;
                     Status.RemainingSize -= fileSize;
                     Status.Update();
+
+                    if (_businessMonitor.IsRunning())
+                    {
+                        string businessSoftwareName = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
+                        string message = $"Backup stopped due to business software {businessSoftwareName} being detected while processing file {sourceFile}";
+
+                        System.Windows.Forms.MessageBox.Show($"Business software {businessSoftwareName} detected. " +
+                                        $"Backup job {Name} will stop after processing file {sourceFile}.",
+                                        "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
+
+                        // Add details about the business software stop reason
+                        Status.Details = message;
+                        Stop();
+
+                        break;
+                    }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error processing file {sourceFile}: {ex.Message}");
+                    System.Windows.Forms.MessageBox.Show($"Error processing file {sourceFile}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                     // Continue with next file instead of failing the entire job
                 }
             }
@@ -237,7 +273,15 @@ namespace EasySave_by_ProSoft.Models
             if (_isRunning)
             {
                 _stopRequested = true;
-                Status.SetError("Backup stopped by user");
+
+                // If Details property is not already set with a specific reason,
+                // set a generic reason for stopping
+                if (string.IsNullOrEmpty(Status.Details))
+                {
+                    Status.Details = "Backup stopped by user";
+                }
+
+                Status.SetError(Status.Details);
             }
         }
 
@@ -250,7 +294,7 @@ namespace EasySave_by_ProSoft.Models
             {
                 _isPaused = false;
                 Status.Resume();
-                
+
                 // Continue processing files
                 ProcessFiles(toProcessFiles);
 
@@ -259,7 +303,7 @@ namespace EasySave_by_ProSoft.Models
                 {
                     Status.Complete();
                 }
-                
+
                 _isRunning = false;
             }
         }

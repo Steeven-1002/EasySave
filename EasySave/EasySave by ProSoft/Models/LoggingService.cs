@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using LoggingLibrary;
 
-namespace EasySave_by_ProSoft.Models 
+namespace EasySave_by_ProSoft.Models
 {
     public class LoggingService : JobEventListeners
     {
@@ -94,7 +94,6 @@ namespace EasySave_by_ProSoft.Models
                 details
             );
 
-            Console.WriteLine($"[LOG] {timestamp}: Job '{jobName}' updated. State: {newState}, Remaining Files: {remainingFiles}, Remaining Size: {remainingSize} bytes.");
         }
 
         /// <summary>
