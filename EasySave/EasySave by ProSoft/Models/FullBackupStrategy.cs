@@ -36,28 +36,26 @@ namespace EasySave_by_ProSoft.Models
 
                 // Get all files in the source directory and its subdirectories
                 List<string> allFiles = Directory.GetFiles(job.SourcePath, "*.*", SearchOption.AllDirectories).ToList();
-                
+
                 // Update job status with file count and total size
                 job.Status.TotalFiles = allFiles.Count;
                 job.Status.RemainingFiles = allFiles.Count;
-                
+
                 // Calculate total size of all files
                 long totalSize = 0;
                 foreach (string file in allFiles)
                 {
                     totalSize += new FileInfo(file).Length;
                 }
-                
+
                 job.Status.TotalSize = totalSize;
                 job.Status.RemainingSize = totalSize;
-                
-                // Log information about found files
-                Console.WriteLine($"Full backup: {allFiles.Count} files found for processing");
+
                 return allFiles;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"FullBackupStrategy ERROR: {ex.Message}");
+                System.Windows.Forms.MessageBox.Show($"Error retrieving files for full backup: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 throw;
             }
         }
