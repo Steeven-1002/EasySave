@@ -24,14 +24,14 @@ namespace EasySave_by_ProSoft.ViewModels
                 OnPropertyChanged();
             }
         }
-        
+
         private BackupJob? _selectedJob;
         public BackupJob? SelectedJob
         {
             get => _selectedJob;
             set { _selectedJob = value; OnPropertyChanged(); }
         }
-        
+
         private List<BackupJob> _selectedJobs = new List<BackupJob>();
         /// <summary>
         /// Gets or sets the list of selected backup jobs for multiple execution
@@ -51,13 +51,11 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
             _jobs = new ObservableCollection<BackupJob>();
-            
+
             CreateJobCommand = new RelayCommand(_ => CreateJob(), _ => true);
             LaunchJobCommand = new RelayCommand(_ => LaunchSelectedJob(), _ => SelectedJob != null);
             LaunchMultipleJobsCommand = new RelayCommand(_ => LaunchMultipleJobs(), _ => SelectedJobs != null && SelectedJobs.Count > 0);
             RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(), _ => SelectedJob != null);
-            
-            LoadJobs();
         }
 
         /// <summary>
@@ -67,7 +65,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             // Ensure BackupManager has the latest data from JSON
             _backupManager.LoadJobs();
-            
+
             Jobs.Clear();
             var jobs = _backupManager.GetAllJobs();
             foreach (var job in jobs)
@@ -109,7 +107,7 @@ namespace EasySave_by_ProSoft.ViewModels
                 SelectedJob.Start();
             }
         }
-        
+
         /// <summary>
         /// Launches multiple backup jobs that are selected in the UI
         /// </summary>
@@ -117,7 +115,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             if (SelectedJobs == null || SelectedJobs.Count == 0)
                 return;
-                
+
             // Get indices of selected jobs
             var jobIndices = new List<int>();
             foreach (var job in SelectedJobs)
@@ -128,7 +126,7 @@ namespace EasySave_by_ProSoft.ViewModels
                     jobIndices.Add(index);
                 }
             }
-            
+
             // Execute selected jobs using BackupManager
             if (jobIndices.Count > 0)
             {
@@ -169,16 +167,16 @@ namespace EasySave_by_ProSoft.ViewModels
     {
         private readonly Action<object?> _execute;
         private readonly Predicate<object?>? _canExecute;
-        
+
         public RelayCommand(Action<object?> execute, Predicate<object?>? canExecute = null)
         {
             _execute = execute;
             _canExecute = canExecute;
         }
-        
+
         public bool CanExecute(object? parameter) => _canExecute == null || _canExecute(parameter);
         public void Execute(object? parameter) => _execute(parameter);
-        
+
         public event EventHandler? CanExecuteChanged
         {
             add { CommandManager.RequerySuggested += value; }

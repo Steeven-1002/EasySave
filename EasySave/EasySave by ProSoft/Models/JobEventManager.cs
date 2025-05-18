@@ -4,24 +4,24 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace EasySave_by_ProSoft.Models 
+namespace EasySave_by_ProSoft.Models
 {
     /// <summary>
     /// Implements Observer pattern responsible for communicating job state changes
     /// to different listeners (logs, state.json file, MVVM view)
     /// </summary>
-    public class JobEventManager 
+    public class JobEventManager
     {
         // List of different listeners observing job state changes
         private List<JobEventListeners> listeners = new List<JobEventListeners>();
-        
+
         // Path to the state.json file maintained in real time
         private readonly string stateFilePath;
 
         /// <summary>
         /// Initializes a new instance of the job event manager
         /// </summary>
-        public JobEventManager() 
+        public JobEventManager()
         {
             // Define the state.json file location
             stateFilePath = Path.Combine(
@@ -29,7 +29,7 @@ namespace EasySave_by_ProSoft.Models
                 "EasySave",
                 "state.json"
             );
-            
+
             // Create directory if it doesn't exist
             string directoryPath = Path.GetDirectoryName(stateFilePath);
             if (!Directory.Exists(directoryPath))
@@ -42,7 +42,7 @@ namespace EasySave_by_ProSoft.Models
         /// Adds a listener to be notified of job state changes
         /// </summary>
         /// <param name="listener">The listener to add</param>
-        public void AddListener(JobEventListeners listener) 
+        public void AddListener(JobEventListeners listener)
         {
             if (listener != null && !listeners.Contains(listener))
             {
@@ -54,7 +54,7 @@ namespace EasySave_by_ProSoft.Models
         /// Removes a listener from the observer list
         /// </summary>
         /// <param name="listener">The listener to remove</param>
-        public void RemoveListener(JobEventListeners listener) 
+        public void RemoveListener(JobEventListeners listener)
         {
             listeners.Remove(listener);
         }
@@ -85,7 +85,7 @@ namespace EasySave_by_ProSoft.Models
                 );
             }
         }
-        
+
         /// <summary>
         /// Updates the state.json file with the current job state
         /// </summary>
@@ -105,7 +105,7 @@ namespace EasySave_by_ProSoft.Models
                 {
                     // Create a snapshot of the job for serialization
                     var snapshot = jobStatus.CreateSnapshot();
-                    
+
                     // Load existing states, if any
                     List<JobState> allJobStates = new List<JobState>();
                     if (fileStream.Length > 0)
@@ -119,8 +119,11 @@ namespace EasySave_by_ProSoft.Models
                                 string jsonContent = reader.ReadToEnd();
                                 if (!string.IsNullOrEmpty(jsonContent))
                                 {
+
+                                    Console.WriteLine(jobStatus.BackupJob.Name);
+
                                     allJobStates = JsonSerializer.Deserialize<List<JobState>>(jsonContent) ?? new List<JobState>();
-                                    
+
                                     // Ensure proper state for each job
                                     foreach (var state in allJobStates)
                                     {
@@ -140,7 +143,7 @@ namespace EasySave_by_ProSoft.Models
                             allJobStates = new List<JobState>();
                         }
                     }
-                    
+
                     // Update the current job state or add it if it doesn't exist
                     bool jobFound = false;
                     for (int i = 0; i < allJobStates.Count; i++)
@@ -148,13 +151,13 @@ namespace EasySave_by_ProSoft.Models
                         if (allJobStates[i].JobName == snapshot.JobName)
                         {
                             // Preserve processed files from previous state if needed for resume capability
-                            if (snapshot.State == BackupState.Running && 
-                                allJobStates[i].ProcessedFiles?.Count > 0 && 
+                            if (snapshot.State == BackupState.Running &&
+                                allJobStates[i].ProcessedFiles?.Count > 0 &&
                                 snapshot.ProcessedFiles?.Count == 0)
                             {
                                 snapshot.ProcessedFiles = allJobStates[i].ProcessedFiles;
                             }
-                            
+
                             // Copy updated job state but be careful not to reset important fields
                             if (snapshot.State == BackupState.Initialise)
                             {
@@ -162,13 +165,13 @@ namespace EasySave_by_ProSoft.Models
                                 // This preserves the previous state during initialization
                                 snapshot.State = allJobStates[i].State;
                             }
-                            
+
                             allJobStates[i] = snapshot;
                             jobFound = true;
                             break;
                         }
                     }
-                    
+
                     if (!jobFound)
                     {
                         // Validate state before adding a new job
@@ -188,29 +191,32 @@ namespace EasySave_by_ProSoft.Models
                             // Skip the job we just updated
                             if (allJobStates[i].JobName == snapshot.JobName)
                                 continue;
-                                
+
                             // Don't modify jobs that are in a final state (Completed or Error)
-                            if (allJobStates[i].State == BackupState.Completed || 
+                            if (allJobStates[i].State == BackupState.Completed ||
                                 allJobStates[i].State == BackupState.Error)
                                 continue;
-                                
+
                             // Preserve the state of Running or Paused jobs instead of resetting them to Waiting
                             if (allJobStates[i].State == BackupState.Initialise)
                             {
                                 // If a job is in Initialise state, set it to Waiting (this is safe)
                                 allJobStates[i].State = BackupState.Waiting;
                             }
+
+                            System.Diagnostics.Debug.WriteLine($"JobEventManager.cs | Job {allJobStates[i].JobName} is in state {allJobStates[i].State}");
+
                             // Otherwise leave the job in its current state (Running, Paused, or Waiting)
                         }
                     }
-                    
+
                     // Serialization options for JSON format
                     var options = new JsonSerializerOptions
                     {
                         WriteIndented = true,
                         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
                     };
-                    
+
                     // Clear file content and write updated JSON
                     fileStream.SetLength(0);
                     fileStream.Position = 0;
@@ -220,7 +226,7 @@ namespace EasySave_by_ProSoft.Models
                         writer.Write(serializedData);
                         writer.Flush();
                     }
-                    
+
                     // Ensure data is written to disk
                     fileStream.Flush(true);
                 }
@@ -236,7 +242,7 @@ namespace EasySave_by_ProSoft.Models
                 // Don't propagate error to avoid disrupting main flow
             }
         }
-        
+
         /// <summary>
         /// Retrieves all job states from the state.json file
         /// </summary>
@@ -256,12 +262,12 @@ namespace EasySave_by_ProSoft.Models
                         {
                             return new List<JobState>();
                         }
-                        
+
                         var options = new JsonSerializerOptions
                         {
                             PropertyNameCaseInsensitive = true
                         };
-                        
+
                         return JsonSerializer.Deserialize<List<JobState>>(jsonContent, options) ?? new List<JobState>();
                     }
                 }
@@ -275,10 +281,10 @@ namespace EasySave_by_ProSoft.Models
             {
                 Console.WriteLine($"Error reading state.json file: {ex.Message}");
             }
-            
+
             return new List<JobState>();
         }
-        
+
         /// <summary>
         /// Cleans up the state.json file by removing completed or error job states
         /// </summary>
@@ -287,15 +293,15 @@ namespace EasySave_by_ProSoft.Models
             try
             {
                 List<JobState> states = GetAllJobStates();
-                List<JobState> activeStates = states.FindAll(s => 
+                List<JobState> activeStates = states.FindAll(s =>
                     s.State != BackupState.Completed && s.State != BackupState.Error);
-                
+
                 var options = new JsonSerializerOptions
                 {
                     WriteIndented = true,
                     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
                 };
-                
+
                 string serializedData = JsonSerializer.Serialize(activeStates, options);
                 File.WriteAllText(stateFilePath, serializedData);
             }
