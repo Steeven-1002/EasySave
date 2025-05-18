@@ -6,13 +6,17 @@ using EasySave_by_ProSoft.Models;
 
 namespace EasySave_by_ProSoft.ViewModels
 {
-    public class JobAddViewModel : INotifyPropertyChanged
+
+    public class JobAddViewModel : INotifyPropertyChanged, JobEventListeners
     {
         private readonly BackupManager _backupManager;
         private string _name = string.Empty;
         private string _sourcePath = string.Empty;
         private string _targetPath = string.Empty;
         private BackupType _type = BackupType.Full;
+        private BackupState _status = BackupState.Initialise;
+        private int _progressPercentage = 0;
+        private JobEventManager _jobEventManager = JobEventManager.Instance;
 
         public string Name
         {
@@ -38,6 +42,21 @@ namespace EasySave_by_ProSoft.ViewModels
             set { _type = value; OnPropertyChanged(); }
         }
 
+        public BackupState Status
+        {
+            get => _status;
+            set
+            {
+                _status = value;
+                OnPropertyChanged();
+            }
+        }
+        public int ProgressPercentage
+        {
+            get => _progressPercentage;
+            set { _progressPercentage = value; OnPropertyChanged(); }
+        }
+
         public ICommand AddJobCommand { get; }
 
         public event Action<BackupJob>? JobAdded;
@@ -46,6 +65,16 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
             AddJobCommand = new RelayCommand(_ => AddJob(), _ => CanAddJob());
+            _jobEventManager.AddListener(this);
+        }
+        public void Update(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile, double transfertDuration, double encryptionTimeMs, string details = null)
+        {
+            // Update the job status based on the event data
+            if (jobName == Name)
+            {
+                Status = newState;
+                ProgressPercentage = (int)((totalSize - remainingSize) * 100 / totalSize);
+            }
         }
 
         private void AddJob()
@@ -55,9 +84,9 @@ namespace EasySave_by_ProSoft.ViewModels
             BackupType type = Type;
 
             var job = _backupManager.AddJob(Name, ref sourcePath, ref targetPath, ref type);
-            
+
             JobAdded?.Invoke(job);
-            
+
             Name = string.Empty;
             SourcePath = string.Empty;
             TargetPath = string.Empty;

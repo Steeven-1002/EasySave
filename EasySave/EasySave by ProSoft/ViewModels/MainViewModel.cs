@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using System.Windows.Threading;
 using EasySave_by_ProSoft.Models;
 
 namespace EasySave_by_ProSoft.ViewModels
@@ -15,6 +17,8 @@ namespace EasySave_by_ProSoft.ViewModels
     {
         private readonly BackupManager _backupManager;
         private ObservableCollection<BackupJob> _jobs;
+        private DispatcherTimer _statusUpdateTimer;
+
         public ObservableCollection<BackupJob> Jobs
         {
             get => _jobs;
@@ -46,6 +50,8 @@ namespace EasySave_by_ProSoft.ViewModels
         public ICommand LaunchJobCommand { get; }
         public ICommand LaunchMultipleJobsCommand { get; }
         public ICommand RemoveJobCommand { get; }
+        public ICommand PauseJobCommand { get; }
+        public ICommand ResumeJobCommand { get; }
 
         public MainViewModel(BackupManager backupManager)
         {
@@ -56,6 +62,26 @@ namespace EasySave_by_ProSoft.ViewModels
             LaunchJobCommand = new RelayCommand(_ => LaunchSelectedJob(), _ => SelectedJob != null);
             LaunchMultipleJobsCommand = new RelayCommand(_ => LaunchMultipleJobs(), _ => SelectedJobs != null && SelectedJobs.Count > 0);
             RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(), _ => SelectedJob != null);
+            PauseJobCommand = new RelayCommand(_ => PauseSelectedJob(), _ => CanPauseSelectedJob());
+            ResumeJobCommand = new RelayCommand(_ => ResumeSelectedJob(), _ => CanResumeSelectedJob());
+
+            // Configure timer to refresh job status every second
+            _statusUpdateTimer = new DispatcherTimer();
+            _statusUpdateTimer.Interval = TimeSpan.FromSeconds(1);
+            _statusUpdateTimer.Tick += StatusUpdateTimer_Tick;
+            _statusUpdateTimer.Start();
+        }
+
+        /// <summary>
+        /// Timer callback to refresh job status information
+        /// </summary>
+        private void StatusUpdateTimer_Tick(object sender, EventArgs e)
+        {
+            // Force UI update for all jobs to refresh their status and progress
+            foreach (var job in Jobs)
+            {
+                OnPropertyChanged(nameof(Jobs));
+            }
         }
 
         /// <summary>
@@ -109,6 +135,44 @@ namespace EasySave_by_ProSoft.ViewModels
         }
 
         /// <summary>
+        /// Pauses the selected backup job
+        /// </summary>
+        private void PauseSelectedJob()
+        {
+            if (SelectedJob != null && SelectedJob.Status.State == BackupState.Running)
+            {
+                SelectedJob.Pause();
+            }
+        }
+
+        /// <summary>
+        /// Determines if the selected job can be paused
+        /// </summary>
+        private bool CanPauseSelectedJob()
+        {
+            return SelectedJob != null && SelectedJob.Status.State == BackupState.Running;
+        }
+
+        /// <summary>
+        /// Resumes the selected backup job
+        /// </summary>
+        private void ResumeSelectedJob()
+        {
+            if (SelectedJob != null && SelectedJob.Status.State == BackupState.Paused)
+            {
+                SelectedJob.Resume();
+            }
+        }
+
+        /// <summary>
+        /// Determines if the selected job can be resumed
+        /// </summary>
+        private bool CanResumeSelectedJob()
+        {
+            return SelectedJob != null && SelectedJob.Status.State == BackupState.Paused;
+        }
+
+        /// <summary>
         /// Launches multiple backup jobs that are selected in the UI
         /// </summary>
         private void LaunchMultipleJobs()
@@ -153,6 +217,57 @@ namespace EasySave_by_ProSoft.ViewModels
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Gets a formatted string representation of job state
+        /// </summary>
+        public string GetJobStateDisplay(BackupJob job)
+        {
+            if (job == null)
+                return string.Empty;
+
+            return job.Status.State switch
+            {
+                BackupState.Waiting => "En attente",
+                BackupState.Running => "En cours",
+                BackupState.Paused => "En pause",
+                BackupState.Completed => "Terminé",
+                BackupState.Error => "Erreur",
+                _ => "Inconnu"
+            };
+        }
+
+        /// <summary>
+        /// Gets the job progress as a string with percentage
+        /// </summary>
+        public string GetJobProgressDisplay(BackupJob job)
+        {
+            if (job == null)
+                return "0%";
+
+            return $"{job.Status.ProgressPercentage:F1}%";
+        }
+
+        /// <summary>
+        /// Gets the job's remaining time estimation as a formatted string
+        /// </summary>
+        public string GetRemainingTimeDisplay(BackupJob job)
+        {
+            if (job == null || job.Status.State != BackupState.Running)
+                return string.Empty;
+
+            var remaining = job.Status.EstimatedTimeRemaining;
+
+            if (remaining.TotalSeconds < 1)
+                return "Calcul en cours...";
+
+            if (remaining.TotalHours >= 1)
+                return $"{(int)remaining.TotalHours}h {remaining.Minutes:D2}m {remaining.Seconds:D2}s";
+            else if (remaining.TotalMinutes >= 1)
+                return $"{remaining.Minutes}m {remaining.Seconds:D2}s";
+            else
+                return $"{remaining.Seconds}s";
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

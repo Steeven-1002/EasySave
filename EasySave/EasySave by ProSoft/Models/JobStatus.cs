@@ -241,7 +241,7 @@ namespace EasySave_by_ProSoft.Models
         public JobStatus(string jobName)
         {
             // Initialize the event manager for observer notifications
-            Events = new JobEventManager();
+            Events = JobEventManager.Instance;
             Events.AddListener(LoggingService.Instance);
             ExecutionId = Guid.NewGuid();
             LastStateChangeTime = DateTime.Now;

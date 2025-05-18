@@ -12,6 +12,9 @@ namespace EasySave_by_ProSoft.Models
     /// </summary>
     public class JobEventManager
     {
+        private static readonly Lazy<JobEventManager> instance = new Lazy<JobEventManager>(() => new JobEventManager());
+        public static JobEventManager Instance => instance.Value;
+
         // List of different listeners observing job state changes
         private List<JobEventListeners> listeners = new List<JobEventListeners>();
 
@@ -21,7 +24,7 @@ namespace EasySave_by_ProSoft.Models
         /// <summary>
         /// Initializes a new instance of the job event manager
         /// </summary>
-        public JobEventManager()
+        private JobEventManager()
         {
             // Define the state.json file location
             stateFilePath = Path.Combine(

@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:EasySave_by_ProSoft.Views"
              xmlns:localization="clr-namespace:EasySave_by_ProSoft.Localization"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="780">
+             d:DesignHeight="450" d:DesignWidth="980">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -22,6 +22,8 @@
                     <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementSource}" DisplayMemberBinding="{Binding SourcePath}" Width="200"/>
                     <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementTarget}" DisplayMemberBinding="{Binding TargetPath}" Width="200"/>
                     <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementType}" DisplayMemberBinding="{Binding Type}" Width="100"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementStatus}" DisplayMemberBinding="{Binding Status}" Width="100"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementProgressPercentage}" DisplayMemberBinding="{Binding ProgressPercentage}" Width="150"/>
                 </GridView>
             </ListView.View>
         </ListView>
@@ -51,10 +53,6 @@
                     <ComboBoxItem Content="{x:Static localization:Resources.BackupTypeFull}"/>
                     <ComboBoxItem Content="{x:Static localization:Resources.BackupTypeDifferential}"/>
                 </ComboBox>
-                <!--
-                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobEncryptExtensions}"/>
-                <TextBox x:Name="JobEncryptExtensionsTextBox" Margin="0,0,0,10" ToolTip="Ex: .docx,.xlsx,.pdf"/>
-                -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Content="{x:Static localization:Resources.ConfigNewJobValidate}" Margin="5" Click="ValidateNewJob_Click"/>
                     <Button Content="{x:Static localization:Resources.Cancel}" Margin="5" Click="CancelNewJob_Click"/>

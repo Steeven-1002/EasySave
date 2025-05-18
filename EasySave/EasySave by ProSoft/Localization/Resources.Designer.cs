@@ -106,6 +106,15 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Progress (%).
+        /// </summary>
+        public static string BackupWorkManagementProgressPercentage {
+            get {
+                return ResourceManager.GetString("BackupWorkManagementProgressPercentage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Source.
         /// </summary>
         public static string BackupWorkManagementSource {
@@ -120,6 +129,15 @@ namespace EasySave_by_ProSoft.Localization {
         public static string BackupWorkManagementStartBackupSelected {
             get {
                 return ResourceManager.GetString("BackupWorkManagementStartBackupSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Status.
+        /// </summary>
+        public static string BackupWorkManagementStatus {
+            get {
+                return ResourceManager.GetString("BackupWorkManagementStatus", resourceCulture);
             }
         }
         
