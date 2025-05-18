@@ -125,63 +125,53 @@ namespace EasySave_by_ProSoft.Models
             // Process each file that needs to be backed up
             foreach (string sourceFile in toProcessFiles)
             {
-                // Check if stop or pause was requested
                 if (_stopRequested || _isPaused)
                     break;
 
                 try
                 {
-                    // Update current file being processed
                     Status.CurrentSourceFile = sourceFile;
 
-                    // Calculate relative path to maintain directory structure
+                    // Construire chemin relatif et complet vers le fichier destination
                     string relativePath = sourceFile.Substring(SourcePath.Length).TrimStart('\\', '/');
                     string targetFile = Path.Combine(TargetPath, relativePath);
                     Status.CurrentTargetFIle = targetFile;
 
-                    // Create target directory if needed
+                    // Créer le répertoire cible s’il n’existe pas
                     string? targetDir = Path.GetDirectoryName(targetFile);
                     if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
-                    {
                         Directory.CreateDirectory(targetDir);
-                    }
 
-                    // Get file size for progress tracking
+                    // Obtenir la taille pour le suivi
                     long fileSize = new FileInfo(sourceFile).Length;
 
-                    // Récupération sécurisée de la liste d'extensions
-                    List<string> encryptionExtensions = new();
+                    // Étape 1 : copie du fichier source vers destination
+                    File.Copy(sourceFile, targetFile, true);
 
+                    // Étape 2 : si besoin, on chiffre le fichier destination
+                    List<string> encryptionExtensions = new();
                     var extensionsElement = AppSettings.Instance.GetSetting("EncryptionExtensions");
                     if (extensionsElement is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
                     {
                         foreach (var ext in jsonElement.EnumerateArray())
                         {
                             if (ext.ValueKind == JsonValueKind.String && ext.GetString() is string strExt)
-                            {
                                 encryptionExtensions.Add(strExt);
-                            }
                         }
                     }
 
-                    // Check if the file needs encryption
-                    if (_encryptionService.ShouldEncrypt(sourceFile, encryptionExtensions))
+                    // Vérifie si on doit chiffrer ce fichier destination
+                    if (_encryptionService.ShouldEncrypt(targetFile, encryptionExtensions))
                     {
                         string? encryptionKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
                         if (string.IsNullOrEmpty(encryptionKey))
                             throw new InvalidOperationException("Aucune clé de chiffrement définie dans les paramètres.");
 
-                        string sourceFileRef = sourceFile;
-                        long encryptionTime = _encryptionService.EncryptFile(ref sourceFileRef, encryptionKey);
+                        long encryptionTime = _encryptionService.EncryptFile(ref targetFile, encryptionKey);
                         _totalEncryptionTime += encryptionTime;
                     }
-                    else
-                    {
-                        // Simple copy if no encryption needed
-                        File.Copy(sourceFile, targetFile, true);
-                    }
 
-                    // Update progress
+                    // Suivi de progression
                     Status.RemainingFiles--;
                     Status.RemainingSize -= fileSize;
                     Status.Update();
@@ -189,7 +179,7 @@ namespace EasySave_by_ProSoft.Models
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error processing file {sourceFile}: {ex.Message}");
-                    // Continue with next file instead of failing the entire job
+                    // On continue le traitement des autres fichiers
                 }
             }
         }
