@@ -1,7 +1,8 @@
 using System;
 using System.Diagnostics;
-
-using System.Windows;
+using System.IO;
+using System.Linq;
+using System.Windows.Forms;
 
 namespace EasySave_by_ProSoft.Models
 {
@@ -28,21 +29,72 @@ namespace EasySave_by_ProSoft.Models
         public bool IsRunning()
         {
             if (string.IsNullOrWhiteSpace(monitoredApplication))
-            return false;
+                return false;
 
             try
             {
-                // Extract process name without extension
-                string processName = System.IO.Path.GetFileNameWithoutExtension(monitoredApplication);
+                // Try multiple approaches to find the process
+                string processName = Path.GetFileNameWithoutExtension(monitoredApplication);
+
+                // Log the process we're looking for in debug mode
+                Debug.WriteLine($"Monitoring for business application: '{monitoredApplication}', process name: '{processName}'");
 
                 // Check if any process with this name is running
                 Process[] processes = Process.GetProcessesByName(processName);
+
+                // Also try with lowercase process name as some processes register differently
+                if (processes.Length == 0)
+                {
+                    processes = Process.GetProcessesByName(processName.ToLower());
+                }
+
+                // Try just the first part of the name (before spaces) as another fallback
+                if (processes.Length == 0 && processName.Contains(" "))
+                {
+                    string shortName = processName.Split(' ')[0];
+                    processes = Process.GetProcessesByName(shortName);
+                    Debug.WriteLine($"Trying alternative process name: '{shortName}'");
+                }
+
+                // Try to get all processes and search for partial matches
+                if (processes.Length == 0)
+                {
+                    Process[] allProcesses = Process.GetProcesses();
+                    processes = allProcesses.Where(p =>
+                    {
+                        try
+                        {
+                            return p.ProcessName.Contains(processName, StringComparison.OrdinalIgnoreCase);
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                    }).ToArray();
+
+                    if (processes.Length > 0)
+                    {
+                        Debug.WriteLine($"Found process by partial name match: {processes[0].ProcessName}");
+                    }
+                }
+
+                if (processes.Length > 0)
+                {
+                    Debug.WriteLine($"Business application '{monitoredApplication}' is running. Found {processes.Length} matching processes.");
+                }
+                else
+                {
+                    Debug.WriteLine($"Business application '{monitoredApplication}' is not running. No matching processes found.");
+                }
+
                 return processes.Length > 0;
             }
             catch (Exception ex)
             {
-
-                System.Windows.Forms.MessageBox.Show($"Unexpected error: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                MessageBox.Show($"Error monitoring business application '{monitoredApplication}': {ex.Message}",
+                    "Business Application Monitor Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
                 return false;
             }
         }

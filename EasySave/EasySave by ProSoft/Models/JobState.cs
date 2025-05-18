@@ -49,13 +49,6 @@ namespace EasySave_by_ProSoft.Models
         [JsonIgnore]
         public BackupState State { get; set; } = BackupState.Initialise;
 
-
-
-
-
-
-
-
         [JsonPropertyName("TotalFilesToCopy")]
         public int TotalFiles { get; set; }
 
@@ -95,6 +88,9 @@ namespace EasySave_by_ProSoft.Models
 
         [JsonPropertyName("ProcessedFiles")]
         public List<string> ProcessedFiles { get; set; } = new List<string>();
+
+        [JsonIgnore]
+        public string Details { get; set; } = string.Empty;
 
         /// <summary>
         /// Default constructor
@@ -160,6 +156,7 @@ namespace EasySave_by_ProSoft.Models
             ExecutionId = jobStatus.ExecutionId;
             EncryptionTimeMs = jobStatus.EncryptionTimeMs;
             ProcessedFiles = new List<string>(jobStatus.ProcessedFiles);
+            Details = jobStatus.Details ?? string.Empty;
             SerializeStateToFile();
         }
 
@@ -257,6 +254,39 @@ namespace EasySave_by_ProSoft.Models
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Creates a snapshot of the current job state
+        /// </summary>
+        /// <returns>A new JobState instance representing the current state</returns>
+        public JobState CreateSnapshot()
+        {
+            var snapshot = new JobState
+            {
+                JobName = this.JobName,
+                SourcePath = this.SourcePath,
+                TargetPath = this.TargetPath,
+                Type = this.Type,
+                Timestamp = DateTime.Now,
+                State = this.State,
+                TotalFiles = this.TotalFiles,
+                TotalSize = this.TotalSize,
+                RemainingFiles = this.RemainingFiles,
+                RemainingSize = this.RemainingSize,
+                CurrentSourceFile = this.CurrentSourceFile ?? string.Empty,
+                CurrentTargetFile = this.CurrentTargetFile ?? string.Empty,
+                StartTime = this.StartTime,
+                EndTime = this.EndTime,
+                TransferRate = this.TransferRate,
+                ProgressPercentage = this.ProgressPercentage,
+                ExecutionId = this.ExecutionId,
+                EncryptionTimeMs = this.EncryptionTimeMs,
+                ProcessedFiles = new List<string>(this.ProcessedFiles),
+                Details = this.Details ?? string.Empty
+            };
+
+            return snapshot;
         }
     }
 }

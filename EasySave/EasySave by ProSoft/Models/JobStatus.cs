@@ -100,18 +100,18 @@ namespace EasySave_by_ProSoft.Models
             }
         }
 
-        private string currentTargetFIle;
+        private string currentTargetFile;
         public string CurrentTargetFile
         {
             get
             {
-                return currentTargetFIle;
+                return currentTargetFile;
             }
             set
             {
-                if (currentTargetFIle != value)
+                if (currentTargetFile != value)
                 {
-                    currentTargetFIle = value;
+                    currentTargetFile = value;
                     OnPropertyChanged();
                 }
             }
@@ -201,10 +201,14 @@ namespace EasySave_by_ProSoft.Models
         public string ErrorMessage { get; set; } = string.Empty;
 
         /// <summary>
+        /// Additional details about job status (e.g. reason for stopping)
+        /// </summary>
+        public string Details { get; set; } = string.Empty;
+
+        /// <summary>
         /// Event manager for observer notifications
         /// </summary>
         public JobEventManager Events;
-
 
         private JobEventManager jobEventManager;
         private BackupJob backupJob;
@@ -230,9 +234,6 @@ namespace EasySave_by_ProSoft.Models
         /// </summary>
         public long EncryptionTimeMs { get; set; }
 
-        public string CurrentTargetFile { get; internal set; }
-
-
         /// <summary>
         /// JobStatus constructor that initializes from a saved state
         /// </summary>
@@ -243,6 +244,8 @@ namespace EasySave_by_ProSoft.Models
             Events = new JobEventManager();
             Events.AddListener(LoggingService.Instance);
             ExecutionId = Guid.NewGuid();
+            LastStateChangeTime = DateTime.Now;
+            StartTime = DateTime.Now;
 
             LoadStateFromPrevious(jobName);
         }
@@ -348,11 +351,16 @@ namespace EasySave_by_ProSoft.Models
         /// <summary>
         /// Indicates that the job has started
         /// </summary>
-        public void Start()
+        /// <param name="details">Optional details about the job start</param>
+        public void Start(string details = null)
         {
             StartTime = DateTime.Now;
             State = BackupState.Running;
             EndTime = null;
+            if (!string.IsNullOrEmpty(details))
+            {
+                Details = details;
+            }
             Update();
         }
 
@@ -415,7 +423,8 @@ namespace EasySave_by_ProSoft.Models
                 ProgressPercentage = this.ProgressPercentage,
                 ExecutionId = this.ExecutionId,
                 EncryptionTimeMs = this.EncryptionTimeMs,
-                ProcessedFiles = new List<string>(this.ProcessedFiles)
+                ProcessedFiles = new List<string>(this.ProcessedFiles),
+                Details = this.Details ?? string.Empty
             };
 
             return snapshot;

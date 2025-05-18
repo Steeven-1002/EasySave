@@ -22,7 +22,44 @@ namespace EasySave_by_ProSoft.ViewModels
         public string BusinessSoftwareName
         {
             get => _settings.GetSetting("BusinessSoftwareName")?.ToString() ?? string.Empty;
-            set { _settings.SetSetting("BusinessSoftwareName", value); OnPropertyChanged(); SaveSettings(); }
+            set
+            {
+                // Ensure proper process name validation
+                string processName = value;
+
+                // Remove any unwanted characters that could cause process detection issues
+                if (!string.IsNullOrEmpty(processName))
+                {
+                    // If user provided a full path, extract just the filename
+                    if (processName.Contains("\\") || processName.Contains("/"))
+                    {
+                        try
+                        {
+                            processName = System.IO.Path.GetFileName(processName);
+                            System.Diagnostics.Debug.WriteLine($"Extracted filename from path: {processName}");
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Failed to extract filename: {ex.Message}");
+                        }
+                    }
+
+                    // If user provided a process name with extension, ensure it's saved properly
+                    if (!processName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                    {
+                        processName = $"{processName}.exe";
+                        System.Diagnostics.Debug.WriteLine($"Added .exe extension to process name: {processName}");
+                    }
+                }
+
+                _settings.SetSetting("BusinessSoftwareName", processName);
+                OnPropertyChanged();
+                SaveSettings();
+
+                // Verify the process name can be correctly extracted
+                string extractedName = System.IO.Path.GetFileNameWithoutExtension(processName);
+                System.Diagnostics.Debug.WriteLine($"Process name that will be used for detection: {extractedName}");
+            }
         }
 
         public string EncryptionExtensions
@@ -97,7 +134,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             SaveSettingsCommand = new RelayCommand(_ => SaveSettings(), _ => true);
             ValidateSettingsCommand = new RelayCommand(_ => ValidateSettings(), _ => true);
-            
+
             // Initialize selected log format
             _selectedLogFormat = LogFormat;
         }
@@ -117,7 +154,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             // Save settings to configuration file
             SaveSettings();
-            
+
             // Show confirmation message to the user
             System.Windows.MessageBox.Show(
                 Localization.Resources.SettingsSaved ?? "Settings saved successfully!",

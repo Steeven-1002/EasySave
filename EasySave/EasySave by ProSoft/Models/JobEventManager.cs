@@ -81,7 +81,8 @@ namespace EasySave_by_ProSoft.Models
                     jobStatus.CurrentSourceFile,
                     jobStatus.CurrentTargetFile,
                     jobStatus.TransferRate,
-                    jobStatus.EncryptionTimeMs
+                    jobStatus.EncryptionTimeMs,
+                    jobStatus.Details
                 );
             }
         }
@@ -223,9 +224,6 @@ namespace EasySave_by_ProSoft.Models
                         writer.Write(serializedData);
                         writer.Flush();
                     }
-
-                    // Ensure data is written to disk
-                    fileStream.Flush(true);
                 }
             }
             catch (IOException ex)
