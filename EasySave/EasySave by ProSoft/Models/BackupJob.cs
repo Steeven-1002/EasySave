@@ -37,7 +37,7 @@ namespace EasySave_by_ProSoft.Models
             TargetPath = targetPath;
             Type = type;
             Status = new JobStatus(name);
-            
+
             // Link this job to its status for proper state tracking
             Status.BackupJob = this;
 
@@ -48,7 +48,7 @@ namespace EasySave_by_ProSoft.Models
 
             // Select strategy based on backup type
             SetBackupStrategy(type);
-            
+
             // Attempt to load existing state from state.json
             LoadStateFromPrevious();
         }
@@ -62,9 +62,9 @@ namespace EasySave_by_ProSoft.Models
             {
                 var states = Status.Events.GetAllJobStates();
                 var previousState = states.Find(s => s.JobName == Name);
-                
-                if (previousState != null && 
-                    (previousState.State == BackupState.Paused || 
+
+                if (previousState != null &&
+                    (previousState.State == BackupState.Paused ||
                      previousState.State == BackupState.Error))
                 {
                     // Apply relevant state properties for potential resume
@@ -72,7 +72,7 @@ namespace EasySave_by_ProSoft.Models
                     Status.TotalSize = previousState.TotalSize;
                     Status.RemainingFiles = previousState.RemainingFiles;
                     Status.RemainingSize = previousState.RemainingSize;
-                    
+
                     // Copy processed files for resume capability
                     if (previousState.ProcessedFiles != null)
                     {
@@ -81,7 +81,7 @@ namespace EasySave_by_ProSoft.Models
                             Status.AddProcessedFile(file);
                         }
                     }
-                    
+
                     // Update the UI
                     Status.Update();
                 }
@@ -211,7 +211,7 @@ namespace EasySave_by_ProSoft.Models
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error processing file {sourceFile}: {ex.Message}");
+                    System.Windows.Forms.MessageBox.Show($"Error processing file {sourceFile}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                     // Continue with next file instead of failing the entire job
                 }
             }
@@ -250,7 +250,7 @@ namespace EasySave_by_ProSoft.Models
             {
                 _isPaused = false;
                 Status.Resume();
-                
+
                 // Continue processing files
                 ProcessFiles(toProcessFiles);
 
@@ -259,7 +259,7 @@ namespace EasySave_by_ProSoft.Models
                 {
                     Status.Complete();
                 }
-                
+
                 _isRunning = false;
             }
         }
