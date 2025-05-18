@@ -146,7 +146,6 @@ namespace EasySave_by_ProSoft.Models
                                 // Add the job using existing method
                                 var job = new BackupJob(jobData.Name, sourcePath, targetPath, jobData.Type, this);
 
-                                System.Diagnostics.Debug.WriteLine($"Loaded job: {job.Name} from {sourcePath} to {targetPath} of type {type}");
 
                                 backupJobs.Add(job);
                             }
