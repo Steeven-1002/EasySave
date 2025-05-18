@@ -152,9 +152,14 @@ namespace EasySave_by_ProSoft.Models
                     if (_encryptionService.ShouldEncrypt(sourceFile, AppSettings.Instance.GetSetting("EncryptExtensions") as List<string>))
                     {
                         // Encrypt the file
+                        string? encryptionKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
+                        if (string.IsNullOrEmpty(encryptionKey))
+                        {
+                            throw new InvalidOperationException("Aucune cl  de chiffrement d finie dans les param tres.");
+                        }
+
                         string sourceFileRef = sourceFile;
-                        string targetFileRef = targetFile;
-                        long encryptionTime = _encryptionService.EncryptFile(ref sourceFileRef, ref targetFileRef);
+                        long encryptionTime = _encryptionService.EncryptFile(ref sourceFileRef, encryptionKey);
                         _totalEncryptionTime += encryptionTime;
                     }
                     else
@@ -209,7 +214,7 @@ namespace EasySave_by_ProSoft.Models
             {
                 _isPaused = false;
                 Status.Resume();
-                
+
                 // Continue processing files
                 ProcessFiles(toProcessFiles);
 
@@ -218,7 +223,7 @@ namespace EasySave_by_ProSoft.Models
                 {
                     Status.Complete();
                 }
-                
+
                 _isRunning = false;
             }
         }
