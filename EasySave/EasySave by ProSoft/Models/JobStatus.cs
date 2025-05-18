@@ -101,9 +101,9 @@ namespace EasySave_by_ProSoft.Models {
                 }
             }
         }
-        
+
         // Properties for job tracking
-        
+
         /// <summary>
         /// Restoration points for backup resume
         /// </summary>

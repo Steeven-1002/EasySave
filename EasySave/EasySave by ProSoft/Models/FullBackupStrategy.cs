@@ -24,7 +24,7 @@ namespace EasySave_by_ProSoft.Models
         /// Gets all files and folders recursively from the source path of the backup job
         /// </summary>
         /// <param name="job">The backup job to process</param>
-        public void GetFiles(ref BackupJob job)
+        public List<String> GetFiles(ref BackupJob job)
         {
             try
             {
@@ -53,6 +53,7 @@ namespace EasySave_by_ProSoft.Models
                 
                 // Log information about found files
                 Console.WriteLine($"Full backup: {allFiles.Count} files found for processing");
+                return allFiles;
             }
             catch (Exception ex)
             {

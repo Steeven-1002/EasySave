@@ -11,7 +11,7 @@ namespace EasySave_by_ProSoft.ViewModels
     /// <summary>
     /// View model for managing backup jobs
     /// </summary>
-    public class BackupJobsViewModel : INotifyPropertyChanged
+    public class MainViewModel : INotifyPropertyChanged
     {
         private readonly BackupManager _backupManager;
         private ObservableCollection<BackupJob> _jobs;
@@ -47,7 +47,7 @@ namespace EasySave_by_ProSoft.ViewModels
         public ICommand LaunchMultipleJobsCommand { get; }
         public ICommand RemoveJobCommand { get; }
 
-        public BackupJobsViewModel(BackupManager backupManager)
+        public MainViewModel(BackupManager backupManager)
         {
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
             _jobs = new ObservableCollection<BackupJob>();

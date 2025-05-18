@@ -16,7 +16,7 @@ namespace EasySave_by_ProSoft.Views
     public partial class BackupJobsView : System.Windows.Controls.UserControl
     {
         private readonly BackupManager _backupManager;
-        private readonly BackupJobsViewModel _backupJobsViewModel;
+        private readonly MainViewModel _backupJobsViewModel;
         private readonly JobAddViewModel _jobAddViewModel;
         
         public BackupJobsView()
@@ -29,7 +29,7 @@ namespace EasySave_by_ProSoft.Views
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
             
             // Create ViewModels with the BackupManager
-            _backupJobsViewModel = new BackupJobsViewModel(_backupManager);
+            _backupJobsViewModel = new MainViewModel(_backupManager);
             _jobAddViewModel = new JobAddViewModel(_backupManager);
             
             // Connect events

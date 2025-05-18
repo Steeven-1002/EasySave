@@ -27,7 +27,7 @@ namespace EasySave_by_ProSoft.Models
         /// - Files whose hash has changed since last backup
         /// </summary>
         /// <param name="job">The backup job to process</param>
-        public void GetFiles(ref BackupJob job)
+        public List<String> GetFiles(ref BackupJob job)
         {
             try
             {
@@ -94,6 +94,8 @@ namespace EasySave_by_ProSoft.Models
 
                 // Log information about files to be copied
                 Console.WriteLine($"Differential backup: {filesToCopy.Count} files need to be copied out of {sourceFiles.Count} total files");
+
+                return filesToCopy;
             }
             catch (Exception ex)
             {
