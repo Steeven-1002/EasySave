@@ -90,9 +90,6 @@ namespace EasySave_by_ProSoft.Models
                 job.Status.TotalSize = totalSize;
                 job.Status.RemainingSize = totalSize;
 
-                // Log information about files to be copied
-                Console.WriteLine($"Differential backup: {filesToCopy.Count} files need to be copied out of {sourceFiles.Count} total files");
-
                 return filesToCopy;
             }
             catch (Exception ex)
