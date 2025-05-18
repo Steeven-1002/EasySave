@@ -9,6 +9,9 @@ using EasySave_by_ProSoft.ViewModels;
 
 namespace EasySave_by_ProSoft.Views
 {
+    /// <summary>
+    /// View for application settings - implements MVVM pattern
+    /// </summary>
     public partial class SettingsView : System.Windows.Controls.UserControl
     {
         private string _initialCultureName;
@@ -54,7 +57,6 @@ namespace EasySave_by_ProSoft.Views
             {
                 if (EnglishRadioButton != null) EnglishRadioButton.IsChecked = true;
             }
-            
         }
 
         private void LanguageRadioButton_Checked(object sender, RoutedEventArgs e)
@@ -110,6 +112,9 @@ namespace EasySave_by_ProSoft.Views
             }
         }
         
+        // This method is no longer used as it's replaced by command binding
+        // Keeping it commented for reference
+        /*
         private void ValidateSettings_Click(object sender, RoutedEventArgs e)
         {
             // Update log format from ComboBox
@@ -126,5 +131,6 @@ namespace EasySave_by_ProSoft.Views
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
         }
+        */
     }
 }

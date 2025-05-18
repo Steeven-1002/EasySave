@@ -16,7 +16,8 @@ namespace LoggingLibrary
         public long? FileSize { get; set; }
         public double? FileTransferTimeMs { get; set; }
         public DateTime Timestamp { get; set; }
-        public string? EncryptionTimsMs { get; set; }
+        public double? EncryptionTimsMs { get; set; }
+        public string? Details { get; set; }
     }
 
     /// <summary>
