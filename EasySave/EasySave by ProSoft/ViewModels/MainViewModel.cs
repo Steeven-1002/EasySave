@@ -89,10 +89,22 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private void StatusUpdateTimer_Tick(object sender, EventArgs e)
         {
-            // Force UI update for all jobs to refresh their status and progress
-            foreach (var job in Jobs)
+            // Create a copy of the collection to iterate over
+            var jobsCopy = Jobs.ToList();
+
+            foreach (var job in jobsCopy)
             {
                 OnPropertyChanged(nameof(Jobs));
+
+                var tempJob = job;
+                if (tempJob != null)
+                {
+                    var index = Jobs.IndexOf(tempJob);
+                    if (index >= 0)
+                    {
+                        Jobs[index] = tempJob; // Replace without removing
+                    }
+                }
             }
         }
 
@@ -101,26 +113,70 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         public void LoadJobs()
         {
+            // Save currently selected job IDs to restore selection after refresh
+            var selectedJobIds = SelectedJobs?.Select(j => j.Name).ToList() ?? new List<string>();
+
             // Ensure BackupManager has the latest data from JSON
             _backupManager.LoadJobs();
 
-            Jobs.Clear();
+            // Get the updated job list
             var jobs = _backupManager.GetAllJobs();
+
+            // Clear and reload jobs
+            Jobs.Clear();
             foreach (var job in jobs)
             {
+                // Restore selection state
+                job.IsSelected = selectedJobIds.Contains(job.Name);
                 Jobs.Add(job);
+
+                // Ensure we update selection in the view model too
+                if (job.IsSelected)
+                {
+                    if (SelectedJobs == null)
+                        SelectedJobs = new List<BackupJob>();
+
+                    if (!SelectedJobs.Contains(job))
+                        SelectedJobs.Add(job);
+                }
             }
+
+            // Keep selection synchronized
+            SelectedJob = SelectedJobs;
+
             OnPropertyChanged(nameof(Jobs));
+            OnPropertyChanged(nameof(SelectedJob));
+            OnPropertyChanged(nameof(SelectedJobs));
         }
 
         /// <summary>
-        /// Adds a job to the observable collection
+        /// Updates the selection based on checkbox states
+        /// </summary>
+        public void UpdateSelectionFromCheckboxes()
+        {
+            var selected = Jobs.Where(j => j.IsSelected).ToList();
+            SelectedJobs = selected;
+            SelectedJob = selected.Count > 0 ? selected : null;
+        }
+
+        /// <summary>
+        /// Adds a job to the observable collection and sets up property change notifications
         /// </summary>
         /// <param name="job">The job to add</param>
         public void JobAdded(BackupJob job)
         {
             if (!Jobs.Contains(job))
             {
+                // Listen for property changes on the job's status
+                if (job.Status is INotifyPropertyChanged statusNotifier)
+                {
+                    statusNotifier.PropertyChanged += (s, e) => 
+                    {
+                        // Force UI refresh when job status changes
+                        OnPropertyChanged(nameof(Jobs));
+                    };
+                }
+                
                 Jobs.Add(job);
                 OnPropertyChanged(nameof(Jobs));
             }

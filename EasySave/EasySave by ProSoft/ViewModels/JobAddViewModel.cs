@@ -69,11 +69,25 @@ namespace EasySave_by_ProSoft.ViewModels
         public void Update(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile, double transfertDuration, double encryptionTimeMs, string details = null)
         {
             // Update the job status based on the event data
-            if (jobName == Name)
+            Status = newState;
+            
+            // Calculate progress percentage properly based on remaining vs total
+            if (totalSize > 0)
             {
-                Status = newState;
-                ProgressPercentage = (int)((totalSize - remainingSize) * 100 / totalSize);
+                ProgressPercentage = (int)Math.Round((double)(totalSize - remainingSize) / totalSize * 100, 0);
             }
+            else if (totalFiles > 0)
+            {
+                ProgressPercentage = (int)Math.Round((double)(totalFiles - remainingFiles) / totalFiles * 100, 0);
+            }
+            else
+            {
+                ProgressPercentage = 0;
+            }
+            
+            // Make sure to notify property changes
+            OnPropertyChanged(nameof(Status));
+            OnPropertyChanged(nameof(ProgressPercentage));
         }
 
         private void AddJob()

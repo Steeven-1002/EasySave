@@ -43,29 +43,19 @@ namespace EasySave_by_ProSoft.Views
             {
                 BackupJobsListView.ItemsSource = _backupJobsViewModel.Jobs;
                 BackupJobsListView.SelectionMode = System.Windows.Controls.SelectionMode.Extended;
+
+                // You can keep this event handler for backwards compatibility or remove it
+                // if you're fully migrating to the checkbox-based selection
                 BackupJobsListView.SelectionChanged += (s, e) =>
                 {
-                    if (BackupJobsListView.SelectedItems.Count == 1)
+                    foreach (var item in e.RemovedItems)
                     {
-                        // When a single item is selected, set SelectedJob to that item (as a list)
-                        var selectedJob = BackupJobsListView.SelectedItem as BackupJob;
-                        if (selectedJob != null)
+                        if (item is BackupJob job && job.IsSelected)
                         {
-                            _backupJobsViewModel.SelectedJob = new List<BackupJob> { selectedJob };
-                            _backupJobsViewModel.SelectedJobs = new List<BackupJob> { selectedJob };
+                            // Don't uncheck the checkbox if the item is still selected in checkbox mode
+                            e.Handled = true;
+                            return;
                         }
-                    }
-                    else if (BackupJobsListView.SelectedItems.Count > 1)
-                    {
-                        // When multiple items are selected, set SelectedJob to the list
-                        var selectedJobs = BackupJobsListView.SelectedItems.Cast<BackupJob>().ToList();
-                        _backupJobsViewModel.SelectedJob = selectedJobs;
-                        _backupJobsViewModel.SelectedJobs = selectedJobs;
-                    }
-                    else
-                    {
-                        _backupJobsViewModel.SelectedJob = null;
-                        _backupJobsViewModel.SelectedJobs = new List<BackupJob>();
                     }
                 };
             }
@@ -90,6 +80,7 @@ namespace EasySave_by_ProSoft.Views
         /// </summary>
         private void LaunchSelectedJob_Click(object sender, RoutedEventArgs e)
         {
+            // Check for selected jobs via checkboxes
             if (_backupJobsViewModel.SelectedJob == null || _backupJobsViewModel.SelectedJob.Count == 0)
             {
                 System.Windows.MessageBox.Show("No backup selected");
@@ -113,14 +104,17 @@ namespace EasySave_by_ProSoft.Views
         /// </summary>
         private void LaunchMultipleJobs_Click(object sender, RoutedEventArgs e)
         {
-            if (BackupJobsListView.SelectedItems.Count == 0)
+            // Get selected jobs via checkboxes
+            var selectedJobs = _backupJobsViewModel.Jobs.Where(job => job.IsSelected).ToList();
+
+            if (selectedJobs.Count == 0)
             {
                 System.Windows.MessageBox.Show("Please select at least one job to launch.");
                 return;
             }
 
             _backupJobsViewModel.LaunchMultipleJobsCommand.Execute(null);
-            System.Windows.MessageBox.Show($"{BackupJobsListView.SelectedItems.Count} jobs have been launched.");
+            System.Windows.MessageBox.Show($"{selectedJobs.Count} jobs have been launched.");
         }
 
         private void CreateNewJob_Click(object sender, RoutedEventArgs e)
@@ -205,6 +199,32 @@ namespace EasySave_by_ProSoft.Views
             {
                 CreateJobPanel.Visibility = Visibility.Collapsed; // Hide the panel on cancel
             }
+        }
+
+        /// <summary>
+        /// Event handler for checkbox change events
+        /// </summary>
+        private void BackupJob_CheckChanged(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.CheckBox checkBox && checkBox.DataContext is BackupJob job)
+            {
+                UpdateSelectedJobsFromCheckboxes();
+            }
+        }
+
+        /// <summary>
+        /// Updates the view model's selected jobs based on checkbox states
+        /// </summary>
+        private void UpdateSelectedJobsFromCheckboxes()
+        {
+            // Get all jobs that have IsSelected = true
+            var selectedJobs = _backupJobsViewModel.Jobs
+                .Where(job => job.IsSelected)
+                .ToList();
+
+            // Update the view model
+            _backupJobsViewModel.SelectedJob = selectedJobs.Count > 0 ? selectedJobs : null;
+            _backupJobsViewModel.SelectedJobs = selectedJobs;
         }
     }
 }
