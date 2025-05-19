@@ -1,11 +1,6 @@
 using EasySave.Services;
-using EasySave_by_ProSoft.Localization;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
-using System.Windows;
 
 namespace EasySave_by_ProSoft.Models
 {
@@ -219,7 +214,7 @@ namespace EasySave_by_ProSoft.Models
                         // Encrypt the file
                         string key = AppSettings.Instance.GetSetting("EncryptionKey") as string ?? string.Empty;
                         if (!string.IsNullOrEmpty(key))
-                            {
+                        {
                             // Encrypt the file and update the encryption time
                             _encryptionTime = _encryptionService.EncryptFile(ref targetFile, key);
                         }

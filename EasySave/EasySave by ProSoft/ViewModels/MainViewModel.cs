@@ -278,6 +278,7 @@ namespace EasySave_by_ProSoft.ViewModels
             };
         }
 
+
         /// <summary>
         /// Gets the job progress as a string with percentage
         /// </summary>

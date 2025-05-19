@@ -22,7 +22,7 @@
                     <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementSource}" DisplayMemberBinding="{Binding SourcePath}" Width="200"/>
                     <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementTarget}" DisplayMemberBinding="{Binding TargetPath}" Width="200"/>
                     <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementType}" DisplayMemberBinding="{Binding Type}" Width="100"/>
-                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementStatus}" DisplayMemberBinding="{Binding Status}" Width="100"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementStatus}" DisplayMemberBinding="{Binding Status.State}" Width="100"/>
                     <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementProgressPercentage}" DisplayMemberBinding="{Binding ProgressPercentage}" Width="150"/>
                 </GridView>
             </ListView.View>

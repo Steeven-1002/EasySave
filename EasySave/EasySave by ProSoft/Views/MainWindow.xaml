@@ -13,7 +13,7 @@
             <RowDefinition/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="510,10,10,10">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="802,10,10,10">
             <Button Content="{x:Static localization:Resources.MainBackupManagement}" Margin="5" Click="ShowBackupJobs_Click" VerticalAlignment="Center"/>
             <Button Content="{x:Static localization:Resources.MainSettings}" Margin="5" Click="ShowSettings_Click" VerticalAlignment="Center"/>
             <Button Content="{x:Static localization:Resources.MainQuit}" Margin="5" Click="Exit_Click" VerticalAlignment="Center"/>

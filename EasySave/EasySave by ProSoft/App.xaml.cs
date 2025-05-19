@@ -1,8 +1,6 @@
-﻿using System.Windows;
-using System.Threading;
+﻿using EasySave_by_ProSoft.Properties; // For Settings.Default
 using System.Globalization;
-using EasySave_by_ProSoft.Properties; // For Settings.Default
-using EasySave_by_ProSoft.Localization;
+using System.Windows;
 
 namespace EasySave_by_ProSoft
 {

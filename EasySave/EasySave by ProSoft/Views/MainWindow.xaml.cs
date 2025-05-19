@@ -1,9 +1,6 @@
-﻿using System.Globalization;
-using System.Threading;
-using System.Windows;
-using EasySave_by_ProSoft.Models;
-using EasySave_by_ProSoft.ViewModels;
+﻿using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Views;
+using System.Windows;
 
 namespace EasySave_by_ProSoft
 {
@@ -20,9 +17,9 @@ namespace EasySave_by_ProSoft
         {
             // Create the BackupManager instance to be shared between ViewModels
             _backupManager = new BackupManager();
-            
+
             InitializeComponent();
-            
+
             // Create views with the BackupManager
             _backupJobsView = new BackupJobsView(_backupManager);
             _settingsView = new SettingsView();

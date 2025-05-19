@@ -1,7 +1,7 @@
-using System;
-
-namespace EasySave_by_ProSoft.Models {
-    public enum BackupState {
+namespace EasySave_by_ProSoft.Models
+{
+    public enum BackupState
+    {
         Waiting,
         Running,
         Paused,
