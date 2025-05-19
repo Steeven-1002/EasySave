@@ -23,8 +23,8 @@ namespace EasySave_by_ProSoft.Models
         private EncryptionService _encryptionService;
         private IBackupFileStrategy _backupFileStrategy;
         private BackupManager _backupManager;
-        private long _totalEncryptionTime = 0;
-        public long TotalEncryptionTime => _totalEncryptionTime; // Add this property for logging
+        private long _encryptionTime = 0;
+        public long TotalEncryptionTime => _encryptionTime; // Add this property for logging
         private bool _isRunning = false;
         private bool _isPaused = false;
         private bool _stopRequested = false;
@@ -205,28 +205,38 @@ namespace EasySave_by_ProSoft.Models
                     // Step 2: if necessary, encrypt the destination file
                     List<string> encryptionExtensions = new();
                     var extensionsElement = AppSettings.Instance.GetSetting("EncryptionExtensions");
-                    if (extensionsElement is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
+                    if (extensionsElement != null && extensionsElement is JsonElement jsonElement)
+                    {
+                        foreach (var ext in jsonElement.EnumerateArray())
+                        {
+                            encryptionExtensions.Add(ext.GetString()!);
+                        }
+                    }
+                    if (_encryptionService.ShouldEncrypt(sourceFile, encryptionExtensions))
                     {
                         // Encrypt the file
-                        string targetFileRef = targetFile;
-                        string encryptionKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
-                        long encryptionTime = _encryptionService.EncryptFile(ref targetFile, encryptionKey);
-                        _totalEncryptionTime += encryptionTime;
+                        string key = AppSettings.Instance.GetSetting("EncryptionKey") as string ?? string.Empty;
+                        if (!string.IsNullOrEmpty(key))
+                            {
+                            // Encrypt the file and update the encryption time
+                            _encryptionTime = _encryptionService.EncryptFile(ref targetFile, key);
+                        }
+                        else
+                        {
+                            // If no key is provided, just set the encryption time to 0
+                            _encryptionTime = 0;
+                            System.Windows.Forms.MessageBox.Show("Encryption key is empty. File will not be encrypted.", "Warning", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
+                        }
+                        _encryptionTime = _encryptionService.EncryptFile(ref targetFile, key);
                     }
-
-                    // Check if this destination file should be encrypted
-                    if (_encryptionService.ShouldEncrypt(targetFile, encryptionExtensions))
+                    else
                     {
-                        string? encryptionKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
-                        if (string.IsNullOrEmpty(encryptionKey))
-                            throw new InvalidOperationException("No encryption key defined in settings.");
-
-                        long encryptionTime = _encryptionService.EncryptFile(ref targetFile, encryptionKey);
-                        _totalEncryptionTime += encryptionTime;
+                        // If not encrypting, just set the encryption time to 0
+                        _encryptionTime = 0;
                     }
-
                     Status.RemainingFiles--;
                     Status.RemainingSize -= fileSize;
+                    Status.EncryptionTimeMs = _encryptionTime;
                     Status.Update();
 
                     if (_businessMonitor.IsRunning())

@@ -49,7 +49,7 @@
             <TextBox x:Name="BusinessSoftwareProcessNameTextBox" ToolTip="Ex: calc.exe" Margin="0,0,0,10" Text="{Binding BusinessSoftwareName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
             <TextBlock Text="Clé de chiffrement :" VerticalAlignment="Center" Margin="0,0,5,0"/>
-            <PasswordBox x:Name="EncryptionKeyBox" Margin="0,0,0,10" Width="200" />
+            <PasswordBox x:Name="EncryptionKeyBox" Margin="0,0,0,10" Width="200" PasswordChanged="EncryptionKeyBox_PasswordChanged"/>
 
             <TextBlock Text="{x:Static localization:Resources.LogFileFormatSetting}" Margin="0,0,0,5" />
             <ComboBox x:Name="LogFormatComboBox" Margin="0,0,0,20" Text="{Binding LogFormat, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
