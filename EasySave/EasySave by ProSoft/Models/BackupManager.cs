@@ -20,9 +20,9 @@ namespace EasySave_by_ProSoft.Models
         public BackupManager()
         {
             backupJobs = new List<BackupJob>();
-            // Define the jobs configuration file path in LocalApplicationData/EasySave
+            // Define the jobs configuration file path in ApplicationData/EasySave
             jobsConfigFilePath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "EasySave",
                 "jobs.json"
             );
