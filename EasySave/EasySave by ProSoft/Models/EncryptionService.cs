@@ -76,12 +76,12 @@ namespace EasySave_by_ProSoft.Models
                     process.StartInfo.CreateNoWindow = true;
                     process.StartInfo.RedirectStandardOutput = true;
                     process.StartInfo.RedirectStandardError = true;
-
                     process.Start();
-                    process.BeginOutputReadLine();
+
                     long encryptionTime = 0;
+                    string output = process.StandardOutput.ReadToEnd(); // Correct usage of ReadToEnd
                     process.WaitForExit();
-                    string output = process.StandardOutput.ReadToEnd();
+
                     encryptionTime = long.Parse(output.Trim());
 
                     // Check exit code

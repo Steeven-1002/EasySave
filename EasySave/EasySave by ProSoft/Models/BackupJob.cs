@@ -23,8 +23,8 @@ namespace EasySave_by_ProSoft.Models
         private EncryptionService _encryptionService;
         private IBackupFileStrategy _backupFileStrategy;
         private BackupManager _backupManager;
-        private long _totalEncryptionTime = 0;
-        public long TotalEncryptionTime => _totalEncryptionTime; // Add this property for logging
+        private long _encryptionTime = 0;
+        public long TotalEncryptionTime => _encryptionTime; // Add this property for logging
         private bool _isRunning = false;
         private bool _isPaused = false;
         private bool _stopRequested = false;
@@ -190,6 +190,7 @@ namespace EasySave_by_ProSoft.Models
                     string relativePath = sourceFile.Substring(SourcePath.Length).TrimStart('\\', '/');
                     string targetFile = Path.Combine(TargetPath, relativePath);
                     Status.CurrentTargetFile = targetFile;
+                    _encryptionTime = 0;
 
                     // Create the target directory if it doesn't exist
                     string? targetDir = Path.GetDirectoryName(targetFile);
@@ -210,23 +211,12 @@ namespace EasySave_by_ProSoft.Models
                         // Encrypt the file
                         string targetFileRef = targetFile;
                         string encryptionKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
-                        long encryptionTime = _encryptionService.EncryptFile(ref targetFile, encryptionKey);
-                        _totalEncryptionTime += encryptionTime;
-                    }
-
-                    // Check if this destination file should be encrypted
-                    if (_encryptionService.ShouldEncrypt(targetFile, encryptionExtensions))
-                    {
-                        string? encryptionKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
-                        if (string.IsNullOrEmpty(encryptionKey))
-                            throw new InvalidOperationException("No encryption key defined in settings.");
-
-                        long encryptionTime = _encryptionService.EncryptFile(ref targetFile, encryptionKey);
-                        _totalEncryptionTime += encryptionTime;
+                        _encryptionTime = _encryptionService.EncryptFile(ref targetFile, encryptionKey);
                     }
 
                     Status.RemainingFiles--;
                     Status.RemainingSize -= fileSize;
+                    Status.EncryptionTimeMs = _encryptionTime;
                     Status.Update();
 
                     if (_businessMonitor.IsRunning())

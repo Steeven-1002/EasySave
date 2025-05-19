@@ -34,6 +34,16 @@ namespace EasySave_by_ProSoft.Views
                 EncryptionKeyBox.Password = savedKey;
             }
 
+            // Synchronize PasswordBox with ViewModel if EncryptionKey changes in ViewModel
+            _settingsViewModel.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(SettingsViewModel.EncryptionKey))
+                {
+                    if (EncryptionKeyBox.Password != _settingsViewModel.EncryptionKey)
+                        EncryptionKeyBox.Password = _settingsViewModel.EncryptionKey;
+                }
+            };
+
             // Initialize the log format ComboBox
             if (LogFormatComboBox != null)
             {
@@ -118,6 +128,16 @@ namespace EasySave_by_ProSoft.Views
 
                 Settings.Default.UserLanguage = _initialCultureName;
                 Settings.Default.Save();
+            }
+        }
+
+        // Add this event handler to synchronize PasswordBox with ViewModel
+        private void EncryptionKeyBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is SettingsViewModel vm)
+            {
+                if (EncryptionKeyBox.Password != vm.EncryptionKey)
+                    vm.EncryptionKey = EncryptionKeyBox.Password;
             }
         }
     }

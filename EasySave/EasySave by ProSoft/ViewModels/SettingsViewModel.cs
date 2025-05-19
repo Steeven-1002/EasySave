@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace EasySave_by_ProSoft.ViewModels
@@ -94,8 +95,11 @@ namespace EasySave_by_ProSoft.ViewModels
 
         }
 
-
-
+        public string EncryptionKey
+        {
+            get => _settings.GetSetting("EncryptionKey")?.ToString() ?? string.Empty;
+            set { _settings.SetSetting("EncryptionKey", value); OnPropertyChanged(); SaveSettings(); }
+        }
 
         public string LogFormat
         {
