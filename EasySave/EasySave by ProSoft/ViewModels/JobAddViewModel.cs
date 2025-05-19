@@ -82,7 +82,7 @@ namespace EasySave_by_ProSoft.ViewModels
             }
             else
             {
-                ProgressPercentage = 0;
+                ProgressPercentage = 100;
             }
             
             // Make sure to notify property changes
