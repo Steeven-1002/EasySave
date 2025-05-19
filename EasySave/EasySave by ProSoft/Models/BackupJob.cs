@@ -190,7 +190,6 @@ namespace EasySave_by_ProSoft.Models
                     string relativePath = sourceFile.Substring(SourcePath.Length).TrimStart('\\', '/');
                     string targetFile = Path.Combine(TargetPath, relativePath);
                     Status.CurrentTargetFile = targetFile;
-                    _encryptionTime = 0;
 
                     // Create the target directory if it doesn't exist
                     string? targetDir = Path.GetDirectoryName(targetFile);
@@ -206,14 +205,35 @@ namespace EasySave_by_ProSoft.Models
                     // Step 2: if necessary, encrypt the destination file
                     List<string> encryptionExtensions = new();
                     var extensionsElement = AppSettings.Instance.GetSetting("EncryptionExtensions");
-                    if (extensionsElement is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
+                    if (extensionsElement != null && extensionsElement is JsonElement jsonElement)
+                    {
+                        foreach (var ext in jsonElement.EnumerateArray())
+                        {
+                            encryptionExtensions.Add(ext.GetString()!);
+                        }
+                    }
+                    if (_encryptionService.ShouldEncrypt(sourceFile, encryptionExtensions))
                     {
                         // Encrypt the file
-                        string targetFileRef = targetFile;
-                        string encryptionKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
-                        _encryptionTime = _encryptionService.EncryptFile(ref targetFile, encryptionKey);
+                        string key = AppSettings.Instance.GetSetting("EncryptionKey") as string ?? string.Empty;
+                        if (!string.IsNullOrEmpty(key))
+                            {
+                            // Encrypt the file and update the encryption time
+                            _encryptionTime = _encryptionService.EncryptFile(ref targetFile, key);
+                        }
+                        else
+                        {
+                            // If no key is provided, just set the encryption time to 0
+                            _encryptionTime = 0;
+                            System.Windows.Forms.MessageBox.Show("Encryption key is empty. File will not be encrypted.", "Warning", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
+                        }
+                        _encryptionTime = _encryptionService.EncryptFile(ref targetFile, key);
                     }
-
+                    else
+                    {
+                        // If not encrypting, just set the encryption time to 0
+                        _encryptionTime = 0;
+                    }
                     Status.RemainingFiles--;
                     Status.RemainingSize -= fileSize;
                     Status.EncryptionTimeMs = _encryptionTime;
