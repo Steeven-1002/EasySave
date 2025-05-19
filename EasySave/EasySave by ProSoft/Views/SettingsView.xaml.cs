@@ -1,12 +1,8 @@
-﻿using System.Windows;
-using System.Windows.Controls;
-using System.Threading;
-using System.Globalization;
+﻿using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Properties;
-using System.Diagnostics;
-using EasySave_by_ProSoft.Localization;
 using EasySave_by_ProSoft.ViewModels;
-using EasySave_by_ProSoft.Models;
+using System.Diagnostics;
+using System.Windows;
 
 namespace EasySave_by_ProSoft.Views
 {

@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -68,25 +66,59 @@ namespace EasySave_by_ProSoft.Models
         /// <param name="jobStatus">The job status that was modified</param>
         public void NotifyListeners(JobStatus jobStatus)
         {
-            // Update the state.json file in real time
-            UpdateStateFile(jobStatus);
-
-            // Notify all listeners (logs, interfaces, etc.)
-            foreach (var listener in listeners)
+            try
             {
-                listener.Update(
-                    jobStatus.BackupJob.Name,
-                    jobStatus.State,
-                    jobStatus.TotalFiles,
-                    jobStatus.TotalSize,
-                    jobStatus.RemainingFiles,
-                    jobStatus.RemainingSize,
-                    jobStatus.CurrentSourceFile,
-                    jobStatus.CurrentTargetFile,
-                    jobStatus.TransferRate,
-                    jobStatus.EncryptionTimeMs,
-                    jobStatus.Details
-                );
+                // Update the state.json file in real time
+                UpdateStateFile(jobStatus);
+
+                // Use Dispatcher to ensure updates happen on UI thread if needed
+                var dispatcher = System.Windows.Application.Current?.Dispatcher;
+                if (dispatcher != null && !dispatcher.CheckAccess())
+                {
+                    dispatcher.Invoke(() => NotifyListenersInternal(jobStatus));
+                }
+                else
+                {
+                    NotifyListenersInternal(jobStatus);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.Forms.MessageBox.Show($"Error notifying listeners: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// Internal method to notify all listeners
+        /// </summary>
+        private void NotifyListenersInternal(JobStatus jobStatus)
+        {
+            // Make a copy of the listeners collection to avoid modification during iteration
+            var listenersCopy = new List<JobEventListeners>(listeners);
+            
+            // Notify all listeners (logs, interfaces, etc.)
+            foreach (var listener in listenersCopy)
+            {
+                try
+                {
+                    listener.Update(
+                        jobStatus.BackupJob.Name,
+                        jobStatus.State,
+                        jobStatus.TotalFiles,
+                        jobStatus.TotalSize,
+                        jobStatus.RemainingFiles,
+                        jobStatus.RemainingSize,
+                        jobStatus.CurrentSourceFile,
+                        jobStatus.CurrentTargetFile,
+                        jobStatus.TransferRate,
+                        jobStatus.EncryptionTimeMs,
+                        jobStatus.Details
+                    );
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.Forms.MessageBox.Show($"Error updating listener: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                }
             }
         }
 
