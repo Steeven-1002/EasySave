@@ -1,3 +1,4 @@
+using EasySave.Services;
 using EasySave_by_ProSoft.Localization;
 using System;
 using System.Collections.Generic;
@@ -19,6 +20,7 @@ namespace EasySave_by_ProSoft.Models
         public BackupType Type { get; set; }
         public JobStatus Status { get; set; }
 
+        private FileSystemService _fileSystemService = new FileSystemService();
         private BusinessApplicationMonitor _businessMonitor;
         private EncryptionService _encryptionService;
         private IBackupFileStrategy _backupFileStrategy;
@@ -197,12 +199,12 @@ namespace EasySave_by_ProSoft.Models
                         Directory.CreateDirectory(targetDir);
 
                     // Get the size for tracking
-                    long fileSize = new FileInfo(sourceFile).Length;
+                    long fileSize = _fileSystemService.GetSize(sourceFile);
 
-                    // Step 1: copy the source file to the destination
-                    File.Copy(sourceFile, targetFile, true);
+                    // copy the source file to the destination
+                    _fileSystemService.CopyFile(sourceFile, targetFile);
 
-                    // Step 2: if necessary, encrypt the destination file
+                    // if necessary, encrypt the destination file
                     List<string> encryptionExtensions = new();
                     var extensionsElement = AppSettings.Instance.GetSetting("EncryptionExtensions");
                     if (extensionsElement != null && extensionsElement is JsonElement jsonElement)
@@ -259,6 +261,38 @@ namespace EasySave_by_ProSoft.Models
                 {
                     System.Windows.Forms.MessageBox.Show($"Error processing file {sourceFile}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                     // Continue with next file instead of failing the entire job
+                }
+            }
+
+            // Remove directory in target if not anymore in source
+            List<string> sourceDirectories = _fileSystemService.GetDirectoriesInDirectory(SourcePath);
+            List<string> targetDirectories = _fileSystemService.GetDirectoriesInDirectory(TargetPath);
+            foreach (string targetDirectory in targetDirectories)
+            {
+                string relativePath = targetDirectory.Substring(TargetPath.Length).TrimStart('\\', '/');
+                string sourceDirectory = Path.Combine(SourcePath, relativePath);
+                if (!sourceDirectories.Contains(sourceDirectory))
+                {
+                    _fileSystemService.DeleteDirectory(targetDirectory);
+                    Status.CurrentSourceFile = "Directory deleted";
+                    Status.CurrentTargetFile = targetDirectory;
+                    Status.Update();
+                }
+            }
+
+            // Remove file in target if not anymore in source
+            List<string> sourceFiles = _fileSystemService.GetFilesInDirectory(SourcePath);
+            List<string> targetFiles = _fileSystemService.GetFilesInDirectory(TargetPath);
+            foreach (string targetFile in targetFiles)
+            {
+                string relativePath = targetFile.Substring(TargetPath.Length).TrimStart('\\', '/');
+                string sourceFile = Path.Combine(SourcePath, relativePath);
+                if (!sourceFiles.Contains(sourceFile))
+                {
+                    _fileSystemService.DeleteFile(targetFile);
+                    Status.CurrentSourceFile = "File deleted";
+                    Status.CurrentTargetFile = targetFile;
+                    Status.Update();
                 }
             }
         }

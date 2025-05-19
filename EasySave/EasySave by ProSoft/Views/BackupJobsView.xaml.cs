@@ -49,15 +49,19 @@ namespace EasySave_by_ProSoft.Views
                 BackupJobsListView.SelectionChanged += (s, e) => {
                     if (BackupJobsListView.SelectedItems.Count == 1)
                     {
-                        _backupJobsViewModel.SelectedJob = BackupJobsListView.SelectedItem as BackupJob;
+                        // When a single item is selected, set SelectedJob to that item (as a list)
+                        var selectedJob = BackupJobsListView.SelectedItem as BackupJob;
+                        if (selectedJob != null)
+                        {
+                            _backupJobsViewModel.SelectedJob = new List<BackupJob> { selectedJob };
+                            _backupJobsViewModel.SelectedJobs = new List<BackupJob> { selectedJob };
+                        }
                     }
                     else if (BackupJobsListView.SelectedItems.Count > 1)
                     {
-                        // When multiple items are selected, set SelectedJob to null
-                        // but keep track of all selected items
-                        _backupJobsViewModel.SelectedJob = null;
-                        
+                        // When multiple items are selected, set SelectedJob to the list
                         var selectedJobs = BackupJobsListView.SelectedItems.Cast<BackupJob>().ToList();
+                        _backupJobsViewModel.SelectedJob = selectedJobs;
                         _backupJobsViewModel.SelectedJobs = selectedJobs;
                     }
                     else
@@ -88,14 +92,22 @@ namespace EasySave_by_ProSoft.Views
         /// </summary>
         private void LaunchSelectedJob_Click(object sender, RoutedEventArgs e)
         {
-            if (_backupJobsViewModel.SelectedJob == null)
+            if (_backupJobsViewModel.SelectedJob == null || _backupJobsViewModel.SelectedJob.Count == 0)
             {
-                System.Windows.MessageBox.Show("");
+                System.Windows.MessageBox.Show("No backup selected");
                 return;
             }
-            
-            _backupJobsViewModel.LaunchJobCommand.Execute(null);
-            System.Windows.MessageBox.Show(Localization.Resources.MessageBoxLaunchJob);
+            else if (_backupJobsViewModel.SelectedJob.Count == 1)
+                // Run the command with the selected job
+                _backupJobsViewModel.LaunchJobCommand.Execute(null);
+            else
+                // Run the command with all selected jobs
+                foreach (var job in _backupJobsViewModel.SelectedJob)
+                {
+                    _backupJobsViewModel.LaunchJobCommand.Execute(job);
+                }
+            // Update the UI to reflect the job status
+            RefreshJobsList();
         }
 
         /// <summary>

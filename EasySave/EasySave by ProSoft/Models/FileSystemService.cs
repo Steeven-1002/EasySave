@@ -186,5 +186,14 @@ namespace EasySave.Services
                 throw;
             }
         }
+        /// <summary>
+        /// Retrieves all directories in a directory.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        public List<string> GetDirectoriesInDirectory(string path)
+        {
+            return new List<string>(Directory.GetDirectories(path));
+        }
     }
 }

@@ -95,10 +95,5 @@ namespace EasySave_by_ProSoft.Models
 
             settings[key] = jsonValue;
         }
-
-
-
-
-
     }
 }

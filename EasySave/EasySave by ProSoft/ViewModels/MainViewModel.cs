@@ -29,11 +29,17 @@ namespace EasySave_by_ProSoft.ViewModels
             }
         }
 
-        private BackupJob? _selectedJob;
-        public BackupJob? SelectedJob
+        private List<BackupJob>? _selectedJob;
+        public List<BackupJob>? SelectedJob
         {
             get => _selectedJob;
-            set { _selectedJob = value; OnPropertyChanged(); }
+            set
+            {
+                _selectedJob = value;
+                OnPropertyChanged();
+                // Notify commands that depend on selection
+                CommandManager.InvalidateRequerySuggested();
+            }
         }
 
         private List<BackupJob> _selectedJobs = new List<BackupJob>();
@@ -43,7 +49,13 @@ namespace EasySave_by_ProSoft.ViewModels
         public List<BackupJob> SelectedJobs
         {
             get => _selectedJobs;
-            set { _selectedJobs = value; OnPropertyChanged(); }
+            set
+            {
+                _selectedJobs = value;
+                OnPropertyChanged();
+                // Notify commands that depend on selection
+                CommandManager.InvalidateRequerySuggested();
+            }
         }
 
         public ICommand CreateJobCommand { get; }
@@ -59,9 +71,9 @@ namespace EasySave_by_ProSoft.ViewModels
             _jobs = new ObservableCollection<BackupJob>();
 
             CreateJobCommand = new RelayCommand(_ => CreateJob(), _ => true);
-            LaunchJobCommand = new RelayCommand(_ => LaunchSelectedJob(), _ => SelectedJob != null);
+            LaunchJobCommand = new RelayCommand(_ => LaunchSelectedJob(), _ => SelectedJob != null && SelectedJob.Count > 0);
             LaunchMultipleJobsCommand = new RelayCommand(_ => LaunchMultipleJobs(), _ => SelectedJobs != null && SelectedJobs.Count > 0);
-            RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(), _ => SelectedJob != null);
+            RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(), _ => SelectedJob != null && SelectedJob.Count > 0);
             PauseJobCommand = new RelayCommand(_ => PauseSelectedJob(), _ => CanPauseSelectedJob());
             ResumeJobCommand = new RelayCommand(_ => ResumeSelectedJob(), _ => CanResumeSelectedJob());
 
@@ -130,7 +142,10 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             if (SelectedJob != null)
             {
-                SelectedJob.Start();
+                foreach (var job in SelectedJob)
+                {
+                    job.Start();
+                }
             }
         }
 
@@ -139,10 +154,14 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private void PauseSelectedJob()
         {
-            if (SelectedJob != null && SelectedJob.Status.State == BackupState.Running)
-            {
-                SelectedJob.Pause();
-            }
+            if (SelectedJob != null)
+                foreach (var job in SelectedJob)
+                {
+                    if (job.Status.State == BackupState.Running)
+                    {
+                        job.Pause();
+                    }
+                }
         }
 
         /// <summary>
@@ -150,7 +169,14 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private bool CanPauseSelectedJob()
         {
-            return SelectedJob != null && SelectedJob.Status.State == BackupState.Running;
+            if (SelectedJob == null || SelectedJob.Count == 0)
+                return false;
+            foreach (var job in SelectedJob)
+            {
+                if (job.Status.State != BackupState.Running)
+                    return false;
+            }
+            return true;
         }
 
         /// <summary>
@@ -158,10 +184,14 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private void ResumeSelectedJob()
         {
-            if (SelectedJob != null && SelectedJob.Status.State == BackupState.Paused)
-            {
-                SelectedJob.Resume();
-            }
+            if (SelectedJob != null)
+                foreach (var job in SelectedJob)
+                {
+                    if (job.Status.State == BackupState.Paused)
+                    {
+                        job.Resume();
+                    }
+                }
         }
 
         /// <summary>
@@ -169,7 +199,14 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private bool CanResumeSelectedJob()
         {
-            return SelectedJob != null && SelectedJob.Status.State == BackupState.Paused;
+            if (SelectedJob == null || SelectedJob.Count == 0)
+                return false;
+            foreach (var job in SelectedJob)
+            {
+                if (job.Status.State != BackupState.Paused)
+                    return false;
+            }
+            return true;
         }
 
         /// <summary>
@@ -206,14 +243,17 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             if (SelectedJob != null)
             {
-                int index = Jobs.IndexOf(SelectedJob);
-                if (index >= 0)
+                foreach (var job in SelectedJob)
                 {
-                    int indexRef = index; // Required for reference
-                    if (_backupManager.RemoveJob(ref indexRef))
+                    int index = Jobs.IndexOf(job);
+                    if (index >= 0)
                     {
-                        Jobs.Remove(SelectedJob);
-                        OnPropertyChanged(nameof(Jobs));
+                        int indexRef = index; // Required for reference
+                        if (_backupManager.RemoveJob(ref indexRef))
+                        {
+                            Jobs.Remove(job);
+                            OnPropertyChanged(nameof(Jobs));
+                        }
                     }
                 }
             }
