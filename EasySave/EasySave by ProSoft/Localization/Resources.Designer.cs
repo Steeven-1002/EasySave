@@ -88,6 +88,15 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Delete job.
+        /// </summary>
+        public static string BackupWorkManagementDeleteBackupSelected {
+            get {
+                return ResourceManager.GetString("BackupWorkManagementDeleteBackupSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Name.
         /// </summary>
         public static string BackupWorkManagementName {
@@ -363,6 +372,15 @@ namespace EasySave_by_ProSoft.Localization {
         public static string MainSettings {
             get {
                 return ResourceManager.GetString("MainSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Backup job deleted..
+        /// </summary>
+        public static string MessageBoxDeleteJob {
+            get {
+                return ResourceManager.GetString("MessageBoxDeleteJob", resourceCulture);
             }
         }
         

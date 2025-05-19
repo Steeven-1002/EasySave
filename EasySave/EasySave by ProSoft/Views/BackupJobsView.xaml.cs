@@ -98,9 +98,19 @@ namespace EasySave_by_ProSoft.Views
             System.Windows.MessageBox.Show(Localization.Resources.MessageBoxLaunchJob);
         }
 
-        /// <summary>
-        /// Launches multiple selected backup jobs
-        /// </summary>
+        private void DeleteSelectedJob_Click(object sender, RoutedEventArgs e)
+        {
+            if (_backupJobsViewModel.SelectedJob == null)
+            {
+                System.Windows.MessageBox.Show("Please select a job to delete.");
+                return;
+            }
+
+            _backupJobsViewModel.RemoveJobCommand.Execute(null);
+
+            System.Windows.MessageBox.Show(Localization.Resources.MessageBoxDeleteJob);
+        }
+
         private void LaunchMultipleJobs_Click(object sender, RoutedEventArgs e)
         {
             if (BackupJobsListView.SelectedItems.Count == 0)

@@ -30,6 +30,7 @@
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
             <Button Content="{x:Static localization:Resources.BackupWorkManagementStartBackupSelected}" Margin="5" Click="LaunchSelectedJob_Click"/>
+            <Button Content="{x:Static localization:Resources.BackupWorkManagementDeleteBackupSelected}" Margin="5" Click="DeleteSelectedJob_Click"/>
             <Button Content="{x:Static localization:Resources.BackupWorkManagementNewBackup}" Margin="5" Click="CreateNewJob_Click"/>
         </StackPanel>
 
