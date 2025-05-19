@@ -28,7 +28,7 @@ namespace EasySave_by_ProSoft.Models
         {
             // Define the state.json file location
             stateFilePath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "EasySave",
                 "state.json"
             );
