@@ -2,21 +2,21 @@
 
 ## Language Selection
 
-At the start of the application, you can choose between French or English.
+In the parameters you can choose between English and French
 
 ## Create a backup
 
-* To create a backup, be sure to have less than 5 existing backups.
+* You can choose to create an unlimited amount of backup jobs
 * Enter the name of your backup.
 * Enter the source path of the folder(s) you want to save.
 * Enter the destination path where the backup will be stored.
 * Select the backup type: Full (copies all files/folders) or Differential (copies only changes since the last full backup).
-* If you select a differential backup, you also will need to give the path of the folder containing a previous full backup.
+
 
 ## Load a backup
 
-* To execute a backup job, enter the number of the backup you wish to execute.
-* Once the number is entered, the backup process will begin.
+* To execute a backup job, select the backup you wish to execute.
+* Once you selected the backup job you can execute it
 
 ## Log and state file
 
@@ -25,7 +25,7 @@ It's possible to choose the extension of this file : Json or XML. By default the
 
 ## Encryption
 
-In the settings it's possible to list the extensions files that will be encrypt.
+In the settings it is possible to enter a list of extensions that will be encrypt during the backup.
 Each extension has to be seperate by a coma (Ex : .txt, .jpg).
 
 ## Business Software
