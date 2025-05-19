@@ -10,7 +10,7 @@ namespace EasySave_by_ProSoft.Models
         private static AppSettings? instance;
         private string? configFilePath =
           Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "EasySave",
                 "config.json"
             );
