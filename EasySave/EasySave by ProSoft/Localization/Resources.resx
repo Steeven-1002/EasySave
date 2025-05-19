@@ -239,6 +239,7 @@
   </data>
   <data name="BackupWorkManagementProgressPercentage" xml:space="preserve">
     <value>Progress (%)</value>
+  </data>
   <data name="BusinessApplicationError" xml:space="preserve">
     <value>The management software is running. The backup job will be paused after processing the file </value>
   </data>

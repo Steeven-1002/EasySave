@@ -239,6 +239,7 @@
   </data>
   <data name="BackupWorkManagementProgressPercentage" xml:space="preserve">
     <value>Progrès (%)</value>
+  </data>
   <data name="BusinessApplicationError" xml:space="preserve">
     <value>Le logiciel de gestion est en cours d'exécution. Le travail de sauvegarde sera mis en pause après le traitement du fichier </value>
   </data>

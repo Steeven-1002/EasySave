@@ -58,9 +58,6 @@ namespace EasySave_by_ProSoft.Models
                 throw new FileNotFoundException($"Encryption tool not found at: {cryptoSoftPath}");
             }
 
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
-
             try
             {
                 // Create destination directory if it doesn't exist
@@ -81,22 +78,27 @@ namespace EasySave_by_ProSoft.Models
                     process.StartInfo.RedirectStandardError = true;
 
                     process.Start();
+                    process.BeginOutputReadLine();
+                    long encryptionTime = 0;
                     process.WaitForExit();
+                    string output = process.StandardOutput.ReadToEnd();
+                    encryptionTime = long.Parse(output.Trim());
 
                     // Check exit code
                     if (process.ExitCode != 0)
                     {
                         string error = process.StandardError.ReadToEnd();
+                        return -1; // Indicate failure
                         throw new Exception($"Encryption failed with exit code {process.ExitCode}: {error}");
                     }
+                    return encryptionTime > 0 ? encryptionTime : 0;
                 }
 
-                stopwatch.Stop();
-                return stopwatch.ElapsedMilliseconds;
             }
             catch (Exception ex)
             {
                 System.Windows.Forms.MessageBox.Show($"Unexpected error: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                return -1; // Indicate failure
                 throw;
             }
         }
