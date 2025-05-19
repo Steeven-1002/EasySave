@@ -6,14 +6,11 @@ This document aims to give some informations about the technical support
 
 * The default installation location depends on the operating system used by the user : 
     * **Windows (64-bit) :** "C:\Users\NameUser\source\repos\Steeven-1002"
-    * **Linux :** "/home/NameUser/source/repos/Steeven-1002"
-    * **macOS :** "/Users/NameUser/source/repos/Steeven-1002"
+    * 
 **2) Minimum System Requirements:**
 
 * **Operating System :**
     * Windows 7 (at least)
-    * Linux (at least kernel 2.6.x)
-    * macOS 10.10 (Yosemite) (at least)
 * **Processor:** 1 GHz or faster x86-compatible processor
 * **RAM:** 512 MB minimum (minimum of 1 GB recommended)
 * **Disk Space:** Their is the need of 50 MB free space for software installation
@@ -24,14 +21,10 @@ This document aims to give some informations about the technical support
 * EasySave configuration files depends on the operating system :
     * **Windows:**
         * "C:\Users\NameUser\AppData\Roaming\EasySave" 
-    * **Linux:**
-        * "/home/NameUser/.config/EasySave" 
-    * **macOS:**
-        * "/Users/NameUser/Library/Application Support/EasySave" 
+
 * **Default Log File Location:** The default location for the log file (if implemented) is normally:
-    * **Windows:** "C:\Users\NameUser\AppData\Roaming\EasySave"
-    * **Linux:** "/home/NameUser/.config/EasySave"
-    * **macOS:** "/Library/Logs/EasySave/" or "~/Library/Logs/EasySave/"
+    * **Windows:** "C:\Users\NameUser\AppData\Roaming\EasySave\Logs"
+
 
 **4) Version Management:**
 
