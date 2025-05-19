@@ -27,6 +27,18 @@ namespace EasySave_by_ProSoft.Models
         private bool _stopRequested = false;
         private List<string> toProcessFiles = new List<string>();
 
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                _isSelected = value;
+                // If the class implements INotifyPropertyChanged, add:
+                // OnPropertyChanged(nameof(IsSelected));
+            }
+        }
+
         /// <summary>
         /// Initializes a new backup job
         /// </summary>

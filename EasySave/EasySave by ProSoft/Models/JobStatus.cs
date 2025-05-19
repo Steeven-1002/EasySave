@@ -173,7 +173,7 @@ namespace EasySave_by_ProSoft.Models
         /// <summary>
         /// Progress percentage
         /// </summary>
-        public double ProgressPercentage => TotalSize > 0 ? Math.Round((double)(TotalSize - RemainingSize) / TotalSize * 100, 2) : 0;
+        public double ProgressPercentage => TotalSize > 0 ? Math.Round((double)(TotalSize - RemainingSize) / TotalSize * 100, 2) : 100;
 
         /// <summary>
         /// Transfer rate in bytes per second

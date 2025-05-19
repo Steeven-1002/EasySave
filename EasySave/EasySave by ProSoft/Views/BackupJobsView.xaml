@@ -18,18 +18,35 @@
         <ListView Grid.Row="1" x:Name="BackupJobsListView" Margin="10">
             <ListView.View>
                 <GridView>
+                    <GridViewColumn Width="40">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                          Checked="BackupJob_CheckChanged"
+                                          Unchecked="BackupJob_CheckChanged"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
                     <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementName}" DisplayMemberBinding="{Binding Name}" Width="200"/>
                     <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementSource}" DisplayMemberBinding="{Binding SourcePath}" Width="200"/>
                     <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementTarget}" DisplayMemberBinding="{Binding TargetPath}" Width="200"/>
                     <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementType}" DisplayMemberBinding="{Binding Type}" Width="100"/>
-                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementStatus}" DisplayMemberBinding="{Binding Status.State}" Width="100"/>
-                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementProgressPercentage}" DisplayMemberBinding="{Binding ProgressPercentage}" Width="150"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementStatus}" DisplayMemberBinding="{Binding Status.State, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementProgressPercentage}" Width="150">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <ProgressBar Value="{Binding Status.ProgressPercentage, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}"
+                                             Minimum="0" Maximum="100" Width="120" Height="15" />
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
                 </GridView>
             </ListView.View>
         </ListView>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
             <Button Content="{x:Static localization:Resources.BackupWorkManagementStartBackupSelected}" Margin="5" Click="LaunchSelectedJob_Click"/>
+            <Button Content="{x:Static localization:Resources.BackupWorkManagementDeleteBackupSelected}" Margin="5" Click="DeleteSelectedJob_Click"/>
             <Button Content="{x:Static localization:Resources.BackupWorkManagementNewBackup}" Margin="5" Click="CreateNewJob_Click"/>
         </StackPanel>
 

@@ -246,4 +246,10 @@
   <data name="Warning" xml:space="preserve">
     <value>Warning !</value>
   </data>
+  <data name="MessageBoxDeleteJob" xml:space="preserve">
+    <value>Backup job deleted.</value>
+  </data>
+  <data name="BackupWorkManagementDeleteBackupSelected" xml:space="preserve">
+    <value>Delete job</value>
+  </data>
 </root>
