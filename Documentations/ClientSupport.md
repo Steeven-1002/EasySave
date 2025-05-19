@@ -29,7 +29,7 @@ This document aims to give some informations about the technical support
     * **macOS:**
         * "/Users/NameUser/Library/Application Support/EasySave" 
 * **Default Log File Location:** The default location for the log file (if implemented) is normally:
-    * **Windows:** "C:\Users\NameUser\AppData\Roaming\EasySave"
+    * **Windows:** "C:\Users\NameUser\AppData\Roaming\EasySave\Logs"
     * **Linux:** "/home/NameUser/.config/EasySave"
     * **macOS:** "/Library/Logs/EasySave/" or "~/Library/Logs/EasySave/"
 
