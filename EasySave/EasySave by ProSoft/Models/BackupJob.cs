@@ -236,7 +236,7 @@ namespace EasySave_by_ProSoft.Models
                             _encryptionTime = 0;
                             System.Windows.Forms.MessageBox.Show("Encryption key is empty. File will not be encrypted.", "Warning", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
                         }
-                        _encryptionTime = _encryptionService.EncryptFile(ref targetFile, key);
+                        
                     }
                     else
                     {
