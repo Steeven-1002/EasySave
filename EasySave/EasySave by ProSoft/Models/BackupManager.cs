@@ -10,6 +10,7 @@ namespace EasySave_by_ProSoft.Models
     {
         private List<BackupJob> backupJobs;
         private string jobsConfigFilePath;
+        private readonly SemaphoreSlim _largeFileTransferSemaphore = new SemaphoreSlim(1, 1);
 
         /// <summary>
         /// Initializes a new instance of the BackupManager class
@@ -39,7 +40,7 @@ namespace EasySave_by_ProSoft.Models
         public BackupJob AddJob(string name, ref string sourcePath, ref string targetPath, ref BackupType type)
         {
             // Create new backup job
-            var job = new BackupJob(name, sourcePath, targetPath, type, this);
+            var job = new BackupJob(name, sourcePath, targetPath, type, this, _largeFileTransferSemaphore);
 
             // Add to job list
             backupJobs.Add(job);
@@ -95,12 +96,26 @@ namespace EasySave_by_ProSoft.Models
         /// Executes the backup jobs with the specified indices
         /// </summary>
         /// <param name="jobIndexes">List of job indices to execute</param>
-        public void ExecuteJobs(ref List<int> jobIndexes)
+        public async Task ExecuteJobs(List<int> jobIndexes)
         {
+            List<Task> runningTasks = new List<Task>();
             foreach (var index in jobIndexes)
             {
                 if (index >= 0 && index < backupJobs.Count)
                 {
+                    BackupJob jobToRun = backupJobs[index];
+                    // Run each Start() in a separate task for parallel execution
+                    runningTasks.Add(Task.Run(() =>
+                    {
+                        try
+                        {
+                            jobToRun.Start();
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Windows.Forms.MessageBox.Show($"Error executing job at index {index}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                        }
+                    }));
                     try
                     {
                         backupJobs[index].Start();
@@ -110,6 +125,11 @@ namespace EasySave_by_ProSoft.Models
                         System.Windows.Forms.MessageBox.Show($"Error executing job at index {index}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                     }
                 }
+            }
+            // Wait for all tasks to complete
+            if (runningTasks.Any())
+            {
+                await Task.WhenAll(runningTasks);
             }
         }
 
@@ -141,7 +161,7 @@ namespace EasySave_by_ProSoft.Models
                                 var targetPath = jobData.TargetPath;
 
                                 // Add the job using existing method
-                                var job = new BackupJob(jobData.Name, sourcePath, targetPath, jobData.Type, this);
+                                var job = new BackupJob(jobData.Name, sourcePath, targetPath, jobData.Type, this, _largeFileTransferSemaphore);
 
 
                                 backupJobs.Add(job);

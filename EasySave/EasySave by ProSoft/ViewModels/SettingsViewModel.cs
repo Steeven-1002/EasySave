@@ -79,7 +79,6 @@ namespace EasySave_by_ProSoft.ViewModels
             }
             set
             {
-                // Ajoute un espace avant chaque '.' sauf le premier caractère (pour gérer les cas concaténés)
                 var cleaned = System.Text.RegularExpressions.Regex.Replace(value, @"(?<!^)\.", " .");
 
                 var list = cleaned.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
@@ -192,6 +191,26 @@ namespace EasySave_by_ProSoft.ViewModels
             {
                 System.Windows.MessageBox.Show($"Culture {newLanguage} non trouvée: {ex.Message}", Localization.Resources.ErrorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
+            }
+        }
+
+        public double LargeFileSizeThresholdKB
+        {
+            get
+            {
+                var setting = _settings.GetSetting("LargeFileSizeThresholdKey");
+                if (setting is double d) return d;
+                if (setting is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Number && jsonElement.TryGetDouble(out double val)) return val;
+                if (_settings.GetSetting("DefaultLargeFileSizeThresholdKey") is double defaultVal) return defaultVal;
+                return 0; // Fallback value if no valid setting is found
+            }
+            set
+            {
+                if (LargeFileSizeThresholdKB != value)
+                {
+                    _settings.SetSetting("LargeFileSizeThresholdKey", value);
+                    OnPropertyChanged();
+                }
             }
         }
 

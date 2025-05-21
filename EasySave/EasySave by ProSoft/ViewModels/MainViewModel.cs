@@ -288,7 +288,7 @@ namespace EasySave_by_ProSoft.ViewModels
             if (jobIndices.Count > 0)
             {
                 var jobIndicesRef = jobIndices; // Create a reference variable
-                _backupManager.ExecuteJobs(ref jobIndicesRef);
+                _backupManager.ExecuteJobs(jobIndicesRef);
             }
         }
 

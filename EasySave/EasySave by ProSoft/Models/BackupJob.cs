@@ -1,6 +1,8 @@
 using EasySave.Services;
 using System.IO;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EasySave_by_ProSoft.Models
 {
@@ -27,6 +29,8 @@ namespace EasySave_by_ProSoft.Models
         private bool _stopRequested = false;
         private List<string> toProcessFiles = new List<string>();
 
+        private readonly SemaphoreSlim _largeFileTransferSemaphore;
+
         private bool _isSelected;
         public bool IsSelected
         {
@@ -42,7 +46,7 @@ namespace EasySave_by_ProSoft.Models
         /// <summary>
         /// Initializes a new backup job
         /// </summary>
-        public BackupJob(string name, string sourcePath, string targetPath, BackupType type, BackupManager manager)
+        public BackupJob(string name, string sourcePath, string targetPath, BackupType type, BackupManager manager, SemaphoreSlim largeFileSemaphore)
         {
             Name = name;
             SourcePath = sourcePath;
@@ -52,6 +56,8 @@ namespace EasySave_by_ProSoft.Models
 
             // Link this job to its status for proper state tracking
             Status.BackupJob = this;
+
+            _largeFileTransferSemaphore = largeFileSemaphore ?? throw new ArgumentNullException(nameof(largeFileSemaphore));
 
             string appNameToMonitor = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
             _businessMonitor = new BusinessApplicationMonitor(appNameToMonitor);
@@ -125,6 +131,7 @@ namespace EasySave_by_ProSoft.Models
                 return;
 
             _isRunning = true;
+            _isPaused = false;
             _stopRequested = false;
 
             try
@@ -155,7 +162,7 @@ namespace EasySave_by_ProSoft.Models
                 // Process files if we have a valid status
                 if (Status.State == BackupState.Running)
                 {
-                    ProcessFiles(toProcessFiles);
+                    ProcessFiles(toProcessFiles).GetAwaiter().GetResult();
                 }
 
                 // Complete the job if it wasn't paused or stopped
@@ -177,7 +184,7 @@ namespace EasySave_by_ProSoft.Models
         /// <summary>
         /// Processes all files that need to be backed up
         /// </summary>
-        private void ProcessFiles(List<String> toProcessFiles)
+        private async Task ProcessFiles(List<String> toProcessFiles)
         {
             // Create target directory if it doesn't exist
             if (!Directory.Exists(TargetPath))
@@ -185,12 +192,22 @@ namespace EasySave_by_ProSoft.Models
                 Directory.CreateDirectory(TargetPath);
             }
 
+            double thresholdKBSetting = (double)(AppSettings.Instance.GetSetting("LargeFileSizeThresholdKey") as double?
+                                        ?? AppSettings.Instance.GetSetting("DefaultLargeFileSizeThresholdKey"));
+            long largeFileSizeThresholdBytes = (long)(thresholdKBSetting * 1024);
+
             // Process each file that needs to be backed up
             foreach (string sourceFile in toProcessFiles)
             {
-                if (_stopRequested || _isPaused)
+                if (_stopRequested)
                     break;
+                while (_isPaused && !_stopRequested)
+                {
+                    await Task.Delay(500); // Wait a bit before checking again
+                }
+                if (_stopRequested) break;
 
+                bool isLargeFile = false; // Indicator to know if the semaphore has been taken
                 try
                 {
                     Status.CurrentSourceFile = sourceFile;
@@ -207,6 +224,17 @@ namespace EasySave_by_ProSoft.Models
 
                     // Get the size for tracking
                     long fileSize = _fileSystemService.GetSize(sourceFile);
+
+                    if (fileSize > largeFileSizeThresholdBytes)
+                    {
+                        MessageBox.Show($"Fichier volumineux détecté : {Path.GetFileName(sourceFile)}\nTaille : {fileSize / 1024} Ko (Seuil : {thresholdKBSetting} Ko).\nAttente du sémaphore.", "Debug Fichier Volumineux", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        isLargeFile = true;
+                        Status.Details = $"En attente pour transférer un fichier volumineux : {Path.GetFileName(sourceFile)}"; // Inform the user
+                        Status.Update(); // Update the UI
+                        await _largeFileTransferSemaphore.WaitAsync(); // Wait for the semaphore
+                        Status.Details = $"Transfert du fichier volumineux en cours : {Path.GetFileName(sourceFile)}";
+                        Status.Update();
+                    }
 
                     // copy the source file to the destination
                     _fileSystemService.CopyFile(sourceFile, targetFile);
@@ -269,6 +297,16 @@ namespace EasySave_by_ProSoft.Models
                     System.Windows.Forms.MessageBox.Show($"Error processing file {sourceFile}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                     // Continue with next file instead of failing the entire job
                 }
+
+                finally
+                {
+                    if (isLargeFile)
+                    {
+                        _largeFileTransferSemaphore.Release();
+                        Status.Details = ""; // Clear large file specific details
+                        Status.Update();
+                    }
+                }
             }
 
             // Remove directory in target if not anymore in source
@@ -324,6 +362,7 @@ namespace EasySave_by_ProSoft.Models
             if (_isRunning)
             {
                 _stopRequested = true;
+                _isPaused = false;
 
                 // If Details property is not already set with a specific reason,
                 // set a generic reason for stopping
@@ -346,16 +385,11 @@ namespace EasySave_by_ProSoft.Models
                 _isPaused = false;
                 Status.Resume();
 
-                // Continue processing files
-                ProcessFiles(toProcessFiles);
-
                 // Complete the job if we finished successfully
-                if (Status.State == BackupState.Running)
+                if (!_isRunning && Status.State == BackupState.Paused)
                 {
-                    Status.Complete();
+                    _isRunning = true;
                 }
-
-                _isRunning = false;
             }
         }
 

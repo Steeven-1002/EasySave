@@ -56,6 +56,12 @@
                 <ComboBoxItem Content="JSON"/>
                 <ComboBoxItem Content="XML"/>
             </ComboBox>
+            <TextBlock Text="KB" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="5,0,0,0"/>
+            <TextBox x:Name="LargeFileSizeThresholdTextBox"
+                 Text="{Binding LargeFileSizeThresholdKB, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:F0}, ValidatesOnExceptions=True, NotifyOnValidationError=True}"
+                 ToolTip="Ex : 100000"
+                 Margin="0,5,0,0">
+            </TextBox>
         </StackPanel>
     </Grid>
 </UserControl>
