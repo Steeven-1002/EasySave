@@ -252,4 +252,7 @@
   <data name="BackupWorkManagementDeleteBackupSelected" xml:space="preserve">
     <value>Supprimer travail</value>
   </data>
+  <data name="ExtensionFilePriority" xml:space="preserve">
+    <value>Gestion des fichiers prioritaires</value>
+  </data>
 </root>
