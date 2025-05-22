@@ -121,7 +121,7 @@ namespace EasySave_by_ProSoft.Models
         /// </summary>
         public void Start()
         {
-            if (_isRunning)
+            if (_isRunning || Status.State == BackupState.Completed)
                 return;
 
             _isRunning = true;

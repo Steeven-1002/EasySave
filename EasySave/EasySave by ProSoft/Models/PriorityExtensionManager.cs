@@ -42,6 +42,8 @@ namespace EasySave_by_ProSoft.Models
             return priorityExtensionsList.ToArray();
         }
 
+
+        
         public static bool IsPriorityExtension(string extension)
         {
             if (string.IsNullOrEmpty(extension))
