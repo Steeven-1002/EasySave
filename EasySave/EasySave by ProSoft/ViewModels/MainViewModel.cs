@@ -31,19 +31,6 @@ namespace EasySave_by_ProSoft.ViewModels
             }
         }
 
-        private List<BackupJob>? _selectedJob;
-        public List<BackupJob>? SelectedJob
-        {
-            get => _selectedJob;
-            set
-            {
-                _selectedJob = value;
-                OnPropertyChanged();
-                // Notify commands that depend on selection
-                CommandManager.InvalidateRequerySuggested();
-            }
-        }
-
         private List<BackupJob> _selectedJobs = new List<BackupJob>();
         /// <summary>
         /// Gets or sets the list of selected backup jobs for multiple execution
@@ -86,7 +73,7 @@ namespace EasySave_by_ProSoft.ViewModels
             CreateJobCommand = new RelayCommand(_ => CreateJob(), _ => true);
             // LaunchJobCommand = new RelayCommand(_ => LaunchSelectedJob(), _ => SelectedJob != null && SelectedJob.Count > 0);
             //LaunchMultipleJobsCommand = new RelayCommand(_ => LaunchMultipleJobs(), _ => SelectedJobs != null && SelectedJobs.Count > 0);
-            RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(), _ => SelectedJob != null && SelectedJob.Count > 0);
+            RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(), _ => SelectedJobs != null && SelectedJobs.Count > 0);
             PauseJobCommand = new RelayCommand(_ => PauseSelectedJob(), _ => CanPauseSelectedJob());
             ResumeJobCommand = new RelayCommand(_ => ResumeSelectedJob(), _ => CanResumeSelectedJob());
             StopJobCommand = new RelayCommand(_ => StopSelectedJobs(), _ => SelectedJobs != null && SelectedJobs.Any(job => job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused) && !_isLaunchingJobs);
@@ -140,11 +127,7 @@ namespace EasySave_by_ProSoft.ViewModels
                 }
             }
 
-            // Keep selection synchronized
-            SelectedJob = SelectedJobs;
-
             OnPropertyChanged(nameof(Jobs));
-            OnPropertyChanged(nameof(SelectedJob));
             OnPropertyChanged(nameof(SelectedJobs));
         }
 
@@ -155,7 +138,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             var selected = Jobs.Where(j => j.IsSelected).ToList();
             SelectedJobs = selected;
-            SelectedJob = selected.Count > 0 ? selected : null;
+            //SelectedJobs = selected.Count > 0 ? selected : null;
         }
 
         /// <summary>
@@ -166,6 +149,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             if (!Jobs.Contains(job))
             {
+                /*
                 // Listen for property changes on the job's status
                 if (job.Status is INotifyPropertyChanged statusNotifier)
                 {
@@ -175,6 +159,7 @@ namespace EasySave_by_ProSoft.ViewModels
                         OnPropertyChanged(nameof(Jobs));
                     };
                 }
+                */
                 
                 Jobs.Add(job);
                 OnPropertyChanged(nameof(Jobs));
@@ -265,8 +250,8 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private void PauseSelectedJob()
         {
-            if (SelectedJob != null)
-                foreach (var job in SelectedJob)
+            if (SelectedJobs != null)
+                foreach (var job in SelectedJobs)
                 {
                     if (job.Status.State == BackupState.Running)
                     {
@@ -280,9 +265,9 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private bool CanPauseSelectedJob()
         {
-            if (SelectedJob == null || SelectedJob.Count == 0)
+            if (SelectedJobs == null || SelectedJobs.Count == 0)
                 return false;
-            foreach (var job in SelectedJob)
+            foreach (var job in SelectedJobs)
             {
                 if (job.Status.State != BackupState.Running)
                     return false;
@@ -295,8 +280,8 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private void ResumeSelectedJob()
         {
-            if (SelectedJob != null)
-                foreach (var job in SelectedJob)
+            if (SelectedJobs != null)
+                foreach (var job in SelectedJobs)
                 {
                     if (job.Status.State == BackupState.Paused)
                     {
@@ -310,9 +295,9 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private bool CanResumeSelectedJob()
         {
-            if (SelectedJob == null || SelectedJob.Count == 0)
+            if (SelectedJobs == null || SelectedJobs.Count == 0)
                 return false;
-            foreach (var job in SelectedJob)
+            foreach (var job in SelectedJobs)
             {
                 if (job.Status.State != BackupState.Paused)
                     return false;
