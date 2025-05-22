@@ -111,6 +111,7 @@ namespace EasySave_by_ProSoft.Models
                     }
                 }
             }
+
         }
 
         /// <summary>
@@ -197,6 +198,33 @@ namespace EasySave_by_ProSoft.Models
                 System.Windows.Forms.MessageBox.Show($"Error saving jobs to file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
             }
         }
+
+        public bool HasPendingPriorityFiles()
+        {
+            // Récupère la liste des extensions prioritaires
+            var priorityList = new List<string>();
+            var setting = AppSettings.Instance.GetSetting("ExtensionFilePriority");
+            if (setting is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var ext in jsonElement.EnumerateArray())
+                    if (ext.ValueKind == JsonValueKind.String && ext.GetString() is string s)
+                        priorityList.Add(s);
+            }
+
+            // Vérifie s'il reste des fichiers prioritaires à traiter dans au moins un job en cours
+            return backupJobs.Any(job =>
+                job.Status.State == BackupState.Running &&
+                job.GetPendingFiles().Any(f =>
+                    priorityList.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase)
+                )
+            );
+        }
+
+
+
+
+
+
 
         /// <summary>
         /// Private class for serialization of job data
