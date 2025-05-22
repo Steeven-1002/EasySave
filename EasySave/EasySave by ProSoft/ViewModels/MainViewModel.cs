@@ -194,87 +194,72 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private async Task LaunchSelectedJob()
         {
+            // Vérifie si un lancement est déjà en cours.
             if (_isLaunchingJobs)
             {
-                Debug.WriteLine("LaunchSelectedJobsAsync: Launch already in progress. Aborting new launch request.");
+                Debug.WriteLine("LaunchSelectedJob: Un lancement est déjà en cours. Annulation de la nouvelle requête de lancement."); // Adaptation de votre message de débogage.
                 return;
             }
 
+            // Vérifie si des travaux sont sélectionnés.
             if (SelectedJobs == null || !SelectedJobs.Any())
             {
-                Debug.WriteLine("LaunchSelectedJobsAsync: No jobs selected.");
+                Debug.WriteLine("LaunchSelectedJob: Aucun travail sélectionné."); // Adaptation de votre message de débogage.
                 return;
             }
 
-            // Filter the jobs that can be launched
+            // Filtre les travaux qui peuvent être lancés (état Initialise, Erreur, ou Terminé).
             var jobsToStartModels = SelectedJobs.Where(j =>
                 j.Status.State == BackupState.Initialise ||
                 j.Status.State == BackupState.Error ||
                 j.Status.State == BackupState.Completed).ToList();
 
+            // Vérifie s'il y a des travaux éligibles au lancement.
             if (!jobsToStartModels.Any())
             {
-                Debug.WriteLine("LaunchSelectedJobsAsync: No suitable jobs to start based on current selection and status.");
-                CommandManager.InvalidateRequerySuggested(); // Update button state
+                Debug.WriteLine("LaunchSelectedJob: Aucun travail approprié à démarrer en fonction de la sélection et de l'état actuels."); // Adaptation de votre message de débogage.
+                CommandManager.InvalidateRequerySuggested(); // Met à jour l'état des boutons.
                 return;
             }
 
-            _isLaunchingJobs = true;
-            CommandManager.InvalidateRequerySuggested(); // Disable launch buttons
-            Debug.WriteLine($"MainViewModel.LaunchSelectedJobsAsync: SET _isLaunchingJobs = true. Launching jobs: {string.Join(", ", jobsToStartModels.Select(j => j.Name))}");
-            
+            _isLaunchingJobs = true; // Définit l'indicateur pour montrer qu'un lancement est en cours.
+            CommandManager.InvalidateRequerySuggested(); // Désactive les boutons de lancement.
+            Debug.WriteLine($"MainViewModel.LaunchSelectedJob: DÉFINI _isLaunchingJobs = true. Lancement des travaux : {string.Join(", ", jobsToStartModels.Select(j => j.Name))}"); // Adaptation de votre message de débogage.
+
             try
             {
-                List<int> jobIndexesToRun = new List<int>();
+                List<string> jobNamesToRun = new List<string>();
                 foreach (var jobModel in jobsToStartModels)
                 {
-                    jobModel.Status.ResetForRun();
-                    Debug.WriteLine($"MainViewModel.LaunchSelectedJobsAsync: Job '{jobModel.Name}' status RESET for run. New status: {jobModel.Status.State}");
-
-                    int index = -1;
-                    var allJobsInManager = _backupManager.GetAllJobs();
-                    for (int i = 0; i < Jobs.Count; i++)
-                    {
-                        if (Jobs[i].Name == jobModel.Name)
-                        {
-                            index = i;
-                            break;
-                        }
-                    }
-                    if (index != -1)
-                    {
-                        jobIndexesToRun.Add(index);
-                        Debug.WriteLine($"MainViewModel.LaunchSelectedJobsAsync: Job '{jobModel.Name}' (Index: {index}) WILL BE STARTED.");
-                    }
-                    else
-                    {
-                        Debug.WriteLine($"MainViewModel.LaunchSelectedJobsAsync: Job '{jobModel.Name}' NOT FOUND in current Jobs collection. Skipping.");
-                    }
+                    jobModel.Status.ResetForRun(); // Réinitialise le statut du travail pour une nouvelle exécution.
+                    Debug.WriteLine($"MainViewModel.LaunchSelectedJob: Statut du travail '{jobModel.Name}' RÉINITIALISÉ pour l'exécution. Nouveau statut : {jobModel.Status.State}"); // Adaptation de votre message de débogage.
+                    jobNamesToRun.Add(jobModel.Name); // Ajoute le nom du travail à la liste des travaux à exécuter.
                 }
 
-                if (jobIndexesToRun.Any())
+                if (jobNamesToRun.Any())
                 {
-                    await _backupManager.ExecuteJobsAsync(jobIndexesToRun);
-                    Debug.WriteLine("MainViewModel.LaunchSelectedJobsAsync: BackupManager.ExecuteJobsAsync awaited and completed.");
+                    await _backupManager.ExecuteJobsByNameAsync(jobNamesToRun);
+                    Debug.WriteLine("MainViewModel.LaunchSelectedJob: BackupManager.ExecuteJobsByNameAsync attendu et terminé."); // Adaptation de votre message de débogage.
                 }
                 else
                 {
-                    Debug.WriteLine("MainViewModel.LaunchSelectedJobsAsync: No valid job indexes found to run.");
+                    Debug.WriteLine("MainViewModel.LaunchSelectedJob: Aucun nom de travail valide trouvé à exécuter."); // Adaptation de votre message de débogage.
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"MainViewModel.LaunchSelectedJobsAsync: EXCEPTION during job execution: {ex.Message}");
-                // Handle the exception (e.g., notify the user)
+                Debug.WriteLine($"MainViewModel.LaunchSelectedJob: EXCEPTION lors de l'exécution du travail : {ex.Message}"); // Adaptation de votre message de débogage.
+                                                                                                                              // Gérez l'exception (par exemple, notifier l'utilisateur).
+                                                                                                                              // Vous pourriez vouloir afficher un message à l'utilisateur ici.
             }
             finally
             {
-                _isLaunchingJobs = false;
-                Debug.WriteLine("MainViewModel.LaunchSelectedJobsAsync: (in finally) SET _isLaunchingJobs = false.");
-                CommandManager.InvalidateRequerySuggested(); // Re-enable launch buttons
+                _isLaunchingJobs = false; // Réinitialise l'indicateur une fois tous les travaux terminés ou en cas d'erreur.
+                Debug.WriteLine("MainViewModel.LaunchSelectedJob: (dans finally) DÉFINI _isLaunchingJobs = false."); // Adaptation de votre message de débogage.
+                CommandManager.InvalidateRequerySuggested(); // Réactive les boutons de lancement.
             }
         }
-        
+
         /// <summary>
         /// Pauses the selected backup job
         /// </summary>
@@ -365,24 +350,20 @@ namespace EasySave_by_ProSoft.ViewModels
         /// <summary>
         /// Removes the selected backup job
         /// </summary>
+        
         private void RemoveSelectedJob()
         {
-            if (SelectedJob != null)
+            var jobsToRemove = new List<BackupJob>(SelectedJobs);
+
+            foreach (var job in jobsToRemove)
             {
-                foreach (var job in SelectedJob)
+                if (_backupManager.RemoveJobByName(job.Name))
                 {
-                    int index = Jobs.IndexOf(job);
-                    if (index >= 0)
-                    {
-                        int indexRef = index; // Required for reference
-                        if (_backupManager.RemoveJob(ref indexRef))
-                        {
-                            Jobs.Remove(job);
-                            OnPropertyChanged(nameof(Jobs));
-                        }
-                    }
+                    Jobs.Remove(job); 
                 }
             }
+            UpdateSelectionFromCheckboxes();
+            OnPropertyChanged(nameof(Jobs));
         }
 
         private void StopSelectedJobs()

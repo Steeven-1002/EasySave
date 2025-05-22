@@ -98,54 +98,95 @@ namespace EasySave_by_ProSoft.Models
         /// Executes the backup jobs with the specified indices
         /// </summary>
         /// <param name="jobIndexes">List of job indices to execute</param>
-        public async Task ExecuteJobsAsync(List<int> jobIndexes)
+        // Dans BackupManager.cs
+        public async Task ExecuteJobsAsync(List<int> jobIndexes) // Ou votre manière préférée d'identifier les travaux
         {
             if (jobIndexes == null || !jobIndexes.Any())
             {
-                Debug.WriteLine("BackupManager.ExecuteJobsAsync: No job indexes provided.");
+                Debug.WriteLine("BackupManager.ExecuteJobsAsync: Aucun indice de travail fourni.");
                 return;
             }
-            Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Received {jobIndexes.Count} job index(es) to execute: [{string.Join(", ", jobIndexes)}]");
+            Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Réception de {jobIndexes.Count} indice(s) de travail à exécuter : [{string.Join(", ", jobIndexes)}]");
 
             List<Task> runningTasks = new List<Task>();
-            List<string> jobNamesToRun = new List<string>();
+            List<string> jobNamesToRun = new List<string>(); // Pour la journalisation
 
             foreach (var index in jobIndexes)
             {
                 if (index >= 0 && index < backupJobs.Count)
                 {
-                    BackupJob jobToRun = backupJobs[index];
+                    BackupJob jobToRun = backupJobs[index]; // Utilise toujours l'indice ici, voir point suivant
                     jobNamesToRun.Add(jobToRun.Name);
 
-                    Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Creating Task for job '{jobToRun.Name}' (Index: {index}). Current Status: {jobToRun.Status.State}");
+                    Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Création de la tâche pour le travail '{jobToRun.Name}' (Indice: {index}). Statut actuel: {jobToRun.Status.State}");
 
-                    if (jobToRun.Status.State != BackupState.Initialise)
+                    if (jobToRun.Status.State != BackupState.Initialise) // Vérifie si l'état est Initialise
                     {
-                        Debug.WriteLine($"WARNING - BackupManager.ExecuteJobsAsync: Job '{jobToRun.Name}' is not in Initialise state (Current: {jobToRun.Status.State}). Ensure ResetForRun() was called by ViewModel.");
+                        Debug.WriteLine($"AVERTISSEMENT - BackupManager.ExecuteJobsAsync: Le travail '{jobToRun.Name}' n'est pas à l'état Initialise (Actuel: {jobToRun.Status.State}). Assurez-vous que ResetForRun() a été appelé par le ViewModel.");
                     }
 
-                    // Lancez Start() UNE SEULE FOIS par travail, à l'intérieur de Task.Run pour la parallélisation.
                     runningTasks.Add(Task.Run(() =>
                     {
                         int threadId = Thread.CurrentThread.ManagedThreadId;
-                        Debug.WriteLine($"Thread-{threadId}: Task for job '{jobToRun.Name}' STARTED.");
+                        Debug.WriteLine($"Thread-{threadId}: Tâche pour le travail '{jobToRun.Name}' DÉMARRÉE.");
                         try
                         {
-                            jobToRun.Start(); // La méthode Start() de BackupJob
+                            jobToRun.Start(); // La méthode Start de BackupJob
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine($"Thread-{threadId}: EXCEPTION in Task for job '{jobToRun.Name}': {ex.Message}\nStackTrace: {ex.StackTrace}");
-                            jobToRun.Status?.SetError($"Erreur lors de l'exécution du travail {jobToRun.Name}: {ex.Message}");
+                            Debug.WriteLine($"Thread-{threadId}: EXCEPTION dans la tâche pour le travail '{jobToRun.Name}': {ex.Message}\nStackTrace: {ex.StackTrace}");
+                            jobToRun.Status?.SetError($"Erreur lors de l'exécution du travail {jobToRun.Name}: {ex.Message}"); // Met à jour le statut en cas d'erreur
                         }
-                        Debug.WriteLine($"Thread-{threadId}: Task for job '{jobToRun.Name}' COMPLETED. Final Status: {jobToRun.Status.State}");
+                        Debug.WriteLine($"Thread-{threadId}: Tâche pour le travail '{jobToRun.Name}' TERMINÉE. Statut final: {jobToRun.Status.State}");
                     }));
                 }
                 else
                 {
-                    Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Invalid job index {index} skipped. Total jobs: {backupJobs.Count}");
+                    Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Indice de travail invalide {index} ignoré. Nombre total de travaux: {backupJobs.Count}");
                 }
             }
+
+            if (runningTasks.Any())
+            {
+                Debug.WriteLine($"BackupManager.ExecuteJobsAsync: En attente de {runningTasks.Count} tâches pour les travaux : [{string.Join(", ", jobNamesToRun)}]");
+                await Task.WhenAll(runningTasks);
+                Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Les {runningTasks.Count} tâches de travail sont toutes terminées.");
+            }
+            else
+            {
+                Debug.WriteLine("BackupManager.ExecuteJobsAsync: Aucune tâche n'a été créée pour être exécutée.");
+            }
+        }
+
+        public async Task ExecuteJobsByNameAsync(List<string> jobNames)
+        {
+            if (jobNames == null || !jobNames.Any()) return;
+
+            List<Task> runningTasks = new List<Task>();
+            foreach (var name in jobNames)
+            {
+                BackupJob jobToRun = backupJobs.FirstOrDefault(j => j.Name == name);
+                if (jobToRun != null)
+                {
+                    if (jobToRun.Status.State != BackupState.Initialise) { /* Log warning */ }
+                    runningTasks.Add(Task.Run(() => jobToRun.Start())); // Exécute la méthode Start de BackupJob
+                }
+                else { /* Log error: travail avec ce nom non trouvé */ }
+            }
+            if (runningTasks.Any()) await Task.WhenAll(runningTasks);
+        }
+
+        public bool RemoveJobByName(string jobName) // Au lieu de par indice
+        {
+            BackupJob jobToRemove = backupJobs.FirstOrDefault(j => j.Name == jobName);
+            if (jobToRemove != null)
+            {
+                backupJobs.Remove(jobToRemove);
+                SaveJobs(); // Sauvegarde la configuration des travaux
+                return true;
+            }
+            return false;
         }
 
         /// <summary>
