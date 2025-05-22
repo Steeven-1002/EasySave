@@ -202,7 +202,7 @@ namespace EasySave_by_ProSoft.ViewModels
                 if (setting is double d) return d;
                 if (setting is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Number && jsonElement.TryGetDouble(out double val)) return val;
                 if (_settings.GetSetting("DefaultLargeFileSizeThresholdKey") is double defaultVal) return defaultVal;
-                return 0; // Fallback value if no valid setting is found
+                return 1000000; // Fallback value if no valid setting is found
             }
             set
             {
@@ -210,6 +210,7 @@ namespace EasySave_by_ProSoft.ViewModels
                 {
                     _settings.SetSetting("LargeFileSizeThresholdKey", value);
                     OnPropertyChanged();
+                    SaveSettings();
                 }
             }
         }

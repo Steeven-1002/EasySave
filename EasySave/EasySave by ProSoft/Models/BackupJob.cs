@@ -230,7 +230,7 @@ namespace EasySave_by_ProSoft.Models
 
                     if (fileSize > largeFileSizeThresholdBytes)
                     {
-                        MessageBox.Show($"Fichier volumineux détecté : {Path.GetFileName(sourceFile)}\nTaille : {fileSize / 1024} Ko (Seuil : {thresholdKBSetting} Ko).\nAttente du sémaphore.", "Debug Fichier Volumineux", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        /// MessageBox.Show($"Fichier volumineux détecté : {Path.GetFileName(sourceFile)}\nTaille : {fileSize / 1024} Ko (Seuil : {thresholdKBSetting} Ko).\nAttente du sémaphore.", "Debug Fichier Volumineux", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         isLargeFile = true;
                         Status.Details = $"En attente pour transférer un fichier volumineux : {Path.GetFileName(sourceFile)}"; // Inform the user
                         Status.Update(); // Update the UI
