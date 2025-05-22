@@ -127,12 +127,15 @@ namespace EasySave_by_ProSoft.Models
         /// </summary>
         public void Start()
         {
-            if (_isRunning)
-                return;
+            lock (this)
+            {
+                if (_isRunning)
+                    return;
 
-            _isRunning = true;
-            _isPaused = false;
-            _stopRequested = false;
+                _isRunning = true;
+                _isPaused = false;
+                _stopRequested = false;
+            }
 
             try
             {
@@ -264,7 +267,6 @@ namespace EasySave_by_ProSoft.Models
                             _encryptionTime = 0;
                             System.Windows.Forms.MessageBox.Show("Encryption key is empty. File will not be encrypted.", "Warning", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
                         }
-                        _encryptionTime = _encryptionService.EncryptFile(ref targetFile, key);
                     }
                     else
                     {

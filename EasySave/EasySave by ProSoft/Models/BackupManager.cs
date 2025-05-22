@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System;
 using System.IO;
 using System.Text.Json;
 
@@ -96,40 +98,53 @@ namespace EasySave_by_ProSoft.Models
         /// Executes the backup jobs with the specified indices
         /// </summary>
         /// <param name="jobIndexes">List of job indices to execute</param>
-        public async Task ExecuteJobs(List<int> jobIndexes)
+        public async Task ExecuteJobsAsync(List<int> jobIndexes)
         {
+            if (jobIndexes == null || !jobIndexes.Any())
+            {
+                Debug.WriteLine("BackupManager.ExecuteJobsAsync: No job indexes provided.");
+                return;
+            }
+            Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Received {jobIndexes.Count} job index(es) to execute: [{string.Join(", ", jobIndexes)}]");
+
             List<Task> runningTasks = new List<Task>();
+            List<string> jobNamesToRun = new List<string>();
+
             foreach (var index in jobIndexes)
             {
                 if (index >= 0 && index < backupJobs.Count)
                 {
                     BackupJob jobToRun = backupJobs[index];
-                    // Run each Start() in a separate task for parallel execution
+                    jobNamesToRun.Add(jobToRun.Name);
+
+                    Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Creating Task for job '{jobToRun.Name}' (Index: {index}). Current Status: {jobToRun.Status.State}");
+
+                    if (jobToRun.Status.State != BackupState.Initialise)
+                    {
+                        Debug.WriteLine($"WARNING - BackupManager.ExecuteJobsAsync: Job '{jobToRun.Name}' is not in Initialise state (Current: {jobToRun.Status.State}). Ensure ResetForRun() was called by ViewModel.");
+                    }
+
+                    // Lancez Start() UNE SEULE FOIS par travail, à l'intérieur de Task.Run pour la parallélisation.
                     runningTasks.Add(Task.Run(() =>
                     {
+                        int threadId = Thread.CurrentThread.ManagedThreadId;
+                        Debug.WriteLine($"Thread-{threadId}: Task for job '{jobToRun.Name}' STARTED.");
                         try
                         {
-                            jobToRun.Start();
+                            jobToRun.Start(); // La méthode Start() de BackupJob
                         }
                         catch (Exception ex)
                         {
-                            System.Windows.Forms.MessageBox.Show($"Error executing job at index {index}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                            Debug.WriteLine($"Thread-{threadId}: EXCEPTION in Task for job '{jobToRun.Name}': {ex.Message}\nStackTrace: {ex.StackTrace}");
+                            jobToRun.Status?.SetError($"Erreur lors de l'exécution du travail {jobToRun.Name}: {ex.Message}");
                         }
+                        Debug.WriteLine($"Thread-{threadId}: Task for job '{jobToRun.Name}' COMPLETED. Final Status: {jobToRun.Status.State}");
                     }));
-                    try
-                    {
-                        backupJobs[index].Start();
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Windows.Forms.MessageBox.Show($"Error executing job at index {index}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
-                    }
                 }
-            }
-            // Wait for all tasks to complete
-            if (runningTasks.Any())
-            {
-                await Task.WhenAll(runningTasks);
+                else
+                {
+                    Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Invalid job index {index} skipped. Total jobs: {backupJobs.Count}");
+                }
             }
         }
 

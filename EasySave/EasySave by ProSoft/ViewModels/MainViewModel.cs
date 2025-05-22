@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
@@ -18,6 +19,7 @@ namespace EasySave_by_ProSoft.ViewModels
         private readonly BackupManager _backupManager;
         private ObservableCollection<BackupJob> _jobs;
         private DispatcherTimer _statusUpdateTimer;
+        private volatile bool _isLaunchingJobs = false;
 
         public ObservableCollection<BackupJob> Jobs
         {
@@ -64,18 +66,30 @@ namespace EasySave_by_ProSoft.ViewModels
         public ICommand RemoveJobCommand { get; }
         public ICommand PauseJobCommand { get; }
         public ICommand ResumeJobCommand { get; }
+        public ICommand StopJobCommand { get; }
 
         public MainViewModel(BackupManager backupManager)
         {
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
             _jobs = new ObservableCollection<BackupJob>();
 
+            Predicate<object?> canLaunchPredicate = _ =>
+               SelectedJobs != null &&
+               SelectedJobs.Any(job => job.Status.State == BackupState.Initialise ||
+                                       job.Status.State == BackupState.Error ||
+                                       job.Status.State == BackupState.Completed) &&
+               !_isLaunchingJobs; // Ne pas permettre le lancement si un lancement est déjà en cours
+
+            LaunchJobCommand = new RelayCommand(async _ => await LaunchSelectedJob(), canLaunchPredicate);
+            LaunchMultipleJobsCommand = new RelayCommand(async _ => await LaunchSelectedJob(), canLaunchPredicate);
+
             CreateJobCommand = new RelayCommand(_ => CreateJob(), _ => true);
-            LaunchJobCommand = new RelayCommand(_ => LaunchSelectedJob(), _ => SelectedJob != null && SelectedJob.Count > 0);
-            LaunchMultipleJobsCommand = new RelayCommand(_ => LaunchMultipleJobs(), _ => SelectedJobs != null && SelectedJobs.Count > 0);
+            // LaunchJobCommand = new RelayCommand(_ => LaunchSelectedJob(), _ => SelectedJob != null && SelectedJob.Count > 0);
+            //LaunchMultipleJobsCommand = new RelayCommand(_ => LaunchMultipleJobs(), _ => SelectedJobs != null && SelectedJobs.Count > 0);
             RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(), _ => SelectedJob != null && SelectedJob.Count > 0);
             PauseJobCommand = new RelayCommand(_ => PauseSelectedJob(), _ => CanPauseSelectedJob());
             ResumeJobCommand = new RelayCommand(_ => ResumeSelectedJob(), _ => CanResumeSelectedJob());
+            StopJobCommand = new RelayCommand(_ => StopSelectedJobs(), _ => SelectedJobs != null && SelectedJobs.Any(job => job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused) && !_isLaunchingJobs);
 
             // Configure timer to refresh job status every second
             _statusUpdateTimer = new DispatcherTimer();
@@ -89,23 +103,8 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private void StatusUpdateTimer_Tick(object sender, EventArgs e)
         {
-            // Create a copy of the collection to iterate over
-            var jobsCopy = Jobs.ToList();
-
-            foreach (var job in jobsCopy)
-            {
-                OnPropertyChanged(nameof(Jobs));
-
-                var tempJob = job;
-                if (tempJob != null)
-                {
-                    var index = Jobs.IndexOf(tempJob);
-                    if (index >= 0)
-                    {
-                        Jobs[index] = tempJob; // Replace without removing
-                    }
-                }
-            }
+            if (!_isLaunchingJobs)
+                CommandManager.InvalidateRequerySuggested();
         }
 
         /// <summary>
@@ -187,24 +186,95 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private void CreateJob()
         {
-            // This method can be used to display a job creation dialog
-            // See the equivalent method in BackupJobsView.xaml.cs (CreateNewJob_Click)
+            Debug.WriteLine("MainViewModel.CreateJob() called.");
         }
 
         /// <summary>
         /// Launches the selected backup job
         /// </summary>
-        private void LaunchSelectedJob()
+        private async Task LaunchSelectedJob()
         {
-            if (SelectedJob != null)
+            if (_isLaunchingJobs)
             {
-                foreach (var job in SelectedJob)
+                Debug.WriteLine("LaunchSelectedJobsAsync: Launch already in progress. Aborting new launch request.");
+                return;
+            }
+
+            if (SelectedJobs == null || !SelectedJobs.Any())
+            {
+                Debug.WriteLine("LaunchSelectedJobsAsync: No jobs selected.");
+                return;
+            }
+
+            // Filter the jobs that can be launched
+            var jobsToStartModels = SelectedJobs.Where(j =>
+                j.Status.State == BackupState.Initialise ||
+                j.Status.State == BackupState.Error ||
+                j.Status.State == BackupState.Completed).ToList();
+
+            if (!jobsToStartModels.Any())
+            {
+                Debug.WriteLine("LaunchSelectedJobsAsync: No suitable jobs to start based on current selection and status.");
+                CommandManager.InvalidateRequerySuggested(); // Update button state
+                return;
+            }
+
+            _isLaunchingJobs = true;
+            CommandManager.InvalidateRequerySuggested(); // Disable launch buttons
+            Debug.WriteLine($"MainViewModel.LaunchSelectedJobsAsync: SET _isLaunchingJobs = true. Launching jobs: {string.Join(", ", jobsToStartModels.Select(j => j.Name))}");
+            
+            try
+            {
+                List<int> jobIndexesToRun = new List<int>();
+                foreach (var jobModel in jobsToStartModels)
                 {
-                    job.Start();
+                    jobModel.Status.ResetForRun();
+                    Debug.WriteLine($"MainViewModel.LaunchSelectedJobsAsync: Job '{jobModel.Name}' status RESET for run. New status: {jobModel.Status.State}");
+
+                    int index = -1;
+                    var allJobsInManager = _backupManager.GetAllJobs();
+                    for (int i = 0; i < Jobs.Count; i++)
+                    {
+                        if (Jobs[i].Name == jobModel.Name)
+                        {
+                            index = i;
+                            break;
+                        }
+                    }
+                    if (index != -1)
+                    {
+                        jobIndexesToRun.Add(index);
+                        Debug.WriteLine($"MainViewModel.LaunchSelectedJobsAsync: Job '{jobModel.Name}' (Index: {index}) WILL BE STARTED.");
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"MainViewModel.LaunchSelectedJobsAsync: Job '{jobModel.Name}' NOT FOUND in current Jobs collection. Skipping.");
+                    }
+                }
+
+                if (jobIndexesToRun.Any())
+                {
+                    await _backupManager.ExecuteJobsAsync(jobIndexesToRun);
+                    Debug.WriteLine("MainViewModel.LaunchSelectedJobsAsync: BackupManager.ExecuteJobsAsync awaited and completed.");
+                }
+                else
+                {
+                    Debug.WriteLine("MainViewModel.LaunchSelectedJobsAsync: No valid job indexes found to run.");
                 }
             }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"MainViewModel.LaunchSelectedJobsAsync: EXCEPTION during job execution: {ex.Message}");
+                // Handle the exception (e.g., notify the user)
+            }
+            finally
+            {
+                _isLaunchingJobs = false;
+                Debug.WriteLine("MainViewModel.LaunchSelectedJobsAsync: (in finally) SET _isLaunchingJobs = false.");
+                CommandManager.InvalidateRequerySuggested(); // Re-enable launch buttons
+            }
         }
-
+        
         /// <summary>
         /// Pauses the selected backup job
         /// </summary>
@@ -288,7 +358,7 @@ namespace EasySave_by_ProSoft.ViewModels
             if (jobIndices.Count > 0)
             {
                 var jobIndicesRef = jobIndices; // Create a reference variable
-                _backupManager.ExecuteJobs(jobIndicesRef);
+                _backupManager.ExecuteJobsAsync(jobIndicesRef);
             }
         }
 
@@ -313,6 +383,17 @@ namespace EasySave_by_ProSoft.ViewModels
                     }
                 }
             }
+        }
+
+        private void StopSelectedJobs()
+        {
+            if (SelectedJobs == null || _isLaunchingJobs) return; // Do not allow stopping if a launch is in progress (could be adjusted)
+            Debug.WriteLine($"MainViewModel.StopSelectedJobs called for: {string.Join(", ", SelectedJobs.Where(j => j.Status.State == BackupState.Running || j.Status.State == BackupState.Paused).Select(j => j.Name))}");
+            foreach (var job in SelectedJobs)
+            {
+                if (job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused) job.Stop();
+            }
+            CommandManager.InvalidateRequerySuggested();
         }
 
         /// <summary>
