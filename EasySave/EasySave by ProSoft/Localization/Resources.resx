@@ -252,4 +252,7 @@
   <data name="BackupWorkManagementDeleteBackupSelected" xml:space="preserve">
     <value>Delete job</value>
   </data>
+  <data name="LargeFileSizeSetting" xml:space="preserve">
+    <value>Large file size (in KB) :</value>
+  </data>
 </root>

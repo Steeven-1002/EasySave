@@ -40,6 +40,7 @@ namespace EasySave_by_ProSoft.Models
                 settings["EncryptionExtensions"] = JsonDocument.Parse("[\".txt\", \".docx\"]").RootElement;
                 settings["LogFormat"] = JsonDocument.Parse("\"XML\"").RootElement;
                 settings["UserLanguage"] = JsonDocument.Parse("\"en-US\"").RootElement;
+                settings["LargeFileSizeThresholdKey"] = JsonDocument.Parse("1000000").RootElement;
                 SaveConfiguration();
             }
         }

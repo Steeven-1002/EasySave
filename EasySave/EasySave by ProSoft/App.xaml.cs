@@ -1,4 +1,5 @@
-﻿using EasySave_by_ProSoft.Properties; // For Settings.Default
+﻿using EasySave_by_ProSoft.Models;
+using EasySave_by_ProSoft.Properties; // For Settings.Default
 using System.Globalization;
 using System.Windows;
 
@@ -15,6 +16,7 @@ namespace EasySave_by_ProSoft
 
             string savedLang = Settings.Default.UserLanguage;
             CultureInfo targetCulture;
+            JobEventManager.Instance.AddListener(LoggingService.Instance);
 
             if (!string.IsNullOrEmpty(savedLang))
             {
