@@ -295,9 +295,10 @@ namespace EasySave_by_ProSoft.Models
         }
 
 
-        // <summary>
-        // Processes a single file for backup
-        private void ProcessSingleFile(string sourceFile)
+        /// <summary>
+        /// Processes a single file for backup
+        /// </summary>
+        private async Task ProcessSingleFile(string sourceFile, long largeFileSizeThresholdBytes)
         {
             try
             {

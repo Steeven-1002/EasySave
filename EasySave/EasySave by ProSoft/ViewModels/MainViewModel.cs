@@ -434,6 +434,8 @@ namespace EasySave_by_ProSoft.ViewModels
         public bool CanExecute(object? parameter) => _canExecute == null || _canExecute(parameter);
         public void Execute(object? parameter) => _execute(parameter);
 
+
+        // This event is used to notify the UI to re-evaluate the CanExecute state of the command
         public event EventHandler? CanExecuteChanged
         {
             add { CommandManager.RequerySuggested += value; }
