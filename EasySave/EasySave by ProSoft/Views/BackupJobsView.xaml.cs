@@ -96,7 +96,7 @@ namespace EasySave_by_ProSoft.Views
                     _backupJobsViewModel.LaunchJobCommand.Execute(job);
                 }
             // Update the UI to reflect the job status
-            RefreshJobsList();
+            // RefreshJobsList();
         }
 
         private void DeleteSelectedJob_Click(object sender, RoutedEventArgs e)
@@ -199,7 +199,7 @@ namespace EasySave_by_ProSoft.Views
                 JobTypeComboBox.SelectedIndex = 0;
 
                 // Refresh the jobs list after adding a new job
-                RefreshJobsList();
+                // RefreshJobsList();
             }
         }
 
