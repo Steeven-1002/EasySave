@@ -201,7 +201,7 @@ namespace EasySave_by_ProSoft.Models
 
         public bool HasPendingPriorityFiles()
         {
-            // Récupère la liste des extensions prioritaires
+            // Get the list of extensions to prioritize from the settings
             var priorityList = new List<string>();
             var setting = AppSettings.Instance.GetSetting("ExtensionFilePriority");
             if (setting is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
@@ -211,7 +211,7 @@ namespace EasySave_by_ProSoft.Models
                         priorityList.Add(s);
             }
 
-            // Vérifie s'il reste des fichiers prioritaires à traiter dans au moins un job en cours
+            // Check if any job is running and has pending files with the specified extensions
             return backupJobs.Any(job =>
                 job.Status.State == BackupState.Running &&
                 job.GetPendingFiles().Any(f =>

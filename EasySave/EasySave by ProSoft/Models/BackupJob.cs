@@ -189,7 +189,7 @@ namespace EasySave_by_ProSoft.Models
             var filesToHandle = toProcessFiles.ToList();
             var ignoredNonPriority = new List<string>();
 
-            // Première passe : traiter les prioritaires et ignorer les non prioritaires si des prioritaires restent
+            // First pass : process priority files
             foreach (string sourceFile in filesToHandle)
             {
                 if (_stopRequested || _isPaused)
@@ -232,13 +232,13 @@ namespace EasySave_by_ProSoft.Models
                 this.toProcessFiles.Remove(sourceFile);
             }
 
-            // Deuxième passe : traiter les fichiers non prioritaires ignorés
+            // Second pass : treating  non priorities
             foreach (string sourceFile in ignoredNonPriority)
             {
                 if (_stopRequested || _isPaused)
                     break;
 
-                // On vérifie à nouveau qu'il n'y a plus de prioritaires
+                // Check if there are still pending priority files
                 if (_backupManager != null && _backupManager.HasPendingPriorityFiles())
                 {
                     System.Windows.Forms.MessageBox.Show(
@@ -261,7 +261,7 @@ namespace EasySave_by_ProSoft.Models
                 this.toProcessFiles.Remove(sourceFile);
             }
 
-            // Nettoyage des dossiers et fichiers cibles qui n'existent plus dans la source
+            // Delete files and directories that are no longer in the source
             List<string> sourceDirectories = _fileSystemService.GetDirectoriesInDirectory(SourcePath);
             List<string> targetDirectories = _fileSystemService.GetDirectoriesInDirectory(TargetPath);
             foreach (string targetDirectory in targetDirectories)
@@ -295,7 +295,8 @@ namespace EasySave_by_ProSoft.Models
         }
 
 
-        // Facteurise le traitement d'un fichier unique
+        // <summary>
+        // Processes a single file for backup
         private void ProcessSingleFile(string sourceFile)
         {
             try
