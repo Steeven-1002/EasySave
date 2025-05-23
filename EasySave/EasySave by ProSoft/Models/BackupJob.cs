@@ -1,6 +1,8 @@
 using EasySave.Services;
 using System.IO;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EasySave_by_ProSoft.Models
 {
@@ -27,6 +29,8 @@ namespace EasySave_by_ProSoft.Models
         private bool _stopRequested = false;
         private List<string> toProcessFiles = new List<string>();
 
+        private readonly SemaphoreSlim _largeFileTransferSemaphore;
+
         private bool _isSelected;
         public bool IsSelected
         {
@@ -42,7 +46,7 @@ namespace EasySave_by_ProSoft.Models
         /// <summary>
         /// Initializes a new backup job
         /// </summary>
-        public BackupJob(string name, string sourcePath, string targetPath, BackupType type, BackupManager manager)
+        public BackupJob(string name, string sourcePath, string targetPath, BackupType type, BackupManager manager, SemaphoreSlim largeFileSemaphore)
         {
             Name = name;
             SourcePath = sourcePath;
@@ -52,6 +56,8 @@ namespace EasySave_by_ProSoft.Models
 
             // Link this job to its status for proper state tracking
             Status.BackupJob = this;
+
+            _largeFileTransferSemaphore = largeFileSemaphore ?? throw new ArgumentNullException(nameof(largeFileSemaphore));
 
             string appNameToMonitor = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
             _businessMonitor = new BusinessApplicationMonitor(appNameToMonitor);
@@ -120,150 +126,144 @@ namespace EasySave_by_ProSoft.Models
         /// Starts the backup job
         /// </summary>
         public void Start()
+{
+    lock (this)
+    {
+        if (_isRunning || Status.State == BackupState.Completed)
+            return;
+
+        _isRunning = true;
+        _isPaused = false;
+        _stopRequested = false;
+    }
+
+    try
+    {
+        // Check if business software is running
+        if (_businessMonitor.IsRunning())
         {
-            if (_isRunning || Status.State == BackupState.Completed)
-                return;
+            string businessSoftwareName = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
+            string message = $"Business software {businessSoftwareName} detected. Cannot start backup job {Name}.";
 
-            _isRunning = true;
-            _stopRequested = false;
+            System.Windows.Forms.MessageBox.Show($"{message}",
+                              "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
 
-            try
-            {
-                // Check if business software is running
-                if (_businessMonitor.IsRunning())
-                {
-                    string businessSoftwareName = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
-                    string message = $"Business software {businessSoftwareName} detected. Cannot start backup job {Name}.";
-
-                    System.Windows.Forms.MessageBox.Show($"{message}",
-                                      "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
-
-                    Status.Details = message;
-                    Status.SetError(message);
-                    _isRunning = false;
-                    return;
-                }
-
-                // Start the job with start details
-                string startDetails = null;
-                Status.Start(startDetails);
-
-                // Get files using the selected strategy
-                if (toProcessFiles.Count == 0)
-                {
-                    BackupJob jobRef = this;
-                    toProcessFiles = _backupFileStrategy.GetFiles(ref jobRef);
-                }
-
-
-                // Process files if we have a valid status
-                if (Status.State == BackupState.Running)
-                {
-                    ProcessFiles(toProcessFiles);
-                }
-
-                // Complete the job if it wasn't paused or stopped
-                if (Status.State == BackupState.Running)
-                {
-                    Status.Complete();
-                }
-            }
-            catch (Exception ex)
-            {
-                Status.SetError($"Backup failed: {ex.Message}");
-            }
-            finally
-            {
-                _isRunning = false;
-            }
+            Status.Details = message;
+            Status.SetError(message);
+            _isRunning = false;
+            return;
         }
+
+        // Start the job with start details
+        string startDetails = null;
+        Status.Start(startDetails);
+
+        // Get files using the selected strategy
+        if (toProcessFiles.Count == 0)
+        {
+            BackupJob jobRef = this;
+            toProcessFiles = _backupFileStrategy.GetFiles(ref jobRef);
+        }
+
+        // Process files if we have a valid status
+        if (Status.State == BackupState.Running)
+        {
+            ProcessFiles(toProcessFiles).GetAwaiter().GetResult();
+        }
+
+        // Complete the job if it wasn't paused or stopped
+        if (Status.State == BackupState.Running)
+        {
+            Status.Complete();
+        }
+    }
+    catch (Exception ex)
+    {
+        Status.SetError($"Backup failed: {ex.Message}");
+    }
+    finally
+    {
+        _isRunning = false;
+    }
+}
+
 
         /// <summary>
         /// Processes all files that need to be backed up
         /// </summary>
-        private void ProcessFiles(List<string> toProcessFiles)
+
+        
+
+        private async Task ProcessFiles(List<string> toProcessFiles)
+{
+    if (!Directory.Exists(TargetPath))
+        Directory.CreateDirectory(TargetPath);
+
+    var filesToHandle = toProcessFiles.ToList();
+    var ignoredNonPriority = new List<string>();
+
+    double thresholdKBSetting = (double)(AppSettings.Instance.GetSetting("LargeFileSizeThresholdKey") as double?
+                                ?? AppSettings.Instance.GetSetting("DefaultLargeFileSizeThresholdKey"));
+    long largeFileSizeThresholdBytes = (long)(thresholdKBSetting * 1024);
+
+    // Premi√®re passe : fichiers prioritaires
+    foreach (string sourceFile in filesToHandle)
+    {
+        if (_stopRequested) break;
+        while (_isPaused && !_stopRequested)
         {
-            if (!Directory.Exists(TargetPath))
-                Directory.CreateDirectory(TargetPath);
+            await Task.Delay(500);
+        }
+        if (_stopRequested) break;
 
-            var filesToHandle = toProcessFiles.ToList();
-            var ignoredNonPriority = new List<string>();
+        string ext = Path.GetExtension(sourceFile);
+        bool isPriority = PriorityExtensionManager.IsPriorityExtension(ext);
 
-            // First pass : process priority files
-            foreach (string sourceFile in filesToHandle)
-            {
-                if (_stopRequested || _isPaused)
-                    break;
+        if (!isPriority && _backupManager != null && _backupManager.HasPendingPriorityFiles())
+        {
+            // Ignorer temporairement les fichiers non prioritaires
+            System.Windows.Forms.MessageBox.Show(
+                $"[IGNOR√â] {sourceFile} (non prioritaire)\nDes fichiers prioritaires restent √† traiter.",
+                "Ordre de traitement", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+            ignoredNonPriority.Add(sourceFile);
+            continue;
+        }
+        else
+        {
+            string message = isPriority ? "[PRIORITAIRE]" : "[NORMAL]";
+            System.Windows.Forms.MessageBox.Show(
+                $"{message} {sourceFile} est trait√©.",
+                "Ordre de traitement", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+        }
 
-                string ext = Path.GetExtension(sourceFile);
-                bool isPriority = PriorityExtensionManager.IsPriorityExtension(ext);
+        await ProcessSingleFile(sourceFile, largeFileSizeThresholdBytes);
+        this.toProcessFiles.Remove(sourceFile);
+    }
 
-                if (!isPriority && _backupManager != null && _backupManager.HasPendingPriorityFiles())
-                {
-                    System.Windows.Forms.MessageBox.Show(
-                        $"[IGNOR…] {sourceFile} (non prioritaire)\nDes fichiers prioritaires restent ‡ traiter.",
-                        "Ordre de traitement",
-                        System.Windows.Forms.MessageBoxButtons.OK,
-                        System.Windows.Forms.MessageBoxIcon.Information
-                    );
-                    ignoredNonPriority.Add(sourceFile);
-                    continue;
-                }
-                else if (isPriority)
-                {
-                    System.Windows.Forms.MessageBox.Show(
-                        $"[PRIORITAIRE] {sourceFile} est traitÈ.",
-                        "Ordre de traitement",
-                        System.Windows.Forms.MessageBoxButtons.OK,
-                        System.Windows.Forms.MessageBoxIcon.Information
-                    );
-                }
-                else
-                {
-                    System.Windows.Forms.MessageBox.Show(
-                        $"[NORMAL] {sourceFile} est traitÈ (aucun prioritaire restant).",
-                        "Ordre de traitement",
-                        System.Windows.Forms.MessageBoxButtons.OK,
-                        System.Windows.Forms.MessageBoxIcon.Information
-                    );
-                }
+    // Deuxi√®me passe : traiter les fichiers non prioritaires
+    foreach (string sourceFile in ignoredNonPriority)
+    {
+        if (_stopRequested || _isPaused) break;
 
-                ProcessSingleFile(sourceFile);
-                this.toProcessFiles.Remove(sourceFile);
-            }
+        if (_backupManager != null && _backupManager.HasPendingPriorityFiles())
+        {
+            System.Windows.Forms.MessageBox.Show(
+                $"[ATTENTE] {sourceFile} (non prioritaire) attend toujours la fin des prioritaires.",
+                "Ordre de traitement", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+            continue;
+        }
 
-            // Second pass : treating  non priorities
-            foreach (string sourceFile in ignoredNonPriority)
-            {
-                if (_stopRequested || _isPaused)
-                    break;
+        System.Windows.Forms.MessageBox.Show(
+            $"[NORMAL] {sourceFile} est finalement trait√© (apr√®s les prioritaires).",
+            "Ordre de traitement", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
 
-                // Check if there are still pending priority files
-                if (_backupManager != null && _backupManager.HasPendingPriorityFiles())
-                {
-                    System.Windows.Forms.MessageBox.Show(
-                        $"[ATTENTE] {sourceFile} (non prioritaire) attend toujours la fin des prioritaires.",
-                        "Ordre de traitement",
-                        System.Windows.Forms.MessageBoxButtons.OK,
-                        System.Windows.Forms.MessageBoxIcon.Information
-                    );
-                    continue;
-                }
+        await ProcessSingleFile(sourceFile, largeFileSizeThresholdBytes);
+        this.toProcessFiles.Remove(sourceFile);
+    }
 
-                System.Windows.Forms.MessageBox.Show(
-                    $"[NORMAL] {sourceFile} est finalement traitÈ (aprËs les prioritaires).",
-                    "Ordre de traitement",
-                    System.Windows.Forms.MessageBoxButtons.OK,
-                    System.Windows.Forms.MessageBoxIcon.Information
-                );
-
-                ProcessSingleFile(sourceFile);
-                this.toProcessFiles.Remove(sourceFile);
-            }
-
-            // Delete files and directories that are no longer in the source
-            List<string> sourceDirectories = _fileSystemService.GetDirectoriesInDirectory(SourcePath);
-            List<string> targetDirectories = _fileSystemService.GetDirectoriesInDirectory(TargetPath);
+    // Nettoyage des fichiers et dossiers obsol√®tes
+    List<string> sourceDirectories = _fileSystemService.GetDirectoriesInDirectory(SourcePath);
+    List<string> targetDirectories = _fileSystemService.GetDirectoriesInDirectory(TargetPath);
             foreach (string targetDirectory in targetDirectories)
             {
                 string relativePath = targetDirectory.Substring(TargetPath.Length).TrimStart('\\', '/');
@@ -387,6 +387,7 @@ namespace EasySave_by_ProSoft.Models
             if (_isRunning)
             {
                 _stopRequested = true;
+                _isPaused = false;
 
                 // If Details property is not already set with a specific reason,
                 // set a generic reason for stopping
@@ -409,16 +410,11 @@ namespace EasySave_by_ProSoft.Models
                 _isPaused = false;
                 Status.Resume();
 
-                // Continue processing files
-                ProcessFiles(toProcessFiles);
-
                 // Complete the job if we finished successfully
-                if (Status.State == BackupState.Running)
+                if (!_isRunning && Status.State == BackupState.Paused)
                 {
-                    Status.Complete();
+                    _isRunning = true;
                 }
-
-                _isRunning = false;
             }
         }
 

@@ -349,6 +349,15 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Large file size (in KB) :.
+        /// </summary>
+        public static string LargeFileSizeSetting {
+            get {
+                return ResourceManager.GetString("LargeFileSizeSetting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Log file format :.
         /// </summary>
         public static string LogFileFormatSetting {

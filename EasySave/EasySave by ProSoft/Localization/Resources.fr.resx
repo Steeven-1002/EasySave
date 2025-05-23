@@ -254,5 +254,8 @@
   </data>
   <data name="ExtensionFilePriority" xml:space="preserve">
     <value>Gestion des fichiers prioritaires</value>
+   </data>
+  <data name="LargeFileSizeSetting" xml:space="preserve">
+    <value>Taille de fichier volumineux (en Ko) :</value>
   </data>
 </root>
