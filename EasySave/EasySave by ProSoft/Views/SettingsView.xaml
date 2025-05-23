@@ -45,6 +45,9 @@
             <TextBlock Text="{x:Static localization:Resources.ExtensionFileCryptSetting}" Margin="0,10,0,5"/>
             <TextBox x:Name="DefaultEncryptExtensionsTextBox" ToolTip="Ex: .txt,.doc,.jpg" Margin="0,0,0,10" Text="{Binding EncryptionExtensions, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
+            <TextBlock Text="{x:Static localization:Resources.ExtensionFilePriority}" Margin="0,10,0,5"/>
+            <TextBox x:Name="ExtensionFilePriorityTextBox" ToolTip="Ex: .txt,.doc,.jpg" Margin="0,0,0,10" Text="{Binding ExtensionFilePriority, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
             <TextBlock Text="{x:Static localization:Resources.BusinessSoftwareCheckSetting}" Margin="0,0,0,5"/>
             <TextBox x:Name="BusinessSoftwareProcessNameTextBox" ToolTip="Ex: calc.exe" Margin="0,0,0,10" Text="{Binding BusinessSoftwareName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 

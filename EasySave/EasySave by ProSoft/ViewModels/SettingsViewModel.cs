@@ -79,6 +79,9 @@ namespace EasySave_by_ProSoft.ViewModels
             }
             set
             {
+
+               
+
                 var cleaned = System.Text.RegularExpressions.Regex.Replace(value, @"(?<!^)\.", " .");
 
                 var list = cleaned.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
@@ -91,6 +94,38 @@ namespace EasySave_by_ProSoft.ViewModels
             }
 
         }
+
+        public string ExtensionFilePriority
+        {
+            get
+            {
+                var setting = _settings.GetSetting("ExtensionFilePriority");
+                if (setting is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
+                {
+                    var list = new List<string>();
+                    foreach (var item in jsonElement.EnumerateArray())
+                    {
+                        list.Add(item.GetString() ?? "");
+                    }
+                    return string.Join(", ", list);
+                }
+                return string.Empty;
+            }
+            set
+            {
+                // Ensure proper format for extension file priority
+                var cleaned = System.Text.RegularExpressions.Regex.Replace(value, @"(?<!^)\.", " .");
+
+                var list = cleaned.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                                 .Select(s => s.Trim())
+                                 .ToList();
+
+                _settings.SetSetting("ExtensionFilePriority", list);
+                OnPropertyChanged();
+                SaveSettings();
+            }
+        }
+
 
         public string EncryptionKey
         {
@@ -189,7 +224,7 @@ namespace EasySave_by_ProSoft.ViewModels
             }
             catch (CultureNotFoundException ex)
             {
-                System.Windows.MessageBox.Show($"Culture {newLanguage} non trouvée: {ex.Message}", Localization.Resources.ErrorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"Culture {newLanguage} non trouvÃ©e: {ex.Message}", Localization.Resources.ErrorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
         }

@@ -105,7 +105,7 @@ namespace EasySave_by_ProSoft.Models
                 Debug.WriteLine("BackupManager.ExecuteJobsAsync: Aucun indice de travail fourni.");
                 return;
             }
-            Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Réception de {jobIndexes.Count} indice(s) de travail à exécuter : [{string.Join(", ", jobIndexes)}]");
+            Debug.WriteLine($"BackupManager.ExecuteJobsAsync: RÃ©ception de {jobIndexes.Count} indice(s) de travail Ã  exÃ©cuter : [{string.Join(", ", jobIndexes)}]");
 
             List<Task> runningTasks = new List<Task>();
             List<string> jobNamesToRun = new List<string>(); // For logging
@@ -117,44 +117,44 @@ namespace EasySave_by_ProSoft.Models
                     BackupJob jobToRun = backupJobs[index]; // Always use the index here, see next point
                     jobNamesToRun.Add(jobToRun.Name);
 
-                    Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Création de la tâche pour le travail '{jobToRun.Name}' (Indice: {index}). Statut actuel: {jobToRun.Status.State}");
+                    Debug.WriteLine($"BackupManager.ExecuteJobsAsync: CrÃ©ation de la tÃ¢che pour le travail '{jobToRun.Name}' (Indice: {index}). Statut actuel: {jobToRun.Status.State}");
 
                     if (jobToRun.Status.State != BackupState.Initialise) // Checks if the state is Initialize
                     {
-                        Debug.WriteLine($"AVERTISSEMENT - BackupManager.ExecuteJobsAsync: Le travail '{jobToRun.Name}' n'est pas à l'état Initialise (Actuel: {jobToRun.Status.State}). Assurez-vous que ResetForRun() a été appelé par le ViewModel.");
+                        Debug.WriteLine($"AVERTISSEMENT - BackupManager.ExecuteJobsAsync: Le travail '{jobToRun.Name}' n'est pas Ã  l'Ã©tat Initialise (Actuel: {jobToRun.Status.State}). Assurez-vous que ResetForRun() a Ã©tÃ© appelÃ© par le ViewModel.");
                     }
 
                     runningTasks.Add(Task.Run(() =>
                     {
                         int threadId = Thread.CurrentThread.ManagedThreadId;
-                        Debug.WriteLine($"Thread-{threadId}: Tâche pour le travail '{jobToRun.Name}' DÉMARRÉE.");
+                        Debug.WriteLine($"Thread-{threadId}: TÃ¢che pour le travail '{jobToRun.Name}' DÃ‰MARRÃ‰E.");
                         try
                         {
                             jobToRun.Start(); // BackupJob's Start Method
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine($"Thread-{threadId}: EXCEPTION dans la tâche pour le travail '{jobToRun.Name}': {ex.Message}\nStackTrace: {ex.StackTrace}");
-                            jobToRun.Status?.SetError($"Erreur lors de l'exécution du travail {jobToRun.Name}: {ex.Message}"); // Updates status on error
+                            Debug.WriteLine($"Thread-{threadId}: EXCEPTION dans la tÃ¢che pour le travail '{jobToRun.Name}': {ex.Message}\nStackTrace: {ex.StackTrace}");
+                            jobToRun.Status?.SetError($"Erreur lors de l'exÃ©cution du travail {jobToRun.Name}: {ex.Message}"); // Updates status on error
                         }
-                        Debug.WriteLine($"Thread-{threadId}: Tâche pour le travail '{jobToRun.Name}' TERMINÉE. Statut final: {jobToRun.Status.State}");
+                        Debug.WriteLine($"Thread-{threadId}: TÃ¢che pour le travail '{jobToRun.Name}' TERMINÃ‰E. Statut final: {jobToRun.Status.State}");
                     }));
                 }
                 else
                 {
-                    Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Indice de travail invalide {index} ignoré. Nombre total de travaux: {backupJobs.Count}");
+                    Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Indice de travail invalide {index} ignorÃ©. Nombre total de travaux: {backupJobs.Count}");
                 }
             }
 
             if (runningTasks.Any())
             {
-                Debug.WriteLine($"BackupManager.ExecuteJobsAsync: En attente de {runningTasks.Count} tâches pour les travaux : [{string.Join(", ", jobNamesToRun)}]");
+                Debug.WriteLine($"BackupManager.ExecuteJobsAsync: En attente de {runningTasks.Count} tÃ¢ches pour les travaux : [{string.Join(", ", jobNamesToRun)}]");
                 await Task.WhenAll(runningTasks);
-                Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Les {runningTasks.Count} tâches de travail sont toutes terminées.");
+                Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Les {runningTasks.Count} tÃ¢ches de travail sont toutes terminÃ©es.");
             }
             else
             {
-                Debug.WriteLine("BackupManager.ExecuteJobsAsync: Aucune tâche n'a été créée pour être exécutée.");
+                Debug.WriteLine("BackupManager.ExecuteJobsAsync: Aucune tÃ¢che n'a Ã©tÃ© crÃ©Ã©e pour Ãªtre exÃ©cutÃ©e.");
             }
         }
 
@@ -185,7 +185,9 @@ namespace EasySave_by_ProSoft.Models
                 SaveJobs(); // Save job configuration
                 return true;
             }
-            return false;
+
+
+         
         }
 
         /// <summary>
@@ -272,6 +274,33 @@ namespace EasySave_by_ProSoft.Models
                 System.Windows.Forms.MessageBox.Show($"Error saving jobs to file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
             }
         }
+
+        public bool HasPendingPriorityFiles()
+        {
+            // Get the list of extensions to prioritize from the settings
+            var priorityList = new List<string>();
+            var setting = AppSettings.Instance.GetSetting("ExtensionFilePriority");
+            if (setting is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var ext in jsonElement.EnumerateArray())
+                    if (ext.ValueKind == JsonValueKind.String && ext.GetString() is string s)
+                        priorityList.Add(s);
+            }
+
+            // Check if any job is running and has pending files with the specified extensions
+            return backupJobs.Any(job =>
+                job.Status.State == BackupState.Running &&
+                job.GetPendingFiles().Any(f =>
+                    priorityList.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase)
+                )
+            );
+        }
+
+
+
+
+
+
 
         /// <summary>
         /// Private class for serialization of job data

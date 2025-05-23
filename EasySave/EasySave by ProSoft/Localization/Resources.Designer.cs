@@ -295,6 +295,15 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Priority File Management.
+        /// </summary>
+        public static string ExtensionFilePriority {
+            get {
+                return ResourceManager.GetString("ExtensionFilePriority", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à General settings.
         /// </summary>
         public static string GeneralSettings {
