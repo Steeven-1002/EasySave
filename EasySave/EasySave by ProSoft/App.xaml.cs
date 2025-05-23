@@ -1,18 +1,49 @@
 ﻿using EasySave_by_ProSoft.Properties; // For Settings.Default
 using System.Globalization;
+using System.Threading;
 using System.Windows;
 
 namespace EasySave_by_ProSoft
 {
     public partial class App : System.Windows.Application
     {
-        private const string DefaultCultureName = "en-US"; // Default language if nothing is saved or if error
+        private const string DefaultCultureName = "en-US";
+        private static Mutex? _mutex;
+        private const string MutexName = "CryptoSoft_MonoInstance_Mutex";
 
         protected override void OnStartup(StartupEventArgs e)
         {
-            string initialThreadCultureName = Thread.CurrentThread.CurrentUICulture.Name;
-            string initialSavedLang = Settings.Default.UserLanguage;
+            bool createdNew;
+            _mutex = new Mutex(true, MutexName, out createdNew);
 
+            try
+            {
+                // Wait for the mutex for 2 seconds
+                if (!_mutex.WaitOne(TimeSpan.FromSeconds(2), false))
+                {
+                    System.Windows.MessageBox.Show(
+                        "Une autre instance du logiciel est déjà en cours d'exécution ou un verrou n'a pas été libéré correctement.\n\n" +
+                        "Si vous pensez que ce n'est pas le cas, redémarrez votre ordinateur.",
+                        "Erreur - Instance unique",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error
+                    );
+                    Environment.Exit(0);
+                }
+            }
+            catch (AbandonedMutexException)
+            {
+                // This exception is thrown if the mutex was abandoned by another thread
+                System.Windows.MessageBox.Show(
+                    "Une instance précédente de l'application s'est arrêtée de manière inattendue.\n" +
+                    "Le logiciel va continuer normalement.",
+                    "Avertissement - Instance récupérée",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning
+                );
+            }
+
+            // Load the user language from settings
             string savedLang = Settings.Default.UserLanguage;
             CultureInfo targetCulture;
 
@@ -24,20 +55,18 @@ namespace EasySave_by_ProSoft
                 }
                 catch (CultureNotFoundException)
                 {
-                    // The saved language is invalid, use the default language and save it
-                    System.Windows.MessageBox.Show($"App.OnStartup: Culture '{savedLang}' not found. Switching to default language '{DefaultCultureName}'.", "Debug Startup - Invalid Culture");
+                    System.Windows.MessageBox.Show($"Culture '{savedLang}' introuvable. Passage à la langue par défaut '{DefaultCultureName}'.", "Erreur de langue");
                     targetCulture = new CultureInfo(DefaultCultureName);
                     Settings.Default.UserLanguage = DefaultCultureName;
-                    Settings.Default.Save(); // Save default language
+                    Settings.Default.Save();
                 }
             }
             else
             {
-                // No language saved (first launch), use default language and save it
-                System.Windows.MessageBox.Show($"App.OnStartup: No language saved. Switching to default language '{DefaultCultureName}'.", "Debug Startup - No Language Saved");
+                System.Windows.MessageBox.Show($"Aucune langue sauvegardée. Passage à la langue par défaut '{DefaultCultureName}'.", "Langue par défaut");
                 targetCulture = new CultureInfo(DefaultCultureName);
                 Settings.Default.UserLanguage = DefaultCultureName;
-                Settings.Default.Save(); // Save default language
+                Settings.Default.Save();
             }
 
             ApplyCulture(targetCulture);
@@ -45,13 +74,19 @@ namespace EasySave_by_ProSoft
             base.OnStartup(e);
         }
 
+        protected override void OnExit(ExitEventArgs e)
+        {
+            _mutex?.ReleaseMutex();
+            _mutex?.Dispose();
+            base.OnExit(e);
+        }
+
         private void ApplyCulture(CultureInfo culture)
         {
             Thread.CurrentThread.CurrentUICulture = culture;
             Thread.CurrentThread.CurrentCulture = culture;
 
-            // Update the static Culture property of the generated resource class.
-            if (Localization.Resources.Culture != null || Localization.Resources.Culture == null) // Allows assignment
+            if (Localization.Resources.Culture != null || Localization.Resources.Culture == null)
             {
                 Localization.Resources.Culture = culture;
             }
