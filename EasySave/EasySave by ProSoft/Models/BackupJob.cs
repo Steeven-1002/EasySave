@@ -221,19 +221,23 @@ namespace EasySave_by_ProSoft.Models
 
         if (!isPriority && _backupManager != null && _backupManager.HasPendingPriorityFiles())
         {
+             /*
             // Ignorer temporairement les fichiers non prioritaires
             System.Windows.Forms.MessageBox.Show(
                 $"[IGNORÉ] {sourceFile} (non prioritaire)\nDes fichiers prioritaires restent à traiter.",
                 "Ordre de traitement", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+             */
             ignoredNonPriority.Add(sourceFile);
             continue;
         }
         else
         {
+                    /*
             string message = isPriority ? "[PRIORITAIRE]" : "[NORMAL]";
             System.Windows.Forms.MessageBox.Show(
                 $"{message} {sourceFile} est traité.",
                 "Ordre de traitement", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+                    */
         }
 
         await ProcessSingleFile(sourceFile, largeFileSizeThresholdBytes);
@@ -247,15 +251,18 @@ namespace EasySave_by_ProSoft.Models
 
         if (_backupManager != null && _backupManager.HasPendingPriorityFiles())
         {
+                    /*
             System.Windows.Forms.MessageBox.Show(
                 $"[ATTENTE] {sourceFile} (non prioritaire) attend toujours la fin des prioritaires.",
                 "Ordre de traitement", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+                    */
             continue;
         }
-
+        /*
         System.Windows.Forms.MessageBox.Show(
             $"[NORMAL] {sourceFile} est finalement traité (après les prioritaires).",
             "Ordre de traitement", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+        */
 
         await ProcessSingleFile(sourceFile, largeFileSizeThresholdBytes);
         this.toProcessFiles.Remove(sourceFile);
