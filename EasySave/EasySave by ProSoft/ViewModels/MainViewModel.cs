@@ -65,7 +65,7 @@ namespace EasySave_by_ProSoft.ViewModels
                SelectedJobs.Any(job => job.Status.State == BackupState.Initialise ||
                                        job.Status.State == BackupState.Error ||
                                        job.Status.State == BackupState.Completed) &&
-               !_isLaunchingJobs; // Ne pas permettre le lancement si un lancement est déjà en cours
+               !_isLaunchingJobs; // Do not allow launch if a launch is already in progress
 
             LaunchJobCommand = new RelayCommand(async _ => await LaunchSelectedJob(), canLaunchPredicate);
             LaunchMultipleJobsCommand = new RelayCommand(async _ => await LaunchSelectedJob(), canLaunchPredicate);
@@ -179,69 +179,67 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private async Task LaunchSelectedJob()
         {
-            // Vérifie si un lancement est déjà en cours.
+            // Checks if a launch is already in progress.
             if (_isLaunchingJobs)
             {
-                Debug.WriteLine("LaunchSelectedJob: Un lancement est déjà en cours. Annulation de la nouvelle requête de lancement."); // Adaptation de votre message de débogage.
+                Debug.WriteLine("LaunchSelectedJob: Un lancement est déjà en cours. Annulation de la nouvelle requête de lancement.");
                 return;
             }
 
-            // Vérifie si des travaux sont sélectionnés.
+            // Check if any jobs are selected.
             if (SelectedJobs == null || !SelectedJobs.Any())
             {
-                Debug.WriteLine("LaunchSelectedJob: Aucun travail sélectionné."); // Adaptation de votre message de débogage.
+                Debug.WriteLine("LaunchSelectedJob: Aucun travail sélectionné.");
                 return;
             }
 
-            // Filtre les travaux qui peuvent être lancés (état Initialise, Erreur, ou Terminé).
+            // Filters which jobs can be launched (Initialize, Error, or Completed status).
             var jobsToStartModels = SelectedJobs.Where(j =>
                 j.Status.State == BackupState.Initialise ||
                 j.Status.State == BackupState.Error ||
                 j.Status.State == BackupState.Completed).ToList();
 
-            // Vérifie s'il y a des travaux éligibles au lancement.
+            // Check if there are any jobs eligible for launch.
             if (!jobsToStartModels.Any())
             {
-                Debug.WriteLine("LaunchSelectedJob: Aucun travail approprié à démarrer en fonction de la sélection et de l'état actuels."); // Adaptation de votre message de débogage.
-                CommandManager.InvalidateRequerySuggested(); // Met à jour l'état des boutons.
+                Debug.WriteLine("LaunchSelectedJob: Aucun travail approprié à démarrer en fonction de la sélection et de l'état actuels.");
+                CommandManager.InvalidateRequerySuggested(); // Updates the state of the buttons.
                 return;
             }
 
-            _isLaunchingJobs = true; // Définit l'indicateur pour montrer qu'un lancement est en cours.
-            CommandManager.InvalidateRequerySuggested(); // Désactive les boutons de lancement.
-            Debug.WriteLine($"MainViewModel.LaunchSelectedJob: DÉFINI _isLaunchingJobs = true. Lancement des travaux : {string.Join(", ", jobsToStartModels.Select(j => j.Name))}"); // Adaptation de votre message de débogage.
+            _isLaunchingJobs = true; // Sets the indicator to show that a launch is in progress.
+            CommandManager.InvalidateRequerySuggested(); // Disables launch buttons.
+            Debug.WriteLine($"MainViewModel.LaunchSelectedJob: DÉFINI _isLaunchingJobs = true. Lancement des travaux : {string.Join(", ", jobsToStartModels.Select(j => j.Name))}");
 
             try
             {
                 List<string> jobNamesToRun = new List<string>();
                 foreach (var jobModel in jobsToStartModels)
                 {
-                    jobModel.Status.ResetForRun(); // Réinitialise le statut du travail pour une nouvelle exécution.
-                    Debug.WriteLine($"MainViewModel.LaunchSelectedJob: Statut du travail '{jobModel.Name}' RÉINITIALISÉ pour l'exécution. Nouveau statut : {jobModel.Status.State}"); // Adaptation de votre message de débogage.
-                    jobNamesToRun.Add(jobModel.Name); // Ajoute le nom du travail à la liste des travaux à exécuter.
+                    jobModel.Status.ResetForRun(); // Resets the job status for rerun.
+                    Debug.WriteLine($"MainViewModel.LaunchSelectedJob: Statut du travail '{jobModel.Name}' RÉINITIALISÉ pour l'exécution. Nouveau statut : {jobModel.Status.State}");
+                    jobNamesToRun.Add(jobModel.Name); // Adds the job name to the list of jobs to run.
                 }
 
                 if (jobNamesToRun.Any())
                 {
                     await _backupManager.ExecuteJobsByNameAsync(jobNamesToRun);
-                    Debug.WriteLine("MainViewModel.LaunchSelectedJob: BackupManager.ExecuteJobsByNameAsync attendu et terminé."); // Adaptation de votre message de débogage.
+                    Debug.WriteLine("MainViewModel.LaunchSelectedJob: BackupManager.ExecuteJobsByNameAsync attendu et terminé.");
                 }
                 else
                 {
-                    Debug.WriteLine("MainViewModel.LaunchSelectedJob: Aucun nom de travail valide trouvé à exécuter."); // Adaptation de votre message de débogage.
+                    Debug.WriteLine("MainViewModel.LaunchSelectedJob: Aucun nom de travail valide trouvé à exécuter.");
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"MainViewModel.LaunchSelectedJob: EXCEPTION lors de l'exécution du travail : {ex.Message}"); // Adaptation de votre message de débogage.
-                                                                                                                              // Gérez l'exception (par exemple, notifier l'utilisateur).
-                                                                                                                              // Vous pourriez vouloir afficher un message à l'utilisateur ici.
+                Debug.WriteLine($"MainViewModel.LaunchSelectedJob: EXCEPTION lors de l'exécution du travail : {ex.Message}");
             }
             finally
             {
-                _isLaunchingJobs = false; // Réinitialise l'indicateur une fois tous les travaux terminés ou en cas d'erreur.
-                Debug.WriteLine("MainViewModel.LaunchSelectedJob: (dans finally) DÉFINI _isLaunchingJobs = false."); // Adaptation de votre message de débogage.
-                CommandManager.InvalidateRequerySuggested(); // Réactive les boutons de lancement.
+                _isLaunchingJobs = false; // Resets the indicator after all jobs are completed or in case of error.
+                Debug.WriteLine("MainViewModel.LaunchSelectedJob: (dans finally) DÉFINI _isLaunchingJobs = false.");
+                CommandManager.InvalidateRequerySuggested(); // Reactivates the launch buttons.
             }
         }
 

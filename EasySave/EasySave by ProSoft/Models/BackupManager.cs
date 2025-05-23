@@ -98,8 +98,7 @@ namespace EasySave_by_ProSoft.Models
         /// Executes the backup jobs with the specified indices
         /// </summary>
         /// <param name="jobIndexes">List of job indices to execute</param>
-        // Dans BackupManager.cs
-        public async Task ExecuteJobsAsync(List<int> jobIndexes) // Ou votre manière préférée d'identifier les travaux
+        public async Task ExecuteJobsAsync(List<int> jobIndexes)
         {
             if (jobIndexes == null || !jobIndexes.Any())
             {
@@ -109,18 +108,18 @@ namespace EasySave_by_ProSoft.Models
             Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Réception de {jobIndexes.Count} indice(s) de travail à exécuter : [{string.Join(", ", jobIndexes)}]");
 
             List<Task> runningTasks = new List<Task>();
-            List<string> jobNamesToRun = new List<string>(); // Pour la journalisation
+            List<string> jobNamesToRun = new List<string>(); // For logging
 
             foreach (var index in jobIndexes)
             {
                 if (index >= 0 && index < backupJobs.Count)
                 {
-                    BackupJob jobToRun = backupJobs[index]; // Utilise toujours l'indice ici, voir point suivant
+                    BackupJob jobToRun = backupJobs[index]; // Always use the index here, see next point
                     jobNamesToRun.Add(jobToRun.Name);
 
                     Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Création de la tâche pour le travail '{jobToRun.Name}' (Indice: {index}). Statut actuel: {jobToRun.Status.State}");
 
-                    if (jobToRun.Status.State != BackupState.Initialise) // Vérifie si l'état est Initialise
+                    if (jobToRun.Status.State != BackupState.Initialise) // Checks if the state is Initialize
                     {
                         Debug.WriteLine($"AVERTISSEMENT - BackupManager.ExecuteJobsAsync: Le travail '{jobToRun.Name}' n'est pas à l'état Initialise (Actuel: {jobToRun.Status.State}). Assurez-vous que ResetForRun() a été appelé par le ViewModel.");
                     }
@@ -131,12 +130,12 @@ namespace EasySave_by_ProSoft.Models
                         Debug.WriteLine($"Thread-{threadId}: Tâche pour le travail '{jobToRun.Name}' DÉMARRÉE.");
                         try
                         {
-                            jobToRun.Start(); // La méthode Start de BackupJob
+                            jobToRun.Start(); // BackupJob's Start Method
                         }
                         catch (Exception ex)
                         {
                             Debug.WriteLine($"Thread-{threadId}: EXCEPTION dans la tâche pour le travail '{jobToRun.Name}': {ex.Message}\nStackTrace: {ex.StackTrace}");
-                            jobToRun.Status?.SetError($"Erreur lors de l'exécution du travail {jobToRun.Name}: {ex.Message}"); // Met à jour le statut en cas d'erreur
+                            jobToRun.Status?.SetError($"Erreur lors de l'exécution du travail {jobToRun.Name}: {ex.Message}"); // Updates status on error
                         }
                         Debug.WriteLine($"Thread-{threadId}: Tâche pour le travail '{jobToRun.Name}' TERMINÉE. Statut final: {jobToRun.Status.State}");
                     }));
@@ -170,20 +169,20 @@ namespace EasySave_by_ProSoft.Models
                 if (jobToRun != null)
                 {
                     if (jobToRun.Status.State != BackupState.Initialise) { /* Log warning */ }
-                    runningTasks.Add(Task.Run(() => jobToRun.Start())); // Exécute la méthode Start de BackupJob
+                    runningTasks.Add(Task.Run(() => jobToRun.Start())); // Executes the BackupJob Start method
                 }
-                else { /* Log error: travail avec ce nom non trouvé */ }
+                else { /* Log error: work with this name not found */ }
             }
             if (runningTasks.Any()) await Task.WhenAll(runningTasks);
         }
 
-        public bool RemoveJobByName(string jobName) // Au lieu de par indice
+        public bool RemoveJobByName(string jobName)
         {
             BackupJob jobToRemove = backupJobs.FirstOrDefault(j => j.Name == jobName);
             if (jobToRemove != null)
             {
                 backupJobs.Remove(jobToRemove);
-                SaveJobs(); // Sauvegarde la configuration des travaux
+                SaveJobs(); // Save job configuration
                 return true;
             }
             return false;

@@ -141,7 +141,6 @@ namespace EasySave_by_ProSoft.Models
                 return;
             }
 
-            // --- AJOUT : Utilisation du lock pour synchroniser l'accès au fichier ---
             lock (_stateFileLock)
             {
                 int threadId = Thread.CurrentThread.ManagedThreadId;
@@ -161,26 +160,23 @@ namespace EasySave_by_ProSoft.Models
                         allJobStates = new List<JobState>();
                     }
 
-                    // Mettre à jour ou ajouter l'état du travail actuel
+                    // Update or add current job status
                     int existingStateIndex = allJobStates.FindIndex(s => s.JobName == snapshot.JobName);
                     if (existingStateIndex != -1)
                     {
-                        allJobStates[existingStateIndex] = snapshot; // Remplacer l'ancien état
+                        allJobStates[existingStateIndex] = snapshot; // Replace the old state
                     }
                     else
                     {
                         allJobStates.Add(snapshot);
                     }
-
-                    // Logique de nettoyage pour les états "Initialise" (votre code original)
-                    // Cette logique pourrait être simplifiée ou revue, mais je la conserve pour l'instant.
                     for (int i = 0; i < allJobStates.Count; i++)
                     {
-                        if (allJobStates[i].JobName == snapshot.JobName) continue; // Ne pas modifier le snapshot actuel
+                        if (allJobStates[i].JobName == snapshot.JobName) continue;
                         if (allJobStates[i].State == BackupState.Completed || allJobStates[i].State == BackupState.Error) continue;
                         if (allJobStates[i].State == BackupState.Initialise)
                         {
-                            allJobStates[i].State = BackupState.Waiting; // Ou un autre état par défaut approprié
+                            allJobStates[i].State = BackupState.Waiting;
                         }
                     }
 
@@ -191,12 +187,11 @@ namespace EasySave_by_ProSoft.Models
                         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
                     };
                     string serializedData = JsonSerializer.Serialize(allJobStates, options);
-                    File.WriteAllText(stateFilePath, serializedData); // Écrase le fichier avec la nouvelle liste complète
+                    File.WriteAllText(stateFilePath, serializedData); // Overwrites the file with the new full list
                     Debug.WriteLine($"Thread-{threadId}: Successfully updated state.json for job '{jobStatus.BackupJob.Name}'.");
 
                 }
-                // Retrait du FileStream pour simplifier et utiliser File.ReadAllText/WriteAllText qui gèrent la fermeture.
-                // Le lock externe est la principale protection contre les accès concurrents.
+                // The external lock is the main protection against concurrent access.
                 catch (IOException ex)
                 {
                     Debug.WriteLine($"Thread-{threadId}: IOException in UpdateStateFile for '{jobStatus.BackupJob.Name}': {ex.Message}. File: {stateFilePath}");
@@ -213,7 +208,7 @@ namespace EasySave_by_ProSoft.Models
                     Debug.WriteLine($"Thread-{threadId}: Unexpected error in UpdateStateFile for '{jobStatus.BackupJob.Name}': {ex.Message}. File: {stateFilePath}");
                     // System.Windows.Forms.MessageBox.Show($"Unexpected error updating state file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 }
-            } // --- Fin du bloc lock ---
+            }
         }
 
         /// <summary>
