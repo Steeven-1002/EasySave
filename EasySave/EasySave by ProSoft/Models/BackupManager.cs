@@ -185,9 +185,7 @@ namespace EasySave_by_ProSoft.Models
                 SaveJobs(); // Save job configuration
                 return true;
             }
-
-
-         
+            return false; // Ensure all code paths return a value
         }
 
         /// <summary>
