@@ -195,7 +195,6 @@ namespace EasySave_by_ProSoft.Models
                 catch (IOException ex)
                 {
                     Debug.WriteLine($"Thread-{threadId}: IOException in UpdateStateFile for '{jobStatus.BackupJob.Name}': {ex.Message}. File: {stateFilePath}");
-                    // Le MessageBox ici peut être problématique dans un contexte multithread.
                     // System.Windows.Forms.MessageBox.Show($"Error writing to state.json file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 }
                 catch (JsonException ex)
