@@ -219,26 +219,14 @@ namespace EasySave_by_ProSoft.Models
                 string ext = Path.GetExtension(sourceFile);
                 bool isPriority = PriorityExtensionManager.IsPriorityExtension(ext);
 
-                /*
-                System.Windows.Forms.MessageBox.Show(
-                    $"Fichier : {Path.GetFileName(sourceFile)}\nExtension : {ext}\nPrioritaire : {(isPriority ? "OUI" : "NON")}",
-                    "Test Priorité (1ère passe)",
-                    System.Windows.Forms.MessageBoxButtons.OK,
-                    isPriority ? System.Windows.Forms.MessageBoxIcon.Information : System.Windows.Forms.MessageBoxIcon.None
-              
-                );
-                  */
+
 
                 if (!isPriority && _backupManager != null && _backupManager.HasAnyPendingPriorityFiles())
                 {
-                    /*
-                    System.Windows.Forms.MessageBox.Show(
-                        $"[IGNORÉ] {sourceFile} (non prioritaire)\nDes fichiers prioritaires restent à traiter dans une autre sauvegarde.",
-                        "Barrière Priorité Globale", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
                     ignoredNonPriority.Add(sourceFile);
-                    */
                     continue;
                 }
+
 
                 await ProcessLargeFileWithSemaphore(sourceFile, largeFileSizeThresholdBytes);
                 this.toProcessFiles.Remove(sourceFile);
@@ -246,11 +234,7 @@ namespace EasySave_by_ProSoft.Models
 
        
             if (ignoredNonPriority.Count > 0)
-            {/*
-                System.Windows.Forms.MessageBox.Show(
-                    "Attente de la fin de tous les fichiers prioritaires (barrière globale)...",
-                    "Barrière Priorité Globale", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
-            */
+            {
                 }
 
             // Barrier to wait for all priority files to finish processing
@@ -270,11 +254,7 @@ namespace EasySave_by_ProSoft.Models
                 }
                 if (_stopRequested) break;
 
-                /*
-                System.Windows.Forms.MessageBox.Show(
-                    $"[NON PRIORITAIRE] {Path.GetFileName(sourceFile)} est finalement traité (après la barrière).",
-                    "Test Non Prioritaire (2ème passe)", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
-                */
+               
                 await ProcessLargeFileWithSemaphore(sourceFile, largeFileSizeThresholdBytes);
                 this.toProcessFiles.Remove(sourceFile);
             }
@@ -457,11 +437,7 @@ namespace EasySave_by_ProSoft.Models
             if (fileSize > largeFileSizeThresholdBytes)
             {
                 double thresholdKB = largeFileSizeThresholdBytes / 1024.0;
-                System.Windows.Forms.MessageBox.Show(
-                    $"Fichier volumineux détecté : {Path.GetFileName(sourceFile)}\nTaille : {fileSize / 1024} Ko (Seuil : {thresholdKB} Ko).\nAttente du sémaphore.",
-                    "Debug Fichier Volumineux",
-                    System.Windows.Forms.MessageBoxButtons.OK,
-                    System.Windows.Forms.MessageBoxIcon.Information);
+                
 
                 await _largeFileTransferSemaphore.WaitAsync();
                 try

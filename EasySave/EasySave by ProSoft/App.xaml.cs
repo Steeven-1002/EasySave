@@ -21,7 +21,7 @@ namespace EasySave_by_ProSoft
 
             if (!createdNew)
             {
-                // Une autre instance est déjà en cours d'exécution
+                // Another instance is already running, show a message and exit
                 System.Windows.MessageBox.Show("L'application est déjà en cours d'exécution.", "Instance unique", MessageBoxButton.OK, MessageBoxImage.Information);
                 Shutdown();
                 return;
@@ -42,20 +42,20 @@ namespace EasySave_by_ProSoft
                 }
                 catch (CultureNotFoundException)
                 {
-                    // La langue sauvegardée est invalide, on utilise la langue par défaut et on la sauvegarde
+                    //The saved language is not valid, fallback to default language
                     System.Windows.MessageBox.Show($"App.OnStartup: Culture '{savedLang}' non trouvée. Passage à la langue par défaut '{DefaultCultureName}'.", "Debug Startup - Culture invalide");
                     targetCulture = new CultureInfo(DefaultCultureName);
                     Settings.Default.UserLanguage = DefaultCultureName;
-                    Settings.Default.Save(); // Sauvegarde de la langue par défaut
+                    Settings.Default.Save(); // Save the default language
                 }
             }
             else
             {
-                // Aucune langue sauvegardée (premier lancement), on utilise la langue par défaut et on la sauvegarde
+                // Any saved language is empty, use the default language and save it
                 System.Windows.MessageBox.Show($"App.OnStartup: Aucune langue sauvegardée. Passage à la langue par défaut '{DefaultCultureName}'.", "Debug Startup - Aucune langue sauvegardée");
                 targetCulture = new CultureInfo(DefaultCultureName);
                 Settings.Default.UserLanguage = DefaultCultureName;
-                Settings.Default.Save(); // Sauvegarde de la langue par défaut
+                Settings.Default.Save(); // Save the default language
             }
 
             ApplyCulture(targetCulture);
