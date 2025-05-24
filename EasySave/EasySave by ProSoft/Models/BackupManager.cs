@@ -13,6 +13,7 @@ namespace EasySave_by_ProSoft.Models
         private List<BackupJob> backupJobs;
         private string jobsConfigFilePath;
         private readonly SemaphoreSlim _largeFileTransferSemaphore = new SemaphoreSlim(1, 1);
+        private readonly object _priorityLock = new();
 
         /// <summary>
         /// Initializes a new instance of the BackupManager class
@@ -273,30 +274,19 @@ namespace EasySave_by_ProSoft.Models
             }
         }
 
-        public bool HasPendingPriorityFiles()
+        /// <summary>
+        /// 
+        /// Checks if there are any pending files with priority extensions in the backup jobs
+        public bool HasAnyPendingPriorityFiles()
         {
-            // Get the list of extensions to prioritize from the settings
-            var priorityList = new List<string>();
-            var setting = AppSettings.Instance.GetSetting("ExtensionFilePriority");
-            if (setting is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
+            //
+            lock (_priorityLock)
             {
-                foreach (var ext in jsonElement.EnumerateArray())
-                    if (ext.ValueKind == JsonValueKind.String && ext.GetString() is string s)
-                        priorityList.Add(s);
+                // Check if any job has pending files with priority extensions
+                return backupJobs.Any(job => job.GetPendingFiles().Any(file =>
+                    PriorityExtensionManager.IsPriorityExtension(Path.GetExtension(file))));
             }
-
-            // Check if any job is running and has pending files with the specified extensions
-            return backupJobs.Any(job =>
-                job.Status.State == BackupState.Running &&
-                job.GetPendingFiles().Any(f =>
-                    priorityList.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase)
-                )
-            );
         }
-
-
-
-
 
 
 

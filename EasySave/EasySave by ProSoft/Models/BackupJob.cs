@@ -206,7 +206,7 @@ namespace EasySave_by_ProSoft.Models
                                         ?? AppSettings.Instance.GetSetting("DefaultLargeFileSizeThresholdKey"));
             long largeFileSizeThresholdBytes = (long)(thresholdKBSetting * 1024);
 
-            // First pass : priority files
+            // First pass: process priority files first
             foreach (string sourceFile in filesToHandle)
             {
                 if (_stopRequested) break;
@@ -219,33 +219,67 @@ namespace EasySave_by_ProSoft.Models
                 string ext = Path.GetExtension(sourceFile);
                 bool isPriority = PriorityExtensionManager.IsPriorityExtension(ext);
 
-                if (!isPriority && _backupManager != null && _backupManager.HasPendingPriorityFiles())
-                {
+                /*
+                System.Windows.Forms.MessageBox.Show(
+                    $"Fichier : {Path.GetFileName(sourceFile)}\nExtension : {ext}\nPrioritaire : {(isPriority ? "OUI" : "NON")}",
+                    "Test Priorité (1ère passe)",
+                    System.Windows.Forms.MessageBoxButtons.OK,
+                    isPriority ? System.Windows.Forms.MessageBoxIcon.Information : System.Windows.Forms.MessageBoxIcon.None
+              
+                );
+                  */
 
+                if (!isPriority && _backupManager != null && _backupManager.HasAnyPendingPriorityFiles())
+                {
+                    /*
+                    System.Windows.Forms.MessageBox.Show(
+                        $"[IGNORÉ] {sourceFile} (non prioritaire)\nDes fichiers prioritaires restent à traiter dans une autre sauvegarde.",
+                        "Barrière Priorité Globale", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
                     ignoredNonPriority.Add(sourceFile);
+                    */
                     continue;
                 }
 
-                // all files are processed in the first pass
                 await ProcessLargeFileWithSemaphore(sourceFile, largeFileSizeThresholdBytes);
                 this.toProcessFiles.Remove(sourceFile);
             }
 
-            // Second pass : non-prioritary files
+       
+            if (ignoredNonPriority.Count > 0)
+            {/*
+                System.Windows.Forms.MessageBox.Show(
+                    "Attente de la fin de tous les fichiers prioritaires (barrière globale)...",
+                    "Barrière Priorité Globale", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+            */
+                }
+
+            // Barrier to wait for all priority files to finish processing
+            while (_backupManager != null && _backupManager.HasAnyPendingPriorityFiles())
+            {
+                if (_stopRequested) break;
+                await Task.Delay(500);
+            }
+
+            // Second pass: process non-priority files after the barrier
             foreach (string sourceFile in ignoredNonPriority)
             {
-                if (_stopRequested || _isPaused) break;
-
-                if (_backupManager != null && _backupManager.HasPendingPriorityFiles())
+                if (_stopRequested) break;
+                while (_isPaused && !_stopRequested)
                 {
-                    continue;
+                    await Task.Delay(500);
                 }
+                if (_stopRequested) break;
 
+                /*
+                System.Windows.Forms.MessageBox.Show(
+                    $"[NON PRIORITAIRE] {Path.GetFileName(sourceFile)} est finalement traité (après la barrière).",
+                    "Test Non Prioritaire (2ème passe)", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
+                */
                 await ProcessLargeFileWithSemaphore(sourceFile, largeFileSizeThresholdBytes);
                 this.toProcessFiles.Remove(sourceFile);
             }
 
-            // Delete files and directories that are no longer in the source
+            // Clean up: delete files and directories in the target that no longer exist in the source
             List<string> sourceDirectories = _fileSystemService.GetDirectoriesInDirectory(SourcePath);
             List<string> targetDirectories = _fileSystemService.GetDirectoriesInDirectory(TargetPath);
             foreach (string targetDirectory in targetDirectories)
@@ -276,6 +310,8 @@ namespace EasySave_by_ProSoft.Models
                 }
             }
         }
+
+
 
 
 
