@@ -192,78 +192,76 @@ namespace EasySave_by_ProSoft.Models
         /// Processes all files that need to be backed up
         /// </summary>
 
-        
+
 
         private async Task ProcessFiles(List<string> toProcessFiles)
-{
-    if (!Directory.Exists(TargetPath))
-        Directory.CreateDirectory(TargetPath);
-
-    var filesToHandle = toProcessFiles.ToList();
-    var ignoredNonPriority = new List<string>();
-
-    double thresholdKBSetting = (double)(AppSettings.Instance.GetSetting("LargeFileSizeThresholdKey") as double?
-                                ?? AppSettings.Instance.GetSetting("DefaultLargeFileSizeThresholdKey"));
-    long largeFileSizeThresholdBytes = (long)(thresholdKBSetting * 1024);
-
-    // Première passe : fichiers prioritaires
-    foreach (string sourceFile in filesToHandle)
-    {
-        if (_stopRequested) break;
-        while (_isPaused && !_stopRequested)
         {
-            await Task.Delay(500);
-        }
-        if (_stopRequested) break;
+            if (!Directory.Exists(TargetPath))
+                Directory.CreateDirectory(TargetPath);
 
-        string ext = Path.GetExtension(sourceFile);
-        bool isPriority = PriorityExtensionManager.IsPriorityExtension(ext);
+            var filesToHandle = toProcessFiles.ToList();
+            var ignoredNonPriority = new List<string>();
 
-        if (!isPriority && _backupManager != null && _backupManager.HasPendingPriorityFiles())
-        {
-            // Ignorer temporairement les fichiers non prioritaires
-            System.Windows.Forms.MessageBox.Show(
-                $"[IGNORÉ] {sourceFile} (non prioritaire)\nDes fichiers prioritaires restent à traiter.",
-                "Ordre de traitement", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
-            ignoredNonPriority.Add(sourceFile);
-            continue;
-        }
-        else
-        {
-            string message = isPriority ? "[PRIORITAIRE]" : "[NORMAL]";
-            System.Windows.Forms.MessageBox.Show(
-                $"{message} {sourceFile} est traité.",
-                "Ordre de traitement", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
-        }
+            double thresholdKBSetting = (double)(AppSettings.Instance.GetSetting("LargeFileSizeThresholdKey") as double?
+                                        ?? AppSettings.Instance.GetSetting("DefaultLargeFileSizeThresholdKey"));
+            long largeFileSizeThresholdBytes = (long)(thresholdKBSetting * 1024);
 
-        await ProcessSingleFile(sourceFile, largeFileSizeThresholdBytes);
-        this.toProcessFiles.Remove(sourceFile);
-    }
+            // First pass: process priority files first
+            foreach (string sourceFile in filesToHandle)
+            {
+                if (_stopRequested) break;
+                while (_isPaused && !_stopRequested)
+                {
+                    await Task.Delay(500);
+                }
+                if (_stopRequested) break;
 
-    // Deuxième passe : traiter les fichiers non prioritaires
-    foreach (string sourceFile in ignoredNonPriority)
-    {
-        if (_stopRequested || _isPaused) break;
+                string ext = Path.GetExtension(sourceFile);
+                bool isPriority = PriorityExtensionManager.IsPriorityExtension(ext);
 
-        if (_backupManager != null && _backupManager.HasPendingPriorityFiles())
-        {
-            System.Windows.Forms.MessageBox.Show(
-                $"[ATTENTE] {sourceFile} (non prioritaire) attend toujours la fin des prioritaires.",
-                "Ordre de traitement", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
-            continue;
-        }
 
-        System.Windows.Forms.MessageBox.Show(
-            $"[NORMAL] {sourceFile} est finalement traité (après les prioritaires).",
-            "Ordre de traitement", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Information);
 
-        await ProcessSingleFile(sourceFile, largeFileSizeThresholdBytes);
-        this.toProcessFiles.Remove(sourceFile);
-    }
+                if (!isPriority && _backupManager != null && _backupManager.HasAnyPendingPriorityFiles())
+                {
+                    ignoredNonPriority.Add(sourceFile);
+                    continue;
+                }
 
-    // Nettoyage des fichiers et dossiers obsolètes
-    List<string> sourceDirectories = _fileSystemService.GetDirectoriesInDirectory(SourcePath);
-    List<string> targetDirectories = _fileSystemService.GetDirectoriesInDirectory(TargetPath);
+
+                await ProcessLargeFileWithSemaphore(sourceFile, largeFileSizeThresholdBytes);
+                this.toProcessFiles.Remove(sourceFile);
+            }
+
+       
+            if (ignoredNonPriority.Count > 0)
+            {
+                }
+
+            // Barrier to wait for all priority files to finish processing
+            while (_backupManager != null && _backupManager.HasAnyPendingPriorityFiles())
+            {
+                if (_stopRequested) break;
+                await Task.Delay(500);
+            }
+
+            // Second pass: process non-priority files after the barrier
+            foreach (string sourceFile in ignoredNonPriority)
+            {
+                if (_stopRequested) break;
+                while (_isPaused && !_stopRequested)
+                {
+                    await Task.Delay(500);
+                }
+                if (_stopRequested) break;
+
+               
+                await ProcessLargeFileWithSemaphore(sourceFile, largeFileSizeThresholdBytes);
+                this.toProcessFiles.Remove(sourceFile);
+            }
+
+            // Clean up: delete files and directories in the target that no longer exist in the source
+            List<string> sourceDirectories = _fileSystemService.GetDirectoriesInDirectory(SourcePath);
+            List<string> targetDirectories = _fileSystemService.GetDirectoriesInDirectory(TargetPath);
             foreach (string targetDirectory in targetDirectories)
             {
                 string relativePath = targetDirectory.Substring(TargetPath.Length).TrimStart('\\', '/');
@@ -291,8 +289,10 @@ namespace EasySave_by_ProSoft.Models
                     Status.Update();
                 }
             }
-
         }
+
+
+
 
 
         /// <summary>
@@ -431,6 +431,30 @@ namespace EasySave_by_ProSoft.Models
         {
             return toProcessFiles;
         }
+        private async Task ProcessLargeFileWithSemaphore(string sourceFile, long largeFileSizeThresholdBytes)
+        {
+            long fileSize = _fileSystemService.GetSize(sourceFile);
+            if (fileSize > largeFileSizeThresholdBytes)
+            {
+                double thresholdKB = largeFileSizeThresholdBytes / 1024.0;
+                
+
+                await _largeFileTransferSemaphore.WaitAsync();
+                try
+                {
+                    await ProcessSingleFile(sourceFile, largeFileSizeThresholdBytes);
+                }
+                finally
+                {
+                    _largeFileTransferSemaphore.Release();
+                }
+            }
+            else
+            {
+                await ProcessSingleFile(sourceFile, largeFileSizeThresholdBytes);
+            }
+        }
+
 
     }
 }
