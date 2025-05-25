@@ -1,7 +1,10 @@
 ﻿using EasySave_by_ProSoft.Models;
+using EasySave_by_ProSoft.Services;
 using EasySave_by_ProSoft.ViewModels;
-using System.Windows; // For RoutedEventArgs and MessageBox
-using System.Windows.Controls; // For UserControl
+using System;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
 using WinForms = System.Windows.Forms;
 
 namespace EasySave_by_ProSoft.Views
@@ -14,10 +17,12 @@ namespace EasySave_by_ProSoft.Views
         private readonly BackupManager _backupManager;
         private readonly MainViewModel _backupJobsViewModel;
         private readonly JobAddViewModel _jobAddViewModel;
+        private readonly IDialogService _dialogService;
 
         public BackupJobsView()
         {
             InitializeComponent();
+            _dialogService = new DialogService();
         }
 
         public BackupJobsView(BackupManager backupManager) : this()
@@ -25,11 +30,17 @@ namespace EasySave_by_ProSoft.Views
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
 
             // Create ViewModels with the BackupManager
-            _backupJobsViewModel = new MainViewModel(_backupManager);
-            _jobAddViewModel = new JobAddViewModel(_backupManager);
+            _backupJobsViewModel = new MainViewModel(_backupManager, _dialogService);
+            _jobAddViewModel = new JobAddViewModel(_backupManager, _dialogService);
 
             // Connect events
             _jobAddViewModel.JobAdded += _backupJobsViewModel.JobAdded;
+
+            // Connect notification events
+            _backupJobsViewModel.ShowErrorMessage += message => _dialogService.ShowError(message);
+            _backupJobsViewModel.ShowInfoMessage += message => _dialogService.ShowInformation(message);
+            _jobAddViewModel.ValidationError += message => _dialogService.ShowError(message);
+            _jobAddViewModel.JobCreated += message => _dialogService.ShowInformation(message);
 
             // Set data contexts
             DataContext = _backupJobsViewModel;
@@ -80,36 +91,26 @@ namespace EasySave_by_ProSoft.Views
         /// </summary>
         private void LaunchSelectedJob_Click(object sender, RoutedEventArgs e)
         {
-            // Check for selected jobs via checkboxes
-            if (_backupJobsViewModel.SelectedJobs == null || _backupJobsViewModel.SelectedJobs.Count == 0)
-            {
-                System.Windows.MessageBox.Show("No backup selected");
+            // Check for job selection using the ViewModel method
+            if (!_backupJobsViewModel.ValidateJobSelection())
                 return;
-            }
-            else if (_backupJobsViewModel.SelectedJobs.Count == 1)
-                // Run the command with the selected job
+
+            if (_backupJobsViewModel.SelectedJobs.Count == 1)
                 _backupJobsViewModel.LaunchJobCommand.Execute(null);
             else
-                // Run the command with all selected jobs
                 foreach (var job in _backupJobsViewModel.SelectedJobs)
                 {
                     _backupJobsViewModel.LaunchJobCommand.Execute(job);
                 }
-            // Update the UI to reflect the job status
-            // RefreshJobsList();
         }
 
         private void DeleteSelectedJob_Click(object sender, RoutedEventArgs e)
         {
-            if (_backupJobsViewModel.SelectedJobs == null)
-            {
-                System.Windows.MessageBox.Show("Please select a job to delete.");
+            if (!_backupJobsViewModel.ValidateJobSelection())
                 return;
-            }
 
             _backupJobsViewModel.RemoveJobCommand.Execute(null);
-
-            System.Windows.MessageBox.Show(Localization.Resources.MessageBoxDeleteJob);
+            _backupJobsViewModel.NotifyJobDeleted();
         }
 
         private void LaunchMultipleJobs_Click(object sender, RoutedEventArgs e)
@@ -119,12 +120,12 @@ namespace EasySave_by_ProSoft.Views
 
             if (selectedJobs.Count == 0)
             {
-                System.Windows.MessageBox.Show("Please select at least one job to launch.");
+                _dialogService.ShowWarning("Please select at least one job to launch.");
                 return;
             }
 
             _backupJobsViewModel.LaunchMultipleJobsCommand.Execute(null);
-            System.Windows.MessageBox.Show($"{selectedJobs.Count} jobs have been launched.");
+            _backupJobsViewModel.NotifyJobsLaunched(selectedJobs.Count);
         }
 
         private void CreateNewJob_Click(object sender, RoutedEventArgs e)
@@ -150,10 +151,6 @@ namespace EasySave_by_ProSoft.Views
         /// <summary>
         /// Opens a folder browser dialog
         /// </summary>
-        /// <param name="sender">Event sender</param>
-        /// <param name="e">Event arguments</param>
-        /// <param name="com">Dialog description</param>
-        /// <returns>Selected folder path or empty string</returns>
         private string Browse_Click(object sender, RoutedEventArgs e, string com)
         {
             var dialog = new WinForms.FolderBrowserDialog();
@@ -170,26 +167,36 @@ namespace EasySave_by_ProSoft.Views
 
         private void ValidateNewJob_Click(object sender, RoutedEventArgs e)
         {
-            // Execute the ViewModel command to create the job
-            if (string.IsNullOrWhiteSpace(JobNameTextBox.Text) || string.IsNullOrWhiteSpace(JobSourcePathTextBox.Text) || string.IsNullOrWhiteSpace(JobTargetPathTextBox.Text))
-            {
-                System.Windows.MessageBox.Show("Invalid input. Please fill all fields.");
+            // Set values in the view model
+            if (!_jobAddViewModel.ValidateJobInputs())
                 return;
-            }
+
             _jobAddViewModel.SourcePath = JobSourcePathTextBox.Text;
             _jobAddViewModel.TargetPath = JobTargetPathTextBox.Text;
             _jobAddViewModel.Name = JobNameTextBox.Text;
-            _jobAddViewModel.Type = Enum.TryParse(typeof(BackupType), (JobTypeComboBox.SelectedItem as ComboBoxItem)?.Content.ToString(), out var result)
-                ? (BackupType)result
-                : throw new InvalidOperationException("Invalid backup type selected.");
-            if (_jobAddViewModel != null && _jobAddViewModel.AddJobCommand.CanExecute(null))
+
+            // Try to parse the backup type from the combo box
+            try
+            {
+                _jobAddViewModel.Type = Enum.TryParse(typeof(BackupType), (JobTypeComboBox.SelectedItem as ComboBoxItem)?.Content.ToString(), out var result)
+                    ? (BackupType)result
+                    : throw new InvalidOperationException("Invalid backup type selected.");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError($"Error with backup type: {ex.Message}");
+                return;
+            }
+
+            // Execute the view model command to create the job
+            if (_jobAddViewModel.AddJobCommand.CanExecute(null))
             {
                 _jobAddViewModel.AddJobCommand.Execute(null);
-                System.Windows.MessageBox.Show(Localization.Resources.MessageNewJobValidated);
 
+                // Hide the panel after validation
                 if (CreateJobPanel != null)
                 {
-                    CreateJobPanel.Visibility = Visibility.Collapsed; // Hide the panel after validation
+                    CreateJobPanel.Visibility = Visibility.Collapsed;
                 }
 
                 // Clear input fields
@@ -197,9 +204,6 @@ namespace EasySave_by_ProSoft.Views
                 JobSourcePathTextBox.Text = string.Empty;
                 JobTargetPathTextBox.Text = string.Empty;
                 JobTypeComboBox.SelectedIndex = 0;
-
-                // Refresh the jobs list after adding a new job
-                // RefreshJobsList();
             }
         }
 
@@ -233,7 +237,6 @@ namespace EasySave_by_ProSoft.Views
                 .ToList();
 
             // Update the view model
-            // _backupJobsViewModel.SelectedJobs = selectedJobs.Count > 0 ? selectedJobs : null;
             _backupJobsViewModel.SelectedJobs = selectedJobs;
         }
     }

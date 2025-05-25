@@ -1,6 +1,8 @@
 ﻿using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Properties;
+using EasySave_by_ProSoft.Services;
 using EasySave_by_ProSoft.ViewModels;
+using System;
 using System.Diagnostics;
 using System.Windows;
 
@@ -13,15 +15,23 @@ namespace EasySave_by_ProSoft.Views
     {
         private string _initialCultureName;
         private SettingsViewModel _settingsViewModel;
+        private readonly IDialogService _dialogService;
 
         public SettingsView()
         {
-            _settingsViewModel = new SettingsViewModel();
+            _dialogService = new DialogService();
+            _settingsViewModel = new SettingsViewModel(_dialogService);
             DataContext = _settingsViewModel;
 
             InitializeComponent();
             _initialCultureName = _settingsViewModel.UserLanguage;
             UpdateLanguageRadioButtons();
+
+            // Hook up event handlers for the ViewModel's notification events
+            _settingsViewModel.RequestApplicationRestartPrompt += OnRequestApplicationRestartPrompt;
+            _settingsViewModel.LanguageChangeConfirmed += OnLanguageChangeConfirmed;
+            _settingsViewModel.LanguageChangeCancelled += OnLanguageChangeCancelled;
+            _settingsViewModel.ApplicationRestartFailed += OnApplicationRestartFailed;
 
             // Recharge la clé de chiffrement si elle existe
             string? savedKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
@@ -71,7 +81,6 @@ namespace EasySave_by_ProSoft.Views
             {
                 if (EnglishRadioButton != null) EnglishRadioButton.IsChecked = true;
             }
-
         }
 
         private void LanguageRadioButton_Checked(object sender, RoutedEventArgs e)
@@ -79,52 +88,56 @@ namespace EasySave_by_ProSoft.Views
             if (sender is System.Windows.Controls.RadioButton radioButton && radioButton.IsChecked == true && radioButton.Tag != null)
             {
                 string selectedCultureName = radioButton.Tag.ToString() ?? string.Empty;
-                _settingsViewModel.LanguageChanged(selectedCultureName, this);
+                _settingsViewModel.LanguageChanged(selectedCultureName);
             }
         }
 
-        public void PromptForApplicationRestart()
+        // Event handler for application restart prompt request
+        private void OnRequestApplicationRestartPrompt(string message, string title, bool isQuestion)
         {
-            System.Windows.MessageBoxResult result = System.Windows.MessageBox.Show(
-                Localization.Resources.LanguageChangeRestartMessage,
-                Localization.Resources.ConfirmationTitle,
-                System.Windows.MessageBoxButton.YesNo,
-                System.Windows.MessageBoxImage.Question);
+            bool restartConfirmed = _dialogService.ShowYesNoDialog(message, title);
+            _settingsViewModel.HandleApplicationRestartResult(restartConfirmed);
+        }
 
-            if (result == System.Windows.MessageBoxResult.Yes)
+        // Event handler for application restart confirmation
+        private void OnLanguageChangeConfirmed()
+        {
+            try
             {
-                try
+                string applicationPath = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
+                if (string.IsNullOrEmpty(applicationPath))
                 {
-                    string applicationPath = Process.GetCurrentProcess().MainModule.FileName;
-                    if (string.IsNullOrEmpty(applicationPath))
-                    {
-                        applicationPath = System.Windows.Application.ResourceAssembly.Location;
-                    }
-                    Process.Start(applicationPath);
-                    System.Windows.Application.Current.Shutdown();
+                    applicationPath = System.Windows.Application.ResourceAssembly.Location;
                 }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show(
-                        $"{Localization.Resources.ErrorRestartingApplicationMessage}\n{ex.Message}",
-                        Localization.Resources.ErrorTitle,
-                        System.Windows.MessageBoxButton.OK,
-                        System.Windows.MessageBoxImage.Error);
-                    Settings.Default.UserLanguage = _initialCultureName;
-                    Settings.Default.Save();
-                }
+                Process.Start(applicationPath);
+                System.Windows.Application.Current.Shutdown();
             }
-            else
+            catch (Exception ex)
             {
-                System.Windows.MessageBox.Show(
-                    Localization.Resources.LanguageChangeCancelledMessage,
-                    Localization.Resources.InformationTitle,
-                    System.Windows.MessageBoxButton.OK,
-                    System.Windows.MessageBoxImage.Information);
+                _settingsViewModel.NotifyRestartFailed(ex);
+            }
+        }
 
-                Settings.Default.UserLanguage = _initialCultureName;
-                Settings.Default.Save();
-            }
+        // Event handler for application restart cancellation
+        private void OnLanguageChangeCancelled()
+        {
+            _dialogService.ShowInformation(
+                Localization.Resources.LanguageChangeCancelledMessage,
+                Localization.Resources.InformationTitle);
+
+            Settings.Default.UserLanguage = _initialCultureName;
+            Settings.Default.Save();
+        }
+
+        // Event handler for application restart failure
+        private void OnApplicationRestartFailed(Exception ex)
+        {
+            _dialogService.ShowError(
+                $"{Localization.Resources.ErrorRestartingApplicationMessage}\n{ex.Message}",
+                Localization.Resources.ErrorTitle);
+                
+            Settings.Default.UserLanguage = _initialCultureName;
+            Settings.Default.Save();
         }
 
         // Add this event handler to synchronize PasswordBox with ViewModel

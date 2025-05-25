@@ -1,11 +1,14 @@
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Properties;
-using EasySave_by_ProSoft.Views;
+using EasySave_by_ProSoft.Services;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Windows;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Windows.Input;
 
 namespace EasySave_by_ProSoft.ViewModels
@@ -16,7 +19,14 @@ namespace EasySave_by_ProSoft.ViewModels
     public class SettingsViewModel : INotifyPropertyChanged
     {
         private readonly AppSettings _settings = AppSettings.Instance;
+        private readonly IDialogService _dialogService;
         private string _selectedLogFormat;
+
+        // Notification properties
+        public event Action<string, string, bool> RequestApplicationRestartPrompt;
+        public event Action LanguageChangeConfirmed;
+        public event Action LanguageChangeCancelled;
+        public event Action<Exception> ApplicationRestartFailed;
 
         public string BusinessSoftwareName
         {
@@ -79,10 +89,7 @@ namespace EasySave_by_ProSoft.ViewModels
             }
             set
             {
-
-               
-
-                var cleaned = System.Text.RegularExpressions.Regex.Replace(value, @"(?<!^)\.", " .");
+                var cleaned = Regex.Replace(value, @"(?<!^)\.", " .");
 
                 var list = cleaned.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
                                  .Select(s => s.Trim())
@@ -92,7 +99,6 @@ namespace EasySave_by_ProSoft.ViewModels
                 OnPropertyChanged();
                 SaveSettings();
             }
-
         }
 
         public string ExtensionFilePriority
@@ -114,7 +120,7 @@ namespace EasySave_by_ProSoft.ViewModels
             set
             {
                 // Ensure proper format for extension file priority
-                var cleaned = System.Text.RegularExpressions.Regex.Replace(value, @"(?<!^)\.", " .");
+                var cleaned = Regex.Replace(value, @"(?<!^)\.", " .");
 
                 var list = cleaned.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
                                  .Select(s => s.Trim())
@@ -125,7 +131,6 @@ namespace EasySave_by_ProSoft.ViewModels
                 SaveSettings();
             }
         }
-
 
         public string EncryptionKey
         {
@@ -156,6 +161,27 @@ namespace EasySave_by_ProSoft.ViewModels
             set { _settings.SetSetting("UserLanguage", value); OnPropertyChanged(); }
         }
 
+        public double LargeFileSizeThresholdKB
+        {
+            get
+            {
+                var setting = _settings.GetSetting("LargeFileSizeThresholdKey");
+                if (setting is double d) return d;
+                if (setting is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Number && jsonElement.TryGetDouble(out double val)) return val;
+                if (_settings.GetSetting("DefaultLargeFileSizeThresholdKey") is double defaultVal) return defaultVal;
+                return 1000000; // Fallback value if no valid setting is found
+            }
+            set
+            {
+                if (LargeFileSizeThresholdKB != value)
+                {
+                    _settings.SetSetting("LargeFileSizeThresholdKey", value);
+                    OnPropertyChanged();
+                    SaveSettings();
+                }
+            }
+        }
+
         /// <summary>
         /// Command to save all settings
         /// </summary>
@@ -166,8 +192,11 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         public ICommand ValidateSettingsCommand { get; }
 
-        public SettingsViewModel()
+        public SettingsViewModel() : this(new DialogService()) { }
+
+        public SettingsViewModel(IDialogService dialogService)
         {
+            _dialogService = dialogService;
             SaveSettingsCommand = new RelayCommand(_ => SaveSettings(), _ => true);
             ValidateSettingsCommand = new RelayCommand(_ => ValidateSettings(), _ => true);
 
@@ -191,15 +220,13 @@ namespace EasySave_by_ProSoft.ViewModels
             // Save settings to configuration file
             SaveSettings();
 
-            // Show confirmation message to the user
-            System.Windows.MessageBox.Show(
+            // Show confirmation message to the user using dialog service
+            _dialogService.ShowInformation(
                 Localization.Resources.SettingsSaved ?? "Settings saved successfully!",
-                Localization.Resources.InformationTitle ?? "Information",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                Localization.Resources.InformationTitle ?? "Information");
         }
 
-        public void LanguageChanged(string newLanguage, SettingsView settingsViewInstance)
+        public void LanguageChanged(string newLanguage)
         {
             if (newLanguage == UserLanguage)
             {
@@ -220,34 +247,37 @@ namespace EasySave_by_ProSoft.ViewModels
                     Localization.Resources.Culture = newCulture;
                 }
 
-                settingsViewInstance.PromptForApplicationRestart();
+                // Trigger the restart prompt event
+                RequestApplicationRestartPrompt?.Invoke(
+                    Localization.Resources.LanguageChangeRestartMessage,
+                    Localization.Resources.ConfirmationTitle,
+                    true);
             }
             catch (CultureNotFoundException ex)
             {
-                System.Windows.MessageBox.Show($"Culture {newLanguage} non trouvée: {ex.Message}", Localization.Resources.ErrorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+                _dialogService.ShowError(
+                    $"Culture {newLanguage} not found: {ex.Message}", 
+                    Localization.Resources.ErrorTitle);
                 return;
             }
         }
 
-        public double LargeFileSizeThresholdKB
+        public void HandleApplicationRestartResult(bool restartConfirmed)
         {
-            get
+            if (restartConfirmed)
             {
-                var setting = _settings.GetSetting("LargeFileSizeThresholdKey");
-                if (setting is double d) return d;
-                if (setting is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Number && jsonElement.TryGetDouble(out double val)) return val;
-                if (_settings.GetSetting("DefaultLargeFileSizeThresholdKey") is double defaultVal) return defaultVal;
-                return 1000000; // Fallback value if no valid setting is found
+                LanguageChangeConfirmed?.Invoke();
             }
-            set
+            else
             {
-                if (LargeFileSizeThresholdKB != value)
-                {
-                    _settings.SetSetting("LargeFileSizeThresholdKey", value);
-                    OnPropertyChanged();
-                    SaveSettings();
-                }
+                // Revert to original language settings
+                LanguageChangeCancelled?.Invoke();
             }
+        }
+
+        public void NotifyRestartFailed(Exception ex)
+        {
+            ApplicationRestartFailed?.Invoke(ex);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

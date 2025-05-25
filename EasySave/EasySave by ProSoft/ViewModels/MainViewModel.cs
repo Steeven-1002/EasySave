@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Threading;
 using EasySave_by_ProSoft.Models;
+using EasySave_by_ProSoft.Services;
 
 namespace EasySave_by_ProSoft.ViewModels
 {
@@ -17,9 +18,16 @@ namespace EasySave_by_ProSoft.ViewModels
     public class MainViewModel : INotifyPropertyChanged
     {
         private readonly BackupManager _backupManager;
+        private readonly IDialogService _dialogService;
         private ObservableCollection<BackupJob> _jobs;
         private DispatcherTimer _statusUpdateTimer;
         private volatile bool _isLaunchingJobs = false;
+
+        // User notification properties
+        public string NotificationMessage { get; private set; }
+        public bool HasNotification => !string.IsNullOrEmpty(NotificationMessage);
+        public event Action<string> ShowErrorMessage;
+        public event Action<string> ShowInfoMessage;
 
         public ObservableCollection<BackupJob> Jobs
         {
@@ -55,9 +63,12 @@ namespace EasySave_by_ProSoft.ViewModels
         public ICommand ResumeJobCommand { get; }
         public ICommand StopJobCommand { get; }
 
-        public MainViewModel(BackupManager backupManager)
+        public MainViewModel(BackupManager backupManager) : this(backupManager, new DialogService()) { }
+
+        public MainViewModel(BackupManager backupManager, IDialogService dialogService)
         {
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
+            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _jobs = new ObservableCollection<BackupJob>();
 
             Predicate<object?> canLaunchPredicate = _ =>
@@ -71,8 +82,6 @@ namespace EasySave_by_ProSoft.ViewModels
             LaunchMultipleJobsCommand = new RelayCommand(async _ => await LaunchSelectedJob(), canLaunchPredicate);
 
             CreateJobCommand = new RelayCommand(_ => CreateJob(), _ => true);
-            // LaunchJobCommand = new RelayCommand(_ => LaunchSelectedJob(), _ => SelectedJob != null && SelectedJob.Count > 0);
-            //LaunchMultipleJobsCommand = new RelayCommand(_ => LaunchMultipleJobs(), _ => SelectedJobs != null && SelectedJobs.Count > 0);
             RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(), _ => SelectedJobs != null && SelectedJobs.Count > 0);
             PauseJobCommand = new RelayCommand(_ => PauseSelectedJob(), _ => CanPauseSelectedJob());
             ResumeJobCommand = new RelayCommand(_ => ResumeSelectedJob(), _ => CanResumeSelectedJob());
@@ -410,6 +419,61 @@ namespace EasySave_by_ProSoft.ViewModels
                 return $"{remaining.Minutes}m {remaining.Seconds:D2}s";
             else
                 return $"{remaining.Seconds}s";
+        }
+
+        /// <summary>
+        /// Shows a notification message in the UI
+        /// </summary>
+        private void Notify(string message)
+        {
+            NotificationMessage = message;
+            OnPropertyChanged(nameof(NotificationMessage));
+            OnPropertyChanged(nameof(HasNotification));
+        }
+        
+        /// <summary>
+        /// Shows an error message
+        /// </summary>
+        private void NotifyError(string message)
+        {
+            ShowErrorMessage?.Invoke(message);
+        }
+        
+        /// <summary>
+        /// Shows an information message
+        /// </summary>
+        private void NotifyInfo(string message)
+        {
+            ShowInfoMessage?.Invoke(message);
+        }
+        
+        /// <summary>
+        /// Validates if jobs are selected, shows error if not
+        /// </summary>
+        public bool ValidateJobSelection()
+        {
+            if (SelectedJobs == null || SelectedJobs.Count == 0)
+            {
+                NotifyError("No backup selected");
+                return false;
+            }
+            return true;
+        }
+        
+        /// <summary>
+        /// Notifies about successfully launched jobs
+        /// </summary>
+        public void NotifyJobsLaunched(int count)
+        {
+            NotifyInfo($"{count} jobs have been launched.");
+        }
+        
+        /// <summary>
+        /// Notifies about job deletion
+        /// </summary>
+        public void NotifyJobDeleted()
+        {
+            NotifyInfo(Localization.Resources.MessageBoxDeleteJob);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

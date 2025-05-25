@@ -2,18 +2,22 @@ using System.Diagnostics;
 using System;
 using System.IO;
 using System.Text.Json;
+using System.Threading.Tasks;
+using EasySave_by_ProSoft.Core;
 
 namespace EasySave_by_ProSoft.Models
 {
     /// <summary>
     /// Manages backup jobs, including creation, execution, and persistence
     /// </summary>
-    public class BackupManager
+    public class BackupManager : IEventListener
     {
         private List<BackupJob> backupJobs;
         private string jobsConfigFilePath;
-        private readonly SemaphoreSlim _largeFileTransferSemaphore = new SemaphoreSlim(1, 1);
+        private readonly ParallelExecutionManager _parallelManager;
+        private readonly BusinessApplicationMonitor _businessMonitor;
         private readonly object _priorityLock = new();
+        private readonly EventManager _eventManager = EventManager.Instance;
 
         /// <summary>
         /// Initializes a new instance of the BackupManager class
@@ -21,6 +25,7 @@ namespace EasySave_by_ProSoft.Models
         public BackupManager()
         {
             backupJobs = new List<BackupJob>();
+            
             // Define the jobs configuration file path in ApplicationData/EasySave
             jobsConfigFilePath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -30,6 +35,19 @@ namespace EasySave_by_ProSoft.Models
 
             // Create directory if it doesn't exist
             Directory.CreateDirectory(Path.GetDirectoryName(jobsConfigFilePath)!);
+
+            // Initialize the parallel execution manager
+            _parallelManager = new ParallelExecutionManager();
+
+            // Initialize the business application monitor
+            string appNameToMonitor = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
+            _businessMonitor = new BusinessApplicationMonitor(appNameToMonitor);
+            _businessMonitor.BusinessAppStarted += (_, _) => _eventManager.NotifyBusinessSoftwareStateChanged(true);
+            _businessMonitor.BusinessAppStopped += (_, _) => _eventManager.NotifyBusinessSoftwareStateChanged(false);
+            _businessMonitor.StartMonitoring();
+
+            // Register as an event listener
+            _eventManager.AddListener(this);
         }
 
         /// <summary>
@@ -43,7 +61,7 @@ namespace EasySave_by_ProSoft.Models
         public BackupJob AddJob(string name, ref string sourcePath, ref string targetPath, ref BackupType type)
         {
             // Create new backup job
-            var job = new BackupJob(name, sourcePath, targetPath, type, this, _largeFileTransferSemaphore);
+            var job = new BackupJob(name, sourcePath, targetPath, type, this, _parallelManager.LargeFileTransferSemaphore);
 
             // Add to job list
             backupJobs.Add(job);
@@ -96,85 +114,78 @@ namespace EasySave_by_ProSoft.Models
         }
 
         /// <summary>
-        /// Executes the backup jobs with the specified indices
+        /// Executes the backup jobs with the specified indices using the ParallelExecutionManager
         /// </summary>
         /// <param name="jobIndexes">List of job indices to execute</param>
         public async Task ExecuteJobsAsync(List<int> jobIndexes)
         {
             if (jobIndexes == null || !jobIndexes.Any())
             {
-                Debug.WriteLine("BackupManager.ExecuteJobsAsync: Aucun indice de travail fourni.");
+                Debug.WriteLine("BackupManager.ExecuteJobsAsync: No job indices provided.");
                 return;
             }
-            Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Réception de {jobIndexes.Count} indice(s) de travail à exécuter : [{string.Join(", ", jobIndexes)}]");
+            Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Received {jobIndexes.Count} job index(es) to execute: [{string.Join(", ", jobIndexes)}]");
 
-            List<Task> runningTasks = new List<Task>();
-            List<string> jobNamesToRun = new List<string>(); // For logging
+            List<BackupJob> jobsToRun = new List<BackupJob>();
 
             foreach (var index in jobIndexes)
             {
                 if (index >= 0 && index < backupJobs.Count)
                 {
-                    BackupJob jobToRun = backupJobs[index]; // Always use the index here, see next point
-                    jobNamesToRun.Add(jobToRun.Name);
+                    BackupJob jobToRun = backupJobs[index];
+                    jobsToRun.Add(jobToRun);
 
-                    Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Création de la tâche pour le travail '{jobToRun.Name}' (Indice: {index}). Statut actuel: {jobToRun.Status.State}");
+                    Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Adding job '{jobToRun.Name}' (Index: {index}) to execution list. Current state: {jobToRun.Status.State}");
 
-                    if (jobToRun.Status.State != BackupState.Initialise) // Checks if the state is Initialize
+                    if (jobToRun.Status.State != BackupState.Initialise)
                     {
-                        Debug.WriteLine($"AVERTISSEMENT - BackupManager.ExecuteJobsAsync: Le travail '{jobToRun.Name}' n'est pas à l'état Initialise (Actuel: {jobToRun.Status.State}). Assurez-vous que ResetForRun() a été appelé par le ViewModel.");
+                        Debug.WriteLine($"WARNING - BackupManager.ExecuteJobsAsync: Job '{jobToRun.Name}' is not in Initialize state (Current: {jobToRun.Status.State}). Make sure ResetForRun() was called by the ViewModel.");
                     }
-
-                    runningTasks.Add(Task.Run(() =>
-                    {
-                        int threadId = Thread.CurrentThread.ManagedThreadId;
-                        Debug.WriteLine($"Thread-{threadId}: Tâche pour le travail '{jobToRun.Name}' DÉMARRÉE.");
-                        try
-                        {
-                            jobToRun.Start(); // BackupJob's Start Method
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"Thread-{threadId}: EXCEPTION dans la tâche pour le travail '{jobToRun.Name}': {ex.Message}\nStackTrace: {ex.StackTrace}");
-                            jobToRun.Status?.SetError($"Erreur lors de l'exécution du travail {jobToRun.Name}: {ex.Message}"); // Updates status on error
-                        }
-                        Debug.WriteLine($"Thread-{threadId}: Tâche pour le travail '{jobToRun.Name}' TERMINÉE. Statut final: {jobToRun.Status.State}");
-                    }));
                 }
                 else
                 {
-                    Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Indice de travail invalide {index} ignoré. Nombre total de travaux: {backupJobs.Count}");
+                    Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Invalid job index {index} ignored. Total jobs count: {backupJobs.Count}");
                 }
             }
 
-            if (runningTasks.Any())
+            if (_businessMonitor.IsRunning())
             {
-                Debug.WriteLine($"BackupManager.ExecuteJobsAsync: En attente de {runningTasks.Count} tâches pour les travaux : [{string.Join(", ", jobNamesToRun)}]");
-                await Task.WhenAll(runningTasks);
-                Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Les {runningTasks.Count} tâches de travail sont toutes terminées.");
+                Debug.WriteLine("BackupManager.ExecuteJobsAsync: Business software is running, cannot execute jobs.");
+                System.Windows.Forms.MessageBox.Show(
+                    $"Business software {_businessMonitor.BusinessSoftwareName} is running. Cannot start backup jobs.",
+                    "Business Software Detected",
+                    System.Windows.Forms.MessageBoxButtons.OK,
+                    System.Windows.Forms.MessageBoxIcon.Warning);
+                return;
             }
-            else
-            {
-                Debug.WriteLine("BackupManager.ExecuteJobsAsync: Aucune tâche n'a été créée pour être exécutée.");
-            }
+
+            await _parallelManager.ExecuteJobsInParallelAsync(jobsToRun);
         }
 
         public async Task ExecuteJobsByNameAsync(List<string> jobNames)
         {
             if (jobNames == null || !jobNames.Any()) return;
 
-            List<Task> runningTasks = new List<Task>();
+            List<BackupJob> jobsToRun = new List<BackupJob>();
+            
             foreach (var name in jobNames)
             {
                 BackupJob jobToRun = backupJobs.FirstOrDefault(j => j.Name == name);
                 if (jobToRun != null)
                 {
-                    if (jobToRun.Status.State != BackupState.Initialise) { /* Log warning */ }
-                    runningTasks.Add(Task.Run(() => jobToRun.Start())); // Executes the BackupJob Start method
+                    jobsToRun.Add(jobToRun);
+                    if (jobToRun.Status.State != BackupState.Initialise)
+                    {
+                        Debug.WriteLine($"WARNING - Job '{jobToRun.Name}' is not in Initialize state");
+                    }
                 }
-                else { /* Log error: work with this name not found */ }
+                else
+                {
+                    Debug.WriteLine($"Job with name '{name}' not found");
+                }
             }
-            if (runningTasks.Any()) await Task.WhenAll(runningTasks);
+
+            await _parallelManager.ExecuteJobsInParallelAsync(jobsToRun);
         }
 
         public bool RemoveJobByName(string jobName)
@@ -216,9 +227,8 @@ namespace EasySave_by_ProSoft.Models
                                 var sourcePath = jobData.SourcePath;
                                 var targetPath = jobData.TargetPath;
 
-                                // Add the job using existing method
-                                var job = new BackupJob(jobData.Name, sourcePath, targetPath, jobData.Type, this, _largeFileTransferSemaphore);
-
+                                // Create the job using the parallel manager's semaphore
+                                var job = new BackupJob(jobData.Name, sourcePath, targetPath, jobData.Type, this, _parallelManager.LargeFileTransferSemaphore);
 
                                 backupJobs.Add(job);
                             }
@@ -275,20 +285,130 @@ namespace EasySave_by_ProSoft.Models
         }
 
         /// <summary>
-        /// 
         /// Checks if there are any pending files with priority extensions in the backup jobs
+        /// </summary>
         public bool HasAnyPendingPriorityFiles()
         {
-            //
             lock (_priorityLock)
             {
-                // Check if any job has pending files with priority extensions
-                return backupJobs.Any(job => job.GetPendingFiles().Any(file =>
-                    PriorityExtensionManager.IsPriorityExtension(Path.GetExtension(file))));
+                return _parallelManager.HasAnyPendingPriorityFiles();
             }
         }
 
+        public void Shutdown()
+        {
+            _businessMonitor.StopMonitoring();
+            _parallelManager.Shutdown();
+            _eventManager.RemoveListener(this);
+        }
 
+        // IEventListener implementation
+        public void OnJobStatusChanged(JobStatus status)
+        {
+            // No action needed - this is primarily for remote control notifications
+        }
+
+        public void OnBusinessSoftwareStateChanged(bool isRunning)
+        {
+            if (isRunning)
+            {
+                // Maybe pause all running jobs when business software starts
+            }
+        }
+
+        /// <summary>
+        /// Handles the event when a launch request is made for specific jobs
+        /// </summary>
+        /// <param name="jobNames">List of job names to launch</param>
+        public async void OnLaunchJobsRequested(List<string> jobNames)
+        {
+            if (jobNames == null || !jobNames.Any()) return;
+
+            Debug.WriteLine($"BackupManager.OnLaunchJobsRequested: Processing launch request for jobs: {string.Join(", ", jobNames)}");
+            
+            // Reset job status for each job before executing
+            foreach (var name in jobNames)
+            {
+                var job = backupJobs.FirstOrDefault(j => j.Name == name);
+                if (job != null)
+                {
+                    job.Status.ResetForRun();
+                    Debug.WriteLine($"BackupManager.OnLaunchJobsRequested: Reset job '{name}' status for execution");
+                }
+            }
+            
+            // Execute the jobs
+            await ExecuteJobsByNameAsync(jobNames);
+        }
+
+        /// <summary>
+        /// Handles the event when a pause request is made for specific jobs
+        /// </summary>
+        /// <param name="jobNames">List of job names to pause</param>
+        public void OnPauseJobsRequested(List<string> jobNames)
+        {
+            if (jobNames == null || !jobNames.Any()) return;
+
+            foreach (var name in jobNames)
+            {
+                var job = backupJobs.FirstOrDefault(j => j.Name == name);
+                if (job != null && job.Status.State == BackupState.Running)
+                {
+                    job.Pause();
+                    Debug.WriteLine($"BackupManager.OnPauseJobsRequested: Job '{name}' paused.");
+                }
+                else
+                {
+                    Debug.WriteLine($"BackupManager.OnPauseJobsRequested: Job '{name}' not found or not in running state.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handles the event when a resume request is made for specific jobs
+        /// </summary>
+        /// <param name="jobNames">List of job names to resume</param>
+        public void OnResumeJobsRequested(List<string> jobNames)
+        {
+            if (jobNames == null || !jobNames.Any()) return;
+
+            foreach (var name in jobNames)
+            {
+                var job = backupJobs.FirstOrDefault(j => j.Name == name);
+                if (job != null && job.Status.State == BackupState.Paused)
+                {
+                    job.Resume();
+                    Debug.WriteLine($"BackupManager.OnResumeJobsRequested: Job '{name}' resumed.");
+                }
+                else
+                {
+                    Debug.WriteLine($"BackupManager.OnResumeJobsRequested: Job '{name}' not found or not in paused state.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handles the event when a stop request is made for specific jobs
+        /// </summary>
+        /// <param name="jobNames">List of job names to stop</param>
+        public void OnStopJobsRequested(List<string> jobNames)
+        {
+            if (jobNames == null || !jobNames.Any()) return;
+
+            foreach (var name in jobNames)
+            {
+                var job = backupJobs.FirstOrDefault(j => j.Name == name);
+                if (job != null && (job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused))
+                {
+                    job.Stop();
+                    Debug.WriteLine($"BackupManager.OnStopJobsRequested: Job '{name}' stopped.");
+                }
+                else
+                {
+                    Debug.WriteLine($"BackupManager.OnStopJobsRequested: Job '{name}' not found or not in a stoppable state.");
+                }
+            }
+        }
 
         /// <summary>
         /// Private class for serialization of job data

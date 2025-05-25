@@ -1,14 +1,16 @@
 using EasySave_by_ProSoft.Models;
+using EasySave_by_ProSoft.Services;
+using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 
 namespace EasySave_by_ProSoft.ViewModels
 {
-
     public class JobAddViewModel : INotifyPropertyChanged, JobEventListeners
     {
         private readonly BackupManager _backupManager;
+        private readonly IDialogService _dialogService;
         private string _name = string.Empty;
         private string _sourcePath = string.Empty;
         private string _targetPath = string.Empty;
@@ -16,6 +18,12 @@ namespace EasySave_by_ProSoft.ViewModels
         private BackupState _status = BackupState.Initialise;
         private int _progressPercentage = 0;
         private JobEventManager _jobEventManager = JobEventManager.Instance;
+
+        // Event for validation errors
+        public event Action<string> ValidationError;
+
+        // Event for successful job creation
+        public event Action<string> JobCreated;
 
         public string Name
         {
@@ -50,6 +58,7 @@ namespace EasySave_by_ProSoft.ViewModels
                 OnPropertyChanged();
             }
         }
+
         public int ProgressPercentage
         {
             get => _progressPercentage;
@@ -60,17 +69,21 @@ namespace EasySave_by_ProSoft.ViewModels
 
         public event Action<BackupJob>? JobAdded;
 
-        public JobAddViewModel(BackupManager backupManager)
+        public JobAddViewModel(BackupManager backupManager) : this(backupManager, new DialogService()) { }
+
+        public JobAddViewModel(BackupManager backupManager, IDialogService dialogService)
         {
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
+            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             AddJobCommand = new RelayCommand(_ => AddJob(), _ => CanAddJob());
             _jobEventManager.AddListener(this);
         }
+
         public void Update(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile, double transfertDuration, double encryptionTimeMs, string details = null)
         {
             // Update the job status based on the event data
             Status = newState;
-            
+
             // Calculate progress percentage properly based on remaining vs total
             if (totalSize > 0)
             {
@@ -84,26 +97,63 @@ namespace EasySave_by_ProSoft.ViewModels
             {
                 ProgressPercentage = 100;
             }
-            
+
             // Make sure to notify property changes
             OnPropertyChanged(nameof(Status));
             OnPropertyChanged(nameof(ProgressPercentage));
         }
 
+        /// <summary>
+        /// Validates if all required fields for a job are provided
+        /// </summary>
+        public bool ValidateJobInputs()
+        {
+            if (string.IsNullOrWhiteSpace(Name))
+            {
+                ValidationError?.Invoke("Job name cannot be empty.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(SourcePath))
+            {
+                ValidationError?.Invoke("Source path cannot be empty.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(TargetPath))
+            {
+                ValidationError?.Invoke("Target path cannot be empty.");
+                return false;
+            }
+
+            return true;
+        }
+
         private void AddJob()
         {
+            if (!ValidateJobInputs())
+                return;
+
             string sourcePath = SourcePath;
             string targetPath = TargetPath;
             BackupType type = Type;
 
-            var job = _backupManager.AddJob(Name, ref sourcePath, ref targetPath, ref type);
+            try
+            {
+                var job = _backupManager.AddJob(Name, ref sourcePath, ref targetPath, ref type);
+                JobAdded?.Invoke(job);
+                JobCreated?.Invoke(Localization.Resources.MessageNewJobValidated);
 
-            JobAdded?.Invoke(job);
-
-            Name = string.Empty;
-            SourcePath = string.Empty;
-            TargetPath = string.Empty;
-            Type = BackupType.Full;
+                // Reset inputs
+                Name = string.Empty;
+                SourcePath = string.Empty;
+                TargetPath = string.Empty;
+                Type = BackupType.Full;
+            }
+            catch (Exception ex)
+            {
+                ValidationError?.Invoke($"Error creating job: {ex.Message}");
+            }
         }
 
         private bool CanAddJob()
