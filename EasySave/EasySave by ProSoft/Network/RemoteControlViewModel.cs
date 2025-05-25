@@ -640,6 +640,12 @@ namespace EasySave_by_ProSoft.Network
                 if (State == BackupState.Completed) return 100;
                 return Math.Round((double)TransferredSize / TotalSize * 100, 2);
             }
+            set
+            {
+                if (value < 0) value = 0;
+                if (value > 100) value = 100;
+                OnPropertyChanged(nameof(ProgressPercentage));
+            }
         }
 
         public string FormattedTotalSize

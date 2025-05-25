@@ -7,146 +7,148 @@
         xmlns:network="clr-namespace:EasySave_by_ProSoft.Network"
         xmlns:localization="clr-namespace:EasySave_by_ProSoft.Localization"
         mc:Ignorable="d">
-    
-    <UserControl.Resources>
-        <local:InverseBooleanConverter x:Key="InverseBooleanConverter" />
-        <local:BoolToRunningConverter x:Key="BoolToRunningConverter" />
-        <local:BoolToColorConverter x:Key="BoolToColorConverter" />
-        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
-    </UserControl.Resources>
 
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-        
-        <!-- Header with logo -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-            <TextBlock Text="{x:Static localization:Resources.RemoteControlTitle}" 
+  <UserControl.Resources>
+    <local:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+    <local:BoolToRunningConverter x:Key="BoolToRunningConverter" />
+    <local:BoolToColorConverter x:Key="BoolToColorConverter" />
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+  </UserControl.Resources>
+
+  <Grid Margin="10">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <!-- Header with logo -->
+    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+      <TextBlock Text="{x:Static localization:Resources.RemoteControlTitle}" 
                        Style="{StaticResource HeaderTextBlockStyle}"/>
-        </StackPanel>
-        
-        <!-- Connection Panel -->
-        <Grid Grid.Row="1" Margin="0,0,0,10">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            
-            <Label Grid.Column="0" Content="{x:Static localization:Resources.ServerAddress}" VerticalAlignment="Center"/>
-            <TextBox Grid.Column="1" Text="{Binding ServerAddress}" Margin="5,0" Padding="5,2" 
+    </StackPanel>
+
+    <!-- Connection Panel -->
+    <Grid Margin="0,32,0,25" Grid.RowSpan="2">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+
+      <Label Grid.Column="0" Content="{x:Static localization:Resources.ServerAddress}" VerticalAlignment="Center"/>
+      <TextBox Grid.Column="1" Text="{Binding ServerAddress}" Margin="5,0,5,10" Padding="5,2" 
                      IsEnabled="{Binding IsConnected, Converter={StaticResource InverseBooleanConverter}}"/>
-            
-            <Label Grid.Column="2" Content="{x:Static localization:Resources.ServerPort}" VerticalAlignment="Center"/>
-            <TextBox Grid.Column="3" Text="{Binding ServerPort}" Width="60" Margin="5,0" Padding="5,2" 
+
+      <Label Grid.Column="2" Content="{x:Static localization:Resources.ServerPort}" VerticalAlignment="Center"/>
+      <TextBox Grid.Column="3" Text="{Binding ServerPort}" Width="60" Margin="5,0,5,10" Padding="5,2" 
                     IsEnabled="{Binding IsConnected, Converter={StaticResource InverseBooleanConverter}}"/>
-            
-            <StackPanel Grid.Column="4" Orientation="Horizontal" Margin="10,0,0,0">
-                <Button Content="{x:Static localization:Resources.Connect}" Command="{Binding ConnectCommand}" Width="80" Margin="0,0,5,0"
-                        Visibility="{Binding IsConnected, Converter={StaticResource InverseBooleanConverter}, ConverterParameter=Collapsed}"/>
-                <Button Content="{x:Static localization:Resources.Disconnect}" Command="{Binding DisconnectCommand}" Width="80"
-                        Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibility}}"/>
-            </StackPanel>
-        </Grid>
-        
-        <!-- Status Bar -->
-        <Border Grid.Row="1" VerticalAlignment="Bottom" Height="25" Background="#F0F0F0" BorderBrush="#CCCCCC" BorderThickness="1" Margin="0,30,0,0">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="{Binding ConnectionStatus}" VerticalAlignment="Center" Margin="5,0" />
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="5,0" 
+
+      <StackPanel Grid.Column="4" Orientation="Horizontal" Margin="10,0,0,0">
+        <Button Content="{x:Static localization:Resources.Connect}" Command="{Binding ConnectCommand}" Width="80"
+                        Visibility="{Binding IsConnected, ConverterParameter=Collapsed, Converter={StaticResource InverseBooleanConverter}}" Height="32"/>
+        <Button Content="{x:Static localization:Resources.Disconnect}" Command="{Binding DisconnectCommand}" Width="80"
+                        Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibility}}" Height="30"/>
+      </StackPanel>
+    </Grid>
+
+    <!-- Status Bar -->
+    <Border Grid.Row="1" VerticalAlignment="Bottom" Height="25" Background="#F0F0F0" BorderBrush="#CCCCCC" BorderThickness="1" Margin="0,30,0,0">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="15*" />
+          <ColumnDefinition Width="382*"/>
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="{Binding ConnectionStatus}" VerticalAlignment="Center" Margin="5,0,5,0" Grid.ColumnSpan="2" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="5,0,5,0" 
                           Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibility}}">
-                    <TextBlock Text="{x:Static localization:Resources.BusinessSoftware}" VerticalAlignment="Center" />
-                    <TextBlock Text=": " VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding IsBusinessSoftwareRunning, Converter={StaticResource BoolToRunningConverter}}" 
+          <TextBlock Text="{x:Static localization:Resources.BusinessSoftware}" VerticalAlignment="Center" />
+          <TextBlock Text=": " VerticalAlignment="Center" />
+          <TextBlock Text="{Binding IsBusinessSoftwareRunning, Converter={StaticResource BoolToRunningConverter}}" 
                                Foreground="{Binding IsBusinessSoftwareRunning, Converter={StaticResource BoolToColorConverter}}" 
                                FontWeight="Bold" VerticalAlignment="Center" />
-                </StackPanel>
-            </Grid>
-        </Border>
-        
-        <!-- Jobs List -->
-        <ListView Grid.Row="2" ItemsSource="{Binding Jobs}" Name="JobsListView" Margin="0,10" 
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Jobs List -->
+    <ListView Grid.Row="2" ItemsSource="{Binding Jobs}" Name="JobsListView" Margin="0,10" 
                  BorderThickness="1" BorderBrush="#CCCCCC" Style="{StaticResource ModernListView}"
                  ItemContainerStyle="{StaticResource ListViewItemContainerStyle}">
-            <ListView.View>
-                <GridView>
-                    <GridViewColumn Width="30">
-                        <GridViewColumn.CellTemplate>
-                            <DataTemplate>
-                                <CheckBox IsChecked="{Binding IsSelected}" />
-                            </DataTemplate>
-                        </GridViewColumn.CellTemplate>
-                    </GridViewColumn>
-                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementName}" DisplayMemberBinding="{Binding Name}" Width="120"/>
-                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementType}" DisplayMemberBinding="{Binding Type}" Width="80"/>
-                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementStatus}" DisplayMemberBinding="{Binding StatusDisplay}" Width="80"/>
-                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementProgressPercentage}" Width="150">
-                        <GridViewColumn.CellTemplate>
-                            <DataTemplate>
-                                <Grid>
-                                    <ProgressBar Value="{Binding ProgressPercentage}" Width="140" Height="18" />
-                                    <TextBlock Text="{Binding ProgressPercentage, StringFormat={}{0:F1}%}" 
+      <ListView.View>
+        <GridView>
+          <GridViewColumn Width="30">
+            <GridViewColumn.CellTemplate>
+              <DataTemplate>
+                <CheckBox IsChecked="{Binding IsSelected}" />
+              </DataTemplate>
+            </GridViewColumn.CellTemplate>
+          </GridViewColumn>
+          <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementName}" DisplayMemberBinding="{Binding Name}" Width="120"/>
+          <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementType}" DisplayMemberBinding="{Binding Type}" Width="80"/>
+          <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementStatus}" DisplayMemberBinding="{Binding StatusDisplay}" Width="80"/>
+          <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementProgressPercentage}" Width="150">
+            <GridViewColumn.CellTemplate>
+              <DataTemplate>
+                <Grid>
+                  <ProgressBar Value="{Binding ProgressPercentage}" Width="140" Height="18" />
+                  <TextBlock Text="{Binding ProgressPercentage, StringFormat={}{0:F1}%}" 
                                               HorizontalAlignment="Center" VerticalAlignment="Center"
                                               FontSize="11" />
-                                </Grid>
-                            </DataTemplate>
-                        </GridViewColumn.CellTemplate>
-                    </GridViewColumn>
-                    <GridViewColumn Header="{x:Static localization:Resources.Size}" DisplayMemberBinding="{Binding FormattedTotalSize}" Width="80"/>
-                    <GridViewColumn Header="{x:Static localization:Resources.CurrentFile}" DisplayMemberBinding="{Binding CurrentSourceFile}" Width="250"/>
-                    <GridViewColumn Header="{x:Static localization:Resources.Files}" Width="90">
-                        <GridViewColumn.CellTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding ProcessedFiles, StringFormat={}{0}/{1}, UpdateSourceTrigger=PropertyChanged}">
-                                    <TextBlock.ToolTip>
-                                        <TextBlock>
+                  <TextBlock Text="{Binding ProgressPercentage}" />
+                </Grid>
+              </DataTemplate>
+            </GridViewColumn.CellTemplate>
+          </GridViewColumn>
+          <GridViewColumn Header="{x:Static localization:Resources.Size}" DisplayMemberBinding="{Binding FormattedTotalSize}" Width="80"/>
+          <GridViewColumn Header="{x:Static localization:Resources.CurrentFile}" DisplayMemberBinding="{Binding CurrentSourceFile}" Width="250"/>
+          <GridViewColumn Header="{x:Static localization:Resources.Files}" Width="90">
+            <GridViewColumn.CellTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding ProcessedFiles, StringFormat={}{0}/{1}, UpdateSourceTrigger=PropertyChanged}">
+                  <TextBlock.ToolTip>
+                    <TextBlock>
                                             <Run Text="{x:Static localization:Resources.ProcessedFiles}" />
                                             <Run Text=": " />
                                             <Run Text="{Binding ProcessedFiles}" />
                                             <Run Text=" / " />
                                             <Run Text="{Binding TotalFiles}" />
-                                        </TextBlock>
-                                    </TextBlock.ToolTip>
+                    </TextBlock>
+                  </TextBlock.ToolTip>
                                 </TextBlock>
-                            </DataTemplate>
-                        </GridViewColumn.CellTemplate>
-                    </GridViewColumn>
-                </GridView>
-            </ListView.View>
-        </ListView>
-        
-        <!-- Command buttons -->
-        <Grid Grid.Row="3" Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            
-            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button Content="{x:Static localization:Resources.BackupWorkManagementStartBackupSelected}" 
+              </DataTemplate>
+            </GridViewColumn.CellTemplate>
+          </GridViewColumn>
+        </GridView>
+      </ListView.View>
+    </ListView>
+
+    <!-- Command buttons -->
+    <Grid Grid.Row="3" Margin="0,10,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+
+      <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+        <Button Content="{x:Static localization:Resources.BackupWorkManagementStartBackupSelected}" 
                        Command="{Binding LaunchJobsCommand}" Width="110" Height="35" Margin="5" 
                        Style="{StaticResource ActionButtonStyle}"/>
-                <Button Content="{x:Static localization:Resources.Pause}" 
+        <Button Content="{x:Static localization:Resources.Pause}" 
                        Command="{Binding PauseJobsCommand}" Width="110" Height="35" Margin="5" 
                        Style="{StaticResource PauseButtonStyle}"/>
-                <Button Content="{x:Static localization:Resources.Resume}" 
+        <Button Content="{x:Static localization:Resources.Resume}" 
                        Command="{Binding ResumeJobsCommand}" Width="110" Height="35" Margin="5" 
                        Style="{StaticResource StandardButtonStyle}"/>
-                <Button Content="{x:Static localization:Resources.Stop}" 
+        <Button Content="{x:Static localization:Resources.Stop}" 
                        Command="{Binding StopJobsCommand}" Width="110" Height="35" Margin="5" 
                        Style="{StaticResource StopButtonStyle}"/>
-            </StackPanel>
-        </Grid>
+      </StackPanel>
     </Grid>
+  </Grid>
 </UserControl>
