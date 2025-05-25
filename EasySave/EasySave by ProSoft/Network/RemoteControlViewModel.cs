@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace EasySave_by_ProSoft.Network
 {
@@ -24,6 +25,12 @@ namespace EasySave_by_ProSoft.Network
         private string _connectionStatus = "Disconnected";
         private bool _isBusinessSoftwareRunning = false;
         private ObservableCollection<RemoteJobStatus> _jobs = new();
+        private DispatcherTimer _autoRefreshTimer;
+        private bool _autoRefreshEnabled = true;
+        private double _refreshInterval = 3.0; // Default refresh interval in seconds
+        private bool _isRealTimeFollowEnabled = true;
+        private string _lastOperationStatus = "";
+        private bool _isOperationInProgress = false;
 
         public string ServerAddress
         {
@@ -61,6 +68,12 @@ namespace EasySave_by_ProSoft.Network
                     _isConnected = value;
                     OnPropertyChanged();
                     CommandManager.InvalidateRequerySuggested();
+
+                    // Start/stop the auto-refresh timer based on connection state
+                    if (_isConnected && AutoRefreshEnabled)
+                        StartAutoRefresh();
+                    else
+                        StopAutoRefresh();
                 }
             }
         }
@@ -105,21 +118,179 @@ namespace EasySave_by_ProSoft.Network
             }
         }
 
+        public bool AutoRefreshEnabled
+        {
+            get => _autoRefreshEnabled;
+            set
+            {
+                if (_autoRefreshEnabled != value)
+                {
+                    _autoRefreshEnabled = value;
+                    OnPropertyChanged();
+
+                    if (_isConnected)
+                    {
+                        if (_autoRefreshEnabled)
+                            StartAutoRefresh();
+                        else
+                            StopAutoRefresh();
+                    }
+                }
+            }
+        }
+
+        public double RefreshInterval
+        {
+            get => _refreshInterval;
+            set
+            {
+                if (_refreshInterval != value && value >= 1.0)
+                {
+                    _refreshInterval = value;
+                    OnPropertyChanged();
+
+                    // Update the timer interval if it's running
+                    if (_autoRefreshTimer != null && _autoRefreshTimer.IsEnabled)
+                    {
+                        _autoRefreshTimer.Interval = TimeSpan.FromSeconds(_refreshInterval);
+                    }
+                }
+            }
+        }
+
+        public bool IsRealTimeFollowEnabled
+        {
+            get => _isRealTimeFollowEnabled;
+            set
+            {
+                if (_isRealTimeFollowEnabled != value)
+                {
+                    _isRealTimeFollowEnabled = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string LastOperationStatus
+        {
+            get => _lastOperationStatus;
+            set
+            {
+                if (_lastOperationStatus != value)
+                {
+                    _lastOperationStatus = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool IsOperationInProgress
+        {
+            get => _isOperationInProgress;
+            set
+            {
+                if (_isOperationInProgress != value)
+                {
+                    _isOperationInProgress = value;
+                    OnPropertyChanged();
+                    CommandManager.InvalidateRequerySuggested();
+                }
+            }
+        }
+
         public ICommand ConnectCommand { get; }
         public ICommand DisconnectCommand { get; }
         public ICommand LaunchJobsCommand { get; }
         public ICommand PauseJobsCommand { get; }
         public ICommand ResumeJobsCommand { get; }
         public ICommand StopJobsCommand { get; }
+        public ICommand RefreshJobsCommand { get; }
 
         public RemoteControlViewModel()
         {
-            ConnectCommand = new RelayCommand(_ => Connect(), _ => !IsConnected);
-            DisconnectCommand = new RelayCommand(_ => Disconnect(), _ => IsConnected);
-            LaunchJobsCommand = new RelayCommand(_ => LaunchSelectedJobs(), _ => CanLaunchSelectedJobs());
-            PauseJobsCommand = new RelayCommand(_ => PauseSelectedJobs(), _ => CanPauseSelectedJobs());
-            ResumeJobsCommand = new RelayCommand(_ => ResumeSelectedJobs(), _ => CanResumeSelectedJobs());
-            StopJobsCommand = new RelayCommand(_ => StopSelectedJobs(), _ => CanStopSelectedJobs());
+            ConnectCommand = new RelayCommand(_ => Connect(), _ => !IsConnected && !IsOperationInProgress);
+            DisconnectCommand = new RelayCommand(_ => Disconnect(), _ => IsConnected && !IsOperationInProgress);
+            LaunchJobsCommand = new RelayCommand(_ => LaunchSelectedJobs(), _ => CanLaunchSelectedJobs() && !IsOperationInProgress);
+            PauseJobsCommand = new RelayCommand(_ => PauseSelectedJobs(), _ => CanPauseSelectedJobs() && !IsOperationInProgress);
+            ResumeJobsCommand = new RelayCommand(_ => ResumeSelectedJobs(), _ => CanResumeSelectedJobs() && !IsOperationInProgress);
+            StopJobsCommand = new RelayCommand(_ => StopSelectedJobs(), _ => CanStopSelectedJobs() && !IsOperationInProgress);
+            RefreshJobsCommand = new RelayCommand(_ => RefreshJobs(), _ => IsConnected && !IsOperationInProgress);
+
+            // Initialize the auto-refresh timer
+            _autoRefreshTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(_refreshInterval)
+            };
+            _autoRefreshTimer.Tick += AutoRefreshTimer_Tick;
+        }
+
+        private void AutoRefreshTimer_Tick(object sender, EventArgs e)
+        {
+            // Ensure we don't try to refresh if we're not connected or if an operation is in progress
+            if (!IsConnected || IsOperationInProgress || _client == null || !_client.Connected)
+            {
+                // If we thought we were connected but the socket is actually disconnected
+                if (IsConnected && (_client == null || !_client.Connected))
+                {
+                    Debug.WriteLine("AutoRefreshTimer_Tick detected disconnected socket");
+                    HandleConnectionLoss();
+                }
+                return;
+            }
+
+            RequestJobStatusUpdate();
+        }
+
+        private void StartAutoRefresh()
+        {
+            if (_autoRefreshTimer != null && !_autoRefreshTimer.IsEnabled && IsConnected && _client != null && _client.Connected)
+            {
+                _autoRefreshTimer.Start();
+                Debug.WriteLine($"Auto-refresh started with interval: {_refreshInterval} seconds");
+            }
+        }
+
+        private void StopAutoRefresh()
+        {
+            if (_autoRefreshTimer != null && _autoRefreshTimer.IsEnabled)
+            {
+                _autoRefreshTimer.Stop();
+                Debug.WriteLine("Auto-refresh stopped");
+            }
+        }
+
+        private void RefreshJobs()
+        {
+            if (IsConnected)
+            {
+                RequestJobStatusUpdate();
+                LastOperationStatus = "Manual refresh completed";
+            }
+        }
+
+        private async void RequestJobStatusUpdate()
+        {
+            // Check connection state before trying to request updates
+            if (!IsConnected || _client == null || !_client.Connected)
+            {
+                if (IsConnected)
+                {
+                    Debug.WriteLine("RequestJobStatusUpdate detected socket is disconnected while IsConnected=true");
+                    HandleConnectionLoss();
+                }
+                return;
+            }
+
+            try
+            {
+                await SendCommandAsync("RequestStatusUpdate");
+                Debug.WriteLine("Job status update requested");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error requesting job status update: {ex.Message}");
+                LastOperationStatus = $"Error requesting update: {ex.Message}";
+            }
         }
 
         private bool CanLaunchSelectedJobs()
@@ -180,49 +351,124 @@ namespace EasySave_by_ProSoft.Network
 
         public async Task Connect()
         {
-            if (IsConnected) return;
+            if (IsConnected || IsOperationInProgress) return;
 
+            IsOperationInProgress = true;
             ConnectionStatus = "Connecting...";
+            LastOperationStatus = "Connecting to server...";
+
             try
             {
+                // Close any existing client first
+                if (_client != null)
+                {
+                    _client.Close();
+                    _client.Dispose();
+                    _client = null;
+                }
+
                 _client = new TcpClient();
-                await _client.ConnectAsync(ServerAddress, ServerPort);
+                var connectTask = _client.ConnectAsync(ServerAddress, ServerPort);
+                
+                // Add a timeout to the connection attempt
+                if (await Task.WhenAny(connectTask, Task.Delay(5000)) != connectTask)
+                {
+                    // Connection timed out
+                    throw new TimeoutException("Connection attempt timed out");
+                }
+
+                // Ensure the connection task completed successfully
+                await connectTask;
+
+                // Additional check to verify connection
+                if (!_client.Connected)
+                {
+                    throw new InvalidOperationException("Failed to establish connection");
+                }
 
                 IsConnected = true;
                 ConnectionStatus = $"Connected to {ServerAddress}:{ServerPort}";
+                LastOperationStatus = "Connected successfully";
 
                 _cancellationTokenSource = new CancellationTokenSource();
                 _ = Task.Run(() => ReceiveMessagesAsync(_cancellationTokenSource.Token));
+            }
+            catch (SocketException ex)
+            {
+                IsConnected = false;
+                ConnectionStatus = $"Connection failed: {ex.Message}";
+                LastOperationStatus = $"Connection failed: {ex.Message}";
+                _client?.Close();
+                _client = null;
             }
             catch (Exception ex)
             {
                 IsConnected = false;
                 ConnectionStatus = $"Connection failed: {ex.Message}";
+                LastOperationStatus = $"Connection failed: {ex.Message}";
                 _client?.Close();
                 _client = null;
+            }
+            finally
+            {
+                IsOperationInProgress = false;
             }
         }
 
         public void Disconnect()
         {
-            if (!IsConnected) return;
+            if (!IsConnected || IsOperationInProgress) return;
 
+            IsOperationInProgress = true;
             try
             {
-                _cancellationTokenSource?.Cancel();
-                _client?.Close();
+                // Stop auto-refresh first
+                StopAutoRefresh();
+                
+                // Cancel the token before closing the client
+                if (_cancellationTokenSource != null)
+                {
+                    _cancellationTokenSource.Cancel();
+                    _cancellationTokenSource.Dispose();
+                    _cancellationTokenSource = null;
+                }
+
+                if (_client != null)
+                {
+                    if (_client.Connected)
+                    {
+                        try
+                        {
+                            // Try to gracefully close the connection if possible
+                            NetworkStream stream = _client.GetStream();
+                            stream.Close(2000); // Give it 2 seconds to flush and close properly
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Error closing stream gracefully: {ex.Message}");
+                        }
+
+                        _client.Close();
+                    }
+                    _client.Dispose();
+                    _client = null;
+                }
+
+                LastOperationStatus = "Disconnected from server";
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error during disconnect: {ex.Message}");
+                LastOperationStatus = $"Error during disconnect: {ex.Message}";
             }
             finally
             {
-                _client = null;
                 IsConnected = false;
                 ConnectionStatus = "Disconnected";
                 Jobs.Clear();
                 IsBusinessSoftwareRunning = false;
+                IsOperationInProgress = false;
+                _client = null;
             }
         }
 
@@ -230,29 +476,61 @@ namespace EasySave_by_ProSoft.Network
         {
             try
             {
+                // Validate client before accessing the stream
+                if (_client == null || !_client.Connected)
+                {
+                    throw new InvalidOperationException("Cannot receive messages from a disconnected socket");
+                }
+
                 using NetworkStream stream = _client.GetStream();
                 byte[] buffer = new byte[8192]; // Increased buffer size for potential large job lists
 
-                while (!token.IsCancellationRequested && _client.Connected)
+                while (!token.IsCancellationRequested && _client != null && _client.Connected)
                 {
-                    if (stream.DataAvailable)
+                    try
                     {
-                        int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token);
-                        if (bytesRead > 0)
+                        if (stream.DataAvailable)
                         {
-                            string json = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                            ProcessServerMessage(json);
+                            int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token);
+                            if (bytesRead > 0)
+                            {
+                                string json = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                                ProcessServerMessage(json);
+                            }
+                        }
+                        else
+                        {
+                            // Use a shorter delay and check connection more frequently
+                            await Task.Delay(100, token);
+                            
+                            // Periodically check if the client is still connected
+                            if (_client == null || !_client.Connected)
+                            {
+                                throw new SocketException((int)SocketError.Disconnecting);
+                            }
                         }
                     }
-                    else
+                    catch (System.IO.IOException ex)
                     {
-                        await Task.Delay(100, token);
+                        // Socket was closed, log and rethrow
+                        Debug.WriteLine($"Socket IO Exception: {ex.Message}");
+                        throw;
+                    }
+                    catch (SocketException ex)
+                    {
+                        Debug.WriteLine($"Socket Exception during receive: {ex.Message}");
+                        throw;
                     }
                 }
             }
             catch (OperationCanceledException)
             {
                 // Expected when token is canceled
+                Debug.WriteLine("Receive messages operation was canceled");
+            }
+            catch (ObjectDisposedException)
+            {
+                Debug.WriteLine("Network stream or client was disposed");
             }
             catch (Exception ex)
             {
@@ -263,8 +541,136 @@ namespace EasySave_by_ProSoft.Network
                 {
                     IsConnected = false;
                     ConnectionStatus = $"Connection lost: {ex.Message}";
+                    LastOperationStatus = $"Connection lost: {ex.Message}";
                     _client = null;
+                    StopAutoRefresh();
                 });
+            }
+        }
+
+        private async Task SendCommandAsync(string commandType, string jobName = "", List<string> jobNames = null, Dictionary<string, object> parameters = null)
+        {
+            // Early validation to prevent operations on non-connected sockets
+            if (!IsConnected || _client == null || !_client.Connected)
+            {
+                // If we previously thought we were connected but the socket is actually disconnected
+                if (IsConnected)
+                {
+                    Debug.WriteLine("SendCommandAsync detected socket is disconnected while IsConnected=true");
+                    App.Current.Dispatcher.Invoke(() =>
+                    {
+                        IsConnected = false;
+                        ConnectionStatus = "Connection lost";
+                        LastOperationStatus = "Connection lost - cannot send command";
+                        _client = null;
+                    });
+                    StopAutoRefresh();
+                }
+                return;
+            }
+
+            IsOperationInProgress = true;
+            try
+            {
+                var command = new RemoteCommand
+                {
+                    CommandType = commandType,
+                    JobName = jobName,
+                    JobNames = jobNames ?? new List<string>(),
+                    Parameters = parameters ?? new Dictionary<string, object>()
+                };
+
+                string json = JsonSerializer.Serialize(command);
+                byte[] data = Encoding.UTF8.GetBytes(json);
+
+                // Additional check right before accessing the stream
+                if (_client == null || !_client.Connected)
+                {
+                    throw new InvalidOperationException("Socket disconnected before sending command");
+                }
+
+                using NetworkStream stream = _client.GetStream();
+                await stream.WriteAsync(data, 0, data.Length);
+                await stream.FlushAsync();
+                Debug.WriteLine($"Sent command: {commandType} for {jobNames?.Count ?? 0} jobs");
+
+                if (commandType != "RequestStatusUpdate")
+                {
+                    LastOperationStatus = $"{commandType} command sent to server";
+                }
+            }
+            catch (ObjectDisposedException ex)
+            {
+                Debug.WriteLine($"Socket already disposed: {ex.Message}");
+                ConnectionStatus = "Connection closed";
+                LastOperationStatus = "Connection closed - cannot send command";
+                HandleConnectionLoss();
+            }
+            catch (InvalidOperationException ex)
+            {
+                Debug.WriteLine($"Invalid socket operation: {ex.Message}");
+                ConnectionStatus = "Connection invalid";
+                LastOperationStatus = "Connection invalid - command not sent";
+                HandleConnectionLoss();
+            }
+            catch (SocketException ex)
+            {
+                Debug.WriteLine($"Socket error: {ex.Message}");
+                ConnectionStatus = $"Socket error: {ex.Message}";
+                LastOperationStatus = $"Socket error - command not sent";
+                HandleConnectionLoss();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error sending command: {ex.Message}");
+                ConnectionStatus = $"Error sending command: {ex.Message}";
+                LastOperationStatus = $"Error sending command: {ex.Message}";
+
+                // Handle connection issues
+                if (_client == null || !_client.Connected)
+                {
+                    HandleConnectionLoss();
+                }
+            }
+            finally
+            {
+                IsOperationInProgress = false;
+            }
+        }
+
+        private void HandleConnectionLoss()
+        {
+            // Safely handle connection loss
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                if (IsConnected)
+                {
+                    IsConnected = false;
+                    StopAutoRefresh();
+                    _client = null;
+                    Jobs.Clear();
+                    IsBusinessSoftwareRunning = false;
+                }
+            });
+        }
+
+        public void CheckConnectionStatus()
+        {
+            if (!IsConnected || _client == null)
+            {
+                return;
+            }
+
+            // Check if the client is still connected
+            if (!_client.Connected)
+            {
+                Debug.WriteLine("Connection check detected socket is disconnected while IsConnected=true");
+                HandleConnectionLoss();
+            }
+            else
+            {
+                // Request a status update to validate the connection is working
+                RequestJobStatusUpdate();
             }
         }
 
@@ -285,6 +691,16 @@ namespace EasySave_by_ProSoft.Network
                         ProcessBusinessAppState(message.RootElement.GetProperty("IsRunning").GetBoolean());
                         break;
 
+                    case "CommandResponse":
+                        if (message.RootElement.TryGetProperty("Status", out JsonElement statusElement))
+                        {
+                            App.Current.Dispatcher.Invoke(() =>
+                            {
+                                LastOperationStatus = statusElement.GetString();
+                            });
+                        }
+                        break;
+
                     default:
                         Debug.WriteLine($"Unknown message type: {messageType}");
                         break;
@@ -300,48 +716,86 @@ namespace EasySave_by_ProSoft.Network
         {
             try
             {
-                var jobStates = JsonSerializer.Deserialize<List<JobState>>(jobStatesElement.GetRawText());
-                if (jobStates == null) return;
+                List<JobState> jobStates;
+                try
+                {
+                    jobStates = JsonSerializer.Deserialize<List<JobState>>(jobStatesElement.GetRawText());
+                    if (jobStates == null) return;
+                }
+                catch (JsonException ex)
+                {
+                    Debug.WriteLine($"Error deserializing job states: {ex.Message}");
+                    return;
+                }
 
                 // Update UI on the UI thread
                 App.Current.Dispatcher.Invoke(() =>
                 {
-                    // Remember selected state of existing jobs
-                    var selectedJobNames = new HashSet<string>();
-                    foreach (var job in Jobs)
+                    try
                     {
-                        if (job.IsSelected)
+                        // Remember selected state of existing jobs
+                        var selectedJobNames = new HashSet<string>();
+                        foreach (var job in Jobs)
                         {
-                            selectedJobNames.Add(job.Name);
+                            if (job.IsSelected)
+                            {
+                                selectedJobNames.Add(job.Name);
+                            }
                         }
-                    }
 
-                    // Clear and rebuild job list
-                    Jobs.Clear();
-                    foreach (var state in jobStates)
-                    {
-                        var job = new RemoteJobStatus
+                        // Keep scrolling position if real-time follow is enabled
+                        RemoteJobStatus jobToFollow = null;
+                        if (IsRealTimeFollowEnabled && Jobs.Any(j => j.State == BackupState.Running))
                         {
-                            Name = state.JobName,
-                            SourcePath = state.SourcePath,
-                            TargetPath = state.TargetPath,
-                            Type = state.Type,
-                            State = state.State,
-                            TotalFiles = state.TotalFiles,
-                            TotalSize = state.TotalSize,
-                            RemainingFiles = state.RemainingFiles,
-                            RemainingSize = state.RemainingSize,
-                            CurrentSourceFile = state.CurrentSourceFile,
-                            CurrentTargetFile = state.CurrentTargetFile,
-                            StartTime = state.StartTime,
-                            EndTime = state.EndTime,
-                            IsSelected = selectedJobNames.Contains(state.JobName)
-                        };
+                            jobToFollow = Jobs.FirstOrDefault(j => j.State == BackupState.Running);
+                        }
 
-                        Jobs.Add(job);
+                        // Clear and rebuild job list
+                        Jobs.Clear();
+                        foreach (var state in jobStates)
+                        {
+                            // Make sure all fields are valid before adding to the job list
+                            if (state != null && !string.IsNullOrEmpty(state.JobName))
+                            {
+                                var job = new RemoteJobStatus
+                                {
+                                    Name = state.JobName,
+                                    SourcePath = state.SourcePath ?? string.Empty,
+                                    TargetPath = state.TargetPath ?? string.Empty,
+                                    Type = state.Type,
+                                    State = state.State,
+                                    TotalFiles = Math.Max(0, state.TotalFiles), // Ensure positive values
+                                    TotalSize = Math.Max(0, state.TotalSize),
+                                    RemainingFiles = Math.Max(0, state.RemainingFiles),
+                                    RemainingSize = Math.Max(0, state.RemainingSize),
+                                    CurrentSourceFile = state.CurrentSourceFile ?? string.Empty,
+                                    CurrentTargetFile = state.CurrentTargetFile ?? string.Empty,
+                                    StartTime = state.StartTime,
+                                    EndTime = state.EndTime,
+                                    IsSelected = selectedJobNames.Contains(state.JobName)
+                                };
+
+                                Jobs.Add(job);
+                            }
+                        }
+
+                        // Signal real-time follow if job is still running
+                        if (IsRealTimeFollowEnabled && jobToFollow != null)
+                        {
+                            var updatedJob = Jobs.FirstOrDefault(j => j.Name == jobToFollow.Name && j.State == BackupState.Running);
+                            if (updatedJob != null)
+                            {
+                                // Raise event to scroll to this job (UI will handle this)
+                                RaiseFollowJobEvent(updatedJob);
+                            }
+                        }
+
+                        CommandManager.InvalidateRequerySuggested();
                     }
-
-                    CommandManager.InvalidateRequerySuggested();
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Error updating UI with job statuses: {ex.Message}");
+                    }
                 });
             }
             catch (Exception ex)
@@ -350,47 +804,20 @@ namespace EasySave_by_ProSoft.Network
             }
         }
 
+        // Event for notifying the UI to follow a specific job
+        public event Action<RemoteJobStatus> FollowJob;
+
+        private void RaiseFollowJobEvent(RemoteJobStatus job)
+        {
+            FollowJob?.Invoke(job);
+        }
+
         private void ProcessBusinessAppState(bool isRunning)
         {
             App.Current.Dispatcher.Invoke(() =>
             {
                 IsBusinessSoftwareRunning = isRunning;
             });
-        }
-
-        private async Task SendCommandAsync(string commandType, string jobName = "", List<string> jobNames = null, Dictionary<string, object> parameters = null)
-        {
-            if (!IsConnected) return;
-
-            try
-            {
-                var command = new RemoteCommand
-                {
-                    CommandType = commandType,
-                    JobName = jobName,
-                    JobNames = jobNames ?? new List<string>(),
-                    Parameters = parameters ?? new Dictionary<string, object>()
-                };
-
-                string json = JsonSerializer.Serialize(command);
-                byte[] data = Encoding.UTF8.GetBytes(json);
-
-                using NetworkStream stream = _client.GetStream();
-                await stream.WriteAsync(data, 0, data.Length);
-                await stream.FlushAsync();
-                Debug.WriteLine($"Sent command: {commandType} for {jobNames?.Count ?? 0} jobs");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error sending command: {ex.Message}");
-                ConnectionStatus = $"Error sending command: {ex.Message}";
-
-                // Handle connection issues
-                if (!_client.Connected)
-                {
-                    Disconnect();
-                }
-            }
         }
 
         private void LaunchSelectedJobs()
@@ -406,6 +833,7 @@ namespace EasySave_by_ProSoft.Network
 
             if (jobNames.Count > 0)
             {
+                LastOperationStatus = $"Starting {jobNames.Count} job(s)...";
                 _ = SendCommandAsync("LaunchJobs", jobNames: jobNames);
             }
         }
@@ -423,6 +851,7 @@ namespace EasySave_by_ProSoft.Network
 
             if (jobNames.Count > 0)
             {
+                LastOperationStatus = $"Pausing {jobNames.Count} job(s)...";
                 _ = SendCommandAsync("PauseJobs", jobNames: jobNames);
             }
         }
@@ -440,6 +869,7 @@ namespace EasySave_by_ProSoft.Network
 
             if (jobNames.Count > 0)
             {
+                LastOperationStatus = $"Resuming {jobNames.Count} job(s)...";
                 _ = SendCommandAsync("ResumeJobs", jobNames: jobNames);
             }
         }
@@ -457,7 +887,60 @@ namespace EasySave_by_ProSoft.Network
 
             if (jobNames.Count > 0)
             {
+                LastOperationStatus = $"Stopping {jobNames.Count} job(s)...";
                 _ = SendCommandAsync("StopJobs", jobNames: jobNames);
+            }
+        }
+
+        private bool IsTcpClientConnected()
+        {
+            try
+            {
+                if (_client == null)
+                    return false;
+
+                // First check the Connected property
+                if (!_client.Connected)
+                    return false;
+
+                // If we're "connected" but Client/Socket is null, then we're not actually connected
+                if (_client.Client == null)
+                    return false;
+
+                // Check if the socket is truly connected with a non-blocking poll
+                // Poll with SelectRead - true means socket is closed or has pending data
+                bool blockingState = _client.Client.Blocking;
+                try
+                {
+                    _client.Client.Blocking = false;
+                    
+                    // Try to read 1 byte with timeout of 1 microsecond - if it throws or returns true, socket has issues
+                    byte[] tmp = new byte[1];
+                    if (_client.Client.Poll(1, SelectMode.SelectRead) && 
+                        _client.Client.Receive(tmp, SocketFlags.Peek) == 0)
+                    {
+                        // If we can read 0 bytes, the connection is closed or broken
+                        return false;
+                    }
+                    
+                    // Everything seems fine
+                    return true;
+                }
+                catch (SocketException)
+                {
+                    // Any socket exception means we're not connected properly
+                    return false;
+                }
+                finally
+                {
+                    // Restore original blocking state
+                    if (_client?.Client != null)
+                        _client.Client.Blocking = blockingState;
+                }
+            }
+            catch
+            {
+                return false;
             }
         }
 
@@ -629,7 +1112,15 @@ namespace EasySave_by_ProSoft.Network
             set { if (_isSelected != value) { _isSelected = value; OnPropertyChanged(); } }
         }
 
-        public int ProcessedFiles => TotalFiles - RemainingFiles;
+        public int ProcessedFiles
+        {
+            get
+            {
+                // Calculate safely to avoid negative values
+                return Math.Max(0, TotalFiles - RemainingFiles);
+            }
+        }
+
         public long TransferredSize => TotalSize - RemainingSize;
 
         public double ProgressPercentage

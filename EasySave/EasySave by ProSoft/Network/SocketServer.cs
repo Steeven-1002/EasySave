@@ -113,7 +113,14 @@ namespace EasySave_by_ProSoft.Network
 
         private async Task HandleClientAsync(TcpClient client, CancellationToken token)
         {
-            string clientAddress = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
+            if (client == null) return;
+            
+            string clientAddress = "unknown";
+            try 
+            {
+                clientAddress = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
+            }
+            catch {}
 
             try
             {
@@ -121,22 +128,38 @@ namespace EasySave_by_ProSoft.Network
                 byte[] buffer = new byte[4096];
 
                 // Send initial job status list to the client
-                await SendJobStatuses(client);
+                try
+                {
+                    await SendJobStatuses(client);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error sending initial job statuses to {clientAddress}: {ex.Message}");
+                    // Continue with handling - don't exit on initial status send failure
+                }
 
                 while (!token.IsCancellationRequested && client.Connected)
                 {
-                    if (stream.DataAvailable)
+                    try
                     {
-                        int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token);
-                        if (bytesRead > 0)
+                        if (stream.DataAvailable)
                         {
-                            string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                            ProcessClientMessage(message, clientAddress);
+                            int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token);
+                            if (bytesRead > 0)
+                            {
+                                string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                                ProcessClientMessage(message, clientAddress);
+                            }
+                        }
+                        else
+                        {
+                            await Task.Delay(100, token);
                         }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        await Task.Delay(100, token);
+                        Debug.WriteLine($"Error in client communication loop for {clientAddress}: {ex.Message}");
+                        break; // Exit the loop on error
                     }
                 }
             }
@@ -150,7 +173,11 @@ namespace EasySave_by_ProSoft.Network
                 {
                     _connectedClients.Remove(client);
                 }
-                client.Close();
+                try
+                {
+                    client.Close();
+                }
+                catch {}
                 ClientDisconnected?.Invoke(this, clientAddress);
                 Debug.WriteLine($"Client {clientAddress} disconnected");
             }
@@ -164,12 +191,60 @@ namespace EasySave_by_ProSoft.Network
                 if (command != null)
                 {
                     Debug.WriteLine($"Received command: {command.CommandType} from {clientAddress}");
+
+                    // Special handling for RequestStatusUpdate
+                    if (command.CommandType == "RequestStatusUpdate")
+                    {
+                        // Find the client that sent this command
+                        lock (_connectedClients)
+                        {
+                            foreach (var client in _connectedClients)
+                            {
+                                if (((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString() == clientAddress)
+                                {
+                                    _ = ProcessStatusUpdateRequest(client, command);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+
+                    // For all other commands, use the standard event handling
                     CommandReceived?.Invoke(this, command);
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error processing message from {clientAddress}: {ex.Message}");
+            }
+        }
+
+        private async Task ProcessStatusUpdateRequest(TcpClient client, RemoteCommand command)
+        {
+            if (client == null || !client.Connected) return;
+
+            try
+            {
+                // Send current job statuses
+                await SendJobStatuses(client);
+
+                // Also send a command response confirming receipt
+                var response = new
+                {
+                    Type = "CommandResponse",
+                    Status = "Status update request processed"
+                };
+
+                string json = JsonSerializer.Serialize(response);
+                byte[] data = Encoding.UTF8.GetBytes(json);
+
+                NetworkStream stream = client.GetStream();
+                await stream.WriteAsync(data, 0, data.Length);
+                await stream.FlushAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error processing status update request: {ex.Message}");
             }
         }
 
@@ -199,25 +274,46 @@ namespace EasySave_by_ProSoft.Network
 
         private async Task SendJobStatuses(TcpClient client)
         {
-            if (!client.Connected) return;
+            if (client == null || !client.Connected) return;
 
             try
             {
                 // Create a snapshot of all job states to send
                 var jobStates = JobEventManager.Instance.GetAllJobStates();
+                
+                // Ensure we don't have null or invalid job states
+                jobStates = jobStates?.Where(js => js != null && !string.IsNullOrEmpty(js.JobName))
+                                  .ToList() ?? new List<JobState>();
+                    
                 var response = new
                 {
                     Type = "JobStatuses",
                     Data = jobStates
                 };
 
-                string json = JsonSerializer.Serialize(response);
+                var options = new JsonSerializerOptions
+                {
+                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+                    WriteIndented = false
+                };
+
+                string json = JsonSerializer.Serialize(response, options);
                 byte[] data = Encoding.UTF8.GetBytes(json);
 
                 NetworkStream stream = client.GetStream();
                 await stream.WriteAsync(data, 0, data.Length);
                 await stream.FlushAsync();
                 Debug.WriteLine($"Sent job statuses to client: {jobStates.Count} states");
+            }
+            catch (ObjectDisposedException ex)
+            {
+                Debug.WriteLine($"Socket was disposed: {ex.Message}");
+                throw;
+            }
+            catch (SocketException ex)
+            {
+                Debug.WriteLine($"Socket error sending job statuses: {ex.Message}");
+                throw;
             }
             catch (Exception ex)
             {

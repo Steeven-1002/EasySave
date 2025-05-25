@@ -19,6 +19,7 @@
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
       <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
@@ -30,7 +31,7 @@
     </StackPanel>
 
     <!-- Connection Panel -->
-    <Grid Margin="0,32,0,25" Grid.RowSpan="2">
+    <Grid Grid.Row="1" Margin="0,10,0,10">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="Auto"/>
         <ColumnDefinition Width="*"/>
@@ -40,30 +41,55 @@
       </Grid.ColumnDefinitions>
 
       <Label Grid.Column="0" Content="{x:Static localization:Resources.ServerAddress}" VerticalAlignment="Center"/>
-      <TextBox Grid.Column="1" Text="{Binding ServerAddress}" Margin="5,0,5,10" Padding="5,2" 
+      <TextBox Grid.Column="1" Text="{Binding ServerAddress}" Margin="5,10,5,10" Padding="5,2" 
                      IsEnabled="{Binding IsConnected, Converter={StaticResource InverseBooleanConverter}}"/>
 
       <Label Grid.Column="2" Content="{x:Static localization:Resources.ServerPort}" VerticalAlignment="Center"/>
-      <TextBox Grid.Column="3" Text="{Binding ServerPort}" Width="60" Margin="5,0,5,10" Padding="5,2" 
+      <TextBox Grid.Column="3" Text="{Binding ServerPort}" Width="60" Margin="5,10,5,10" Padding="5,2" 
                     IsEnabled="{Binding IsConnected, Converter={StaticResource InverseBooleanConverter}}"/>
 
       <StackPanel Grid.Column="4" Orientation="Horizontal" Margin="10,0,0,0">
         <Button Content="{x:Static localization:Resources.Connect}" Command="{Binding ConnectCommand}" Width="80"
-                        Visibility="{Binding IsConnected, ConverterParameter=Collapsed, Converter={StaticResource InverseBooleanConverter}}" Height="32"/>
-        <Button Content="{x:Static localization:Resources.Disconnect}" Command="{Binding DisconnectCommand}" Width="80"
-                        Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibility}}" Height="30"/>
+                        Visibility="{Binding IsConnected, Converter={StaticResource InverseBooleanConverter}, ConverterParameter=Collapsed}" 
+                        Height="32" IsEnabled="{Binding IsOperationInProgress, Converter={StaticResource InverseBooleanConverter}}"/>
+        <Button Content="{x:Static localization:Resources.Disconnect}" Command="{Binding DisconnectCommand}" Width="104"
+                        Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibility}}" Height="30" 
+                        IsEnabled="{Binding IsOperationInProgress, Converter={StaticResource InverseBooleanConverter}}"/>
       </StackPanel>
     </Grid>
 
+    <!-- Auto refresh and real-time options -->
+    <Grid Grid.Row="2" Margin="0,0,0,10" Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibility}}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      
+      <CheckBox Grid.Column="0" Content="Auto-refresh" IsChecked="{Binding AutoRefreshEnabled}" VerticalAlignment="Center" Margin="5,0"/>
+      <TextBlock Grid.Column="1" Text="Interval (s):" VerticalAlignment="Center" Margin="10,0,5,0"/>
+      <TextBox Grid.Column="2" Text="{Binding RefreshInterval}" Width="40" VerticalAlignment="Center" IsEnabled="{Binding AutoRefreshEnabled}"/>
+      
+      <CheckBox Grid.Column="3" Content="Real-time follow" IsChecked="{Binding IsRealTimeFollowEnabled}" VerticalAlignment="Center" Margin="15,0,5,0"/>
+      
+      <Button Grid.Column="5" Content="Refresh Now" Command="{Binding RefreshJobsCommand}" 
+              Margin="5,0" Padding="10,5" IsEnabled="{Binding IsOperationInProgress, Converter={StaticResource InverseBooleanConverter}}"/>
+    </Grid>
+
     <!-- Status Bar -->
-    <Border Grid.Row="1" VerticalAlignment="Bottom" Height="25" Background="#F0F0F0" BorderBrush="#CCCCCC" BorderThickness="1" Margin="0,30,0,0">
+    <Border Grid.Row="3" VerticalAlignment="Top" Height="25" Background="#F0F0F0" BorderBrush="#CCCCCC" BorderThickness="1">
       <Grid>
         <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="15*" />
-          <ColumnDefinition Width="382*"/>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <TextBlock Text="{Binding ConnectionStatus}" VerticalAlignment="Center" Margin="5,0,5,0" Grid.ColumnSpan="2" />
+        <TextBlock Text="{Binding ConnectionStatus}" VerticalAlignment="Center" Margin="5,0,5,0" />
+        <TextBlock Grid.Column="1" Text="{Binding LastOperationStatus}" VerticalAlignment="Center" Margin="5,0" 
+                   Foreground="#007ACC" FontStyle="Italic"/>
         <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="5,0,5,0" 
                           Visibility="{Binding IsConnected, Converter={StaticResource BoolToVisibility}}">
           <TextBlock Text="{x:Static localization:Resources.BusinessSoftware}" VerticalAlignment="Center" />
@@ -76,7 +102,7 @@
     </Border>
 
     <!-- Jobs List -->
-    <ListView Grid.Row="2" ItemsSource="{Binding Jobs}" Name="JobsListView" Margin="0,10" 
+    <ListView Grid.Row="3" Margin="0,30,0,5" ItemsSource="{Binding Jobs}" Name="JobsListView"
                  BorderThickness="1" BorderBrush="#CCCCCC" Style="{StaticResource ModernListView}"
                  ItemContainerStyle="{StaticResource ListViewItemContainerStyle}">
       <ListView.View>
@@ -99,7 +125,6 @@
                   <TextBlock Text="{Binding ProgressPercentage, StringFormat={}{0:F1}%}" 
                                               HorizontalAlignment="Center" VerticalAlignment="Center"
                                               FontSize="11" />
-                  <TextBlock Text="{Binding ProgressPercentage}" />
                 </Grid>
               </DataTemplate>
             </GridViewColumn.CellTemplate>
@@ -109,17 +134,15 @@
           <GridViewColumn Header="{x:Static localization:Resources.Files}" Width="90">
             <GridViewColumn.CellTemplate>
               <DataTemplate>
-                <TextBlock Text="{Binding ProcessedFiles, StringFormat={}{0}/{1}, UpdateSourceTrigger=PropertyChanged}">
-                  <TextBlock.ToolTip>
-                    <TextBlock>
-                                            <Run Text="{x:Static localization:Resources.ProcessedFiles}" />
-                                            <Run Text=": " />
-                                            <Run Text="{Binding ProcessedFiles}" />
-                                            <Run Text=" / " />
-                                            <Run Text="{Binding TotalFiles}" />
-                    </TextBlock>
-                  </TextBlock.ToolTip>
-                                </TextBlock>
+                <TextBlock Text="{Binding ProcessedFiles, StringFormat={}{0}/{1}}" 
+                           ToolTip="{Binding TotalFiles, StringFormat=Total Files: {0}}" />
+              </DataTemplate>
+            </GridViewColumn.CellTemplate>
+          </GridViewColumn>
+          <GridViewColumn Header="Estimated Time" Width="100">
+            <GridViewColumn.CellTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding EstimatedTimeRemaining, StringFormat=mm\\:ss}" />
               </DataTemplate>
             </GridViewColumn.CellTemplate>
           </GridViewColumn>
@@ -128,7 +151,7 @@
     </ListView>
 
     <!-- Command buttons -->
-    <Grid Grid.Row="3" Margin="0,10,0,0">
+    <Grid Grid.Row="4" Margin="0,10,0,0">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*"/>
         <ColumnDefinition Width="Auto"/>
@@ -138,16 +161,20 @@
       <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
         <Button Content="{x:Static localization:Resources.BackupWorkManagementStartBackupSelected}" 
                        Command="{Binding LaunchJobsCommand}" Width="110" Height="35" Margin="5" 
-                       Style="{StaticResource ActionButtonStyle}"/>
+                       Style="{StaticResource ActionButtonStyle}" 
+                       IsEnabled="{Binding IsOperationInProgress, Converter={StaticResource InverseBooleanConverter}}"/>
         <Button Content="{x:Static localization:Resources.Pause}" 
                        Command="{Binding PauseJobsCommand}" Width="110" Height="35" Margin="5" 
-                       Style="{StaticResource PauseButtonStyle}"/>
+                       Style="{StaticResource PauseButtonStyle}" 
+                       IsEnabled="{Binding IsOperationInProgress, Converter={StaticResource InverseBooleanConverter}}"/>
         <Button Content="{x:Static localization:Resources.Resume}" 
                        Command="{Binding ResumeJobsCommand}" Width="110" Height="35" Margin="5" 
-                       Style="{StaticResource StandardButtonStyle}"/>
+                       Style="{StaticResource StandardButtonStyle}" 
+                       IsEnabled="{Binding IsOperationInProgress, Converter={StaticResource InverseBooleanConverter}}"/>
         <Button Content="{x:Static localization:Resources.Stop}" 
                        Command="{Binding StopJobsCommand}" Width="110" Height="35" Margin="5" 
-                       Style="{StaticResource StopButtonStyle}"/>
+                       Style="{StaticResource StopButtonStyle}" 
+                       IsEnabled="{Binding IsOperationInProgress, Converter={StaticResource InverseBooleanConverter}}"/>
       </StackPanel>
     </Grid>
   </Grid>
