@@ -1,8 +1,6 @@
 using EasySave.Services;
 using System.IO;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EasySave_by_ProSoft.Models
 {
@@ -42,6 +40,13 @@ namespace EasySave_by_ProSoft.Models
                 // OnPropertyChanged(nameof(IsSelected));
             }
         }
+
+        /// <summary>
+        /// Indicates whether this job was paused by the business application monitor
+        /// </summary>
+        public bool IsPausedByBusinessApp { get; private set; }
+
+        private readonly object statusLock = new object();
 
         /// <summary>
         /// Initializes a new backup job
@@ -126,74 +131,56 @@ namespace EasySave_by_ProSoft.Models
         /// Starts the backup job
         /// </summary>
         public void Start()
-{
-    lock (this)
-    {
-        if (_isRunning || Status.State == BackupState.Completed)
-            return;
-
-        _isRunning = true;
-        _isPaused = false;
-        _stopRequested = false;
-    }
-
-    try
-    {
-        // Check if business software is running
-        if (_businessMonitor.IsRunning())
         {
-            string businessSoftwareName = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
-            string message = $"Business software {businessSoftwareName} detected. Cannot start backup job {Name}.";
+            lock (this)
+            {
+                if (_isRunning || Status.State == BackupState.Completed)
+                    return;
 
-            System.Windows.Forms.MessageBox.Show($"{message}",
-                              "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
+                _isRunning = true;
+                _isPaused = false;
+                _stopRequested = false;
+            }
 
-            Status.Details = message;
-            Status.SetError(message);
-            _isRunning = false;
-            return;
+            try
+            {
+                // Start the job with start details
+                string startDetails = null;
+                Status.Start(startDetails);
+
+                // Get files using the selected strategy
+                if (toProcessFiles.Count == 0)
+                {
+                    BackupJob jobRef = this;
+                    toProcessFiles = _backupFileStrategy.GetFiles(ref jobRef);
+                }
+
+                // Process files if we have a valid status
+                if (Status.State == BackupState.Running)
+                {
+                    ProcessFiles(toProcessFiles).GetAwaiter().GetResult();
+                }
+
+                // Complete the job if it wasn't paused or stopped
+                if (Status.State == BackupState.Running)
+                {
+                    Status.Complete();
+                }
+            }
+            catch (Exception ex)
+            {
+                Status.SetError($"Backup failed: {ex.Message}");
+            }
+            finally
+            {
+                _isRunning = false;
+            }
         }
-
-        // Start the job with start details
-        string startDetails = null;
-        Status.Start(startDetails);
-
-        // Get files using the selected strategy
-        if (toProcessFiles.Count == 0)
-        {
-            BackupJob jobRef = this;
-            toProcessFiles = _backupFileStrategy.GetFiles(ref jobRef);
-        }
-
-        // Process files if we have a valid status
-        if (Status.State == BackupState.Running)
-        {
-            ProcessFiles(toProcessFiles).GetAwaiter().GetResult();
-        }
-
-        // Complete the job if it wasn't paused or stopped
-        if (Status.State == BackupState.Running)
-        {
-            Status.Complete();
-        }
-    }
-    catch (Exception ex)
-    {
-        Status.SetError($"Backup failed: {ex.Message}");
-    }
-    finally
-    {
-        _isRunning = false;
-    }
-}
 
 
         /// <summary>
         /// Processes all files that need to be backed up
         /// </summary>
-
-
-
         private async Task ProcessFiles(List<string> toProcessFiles)
         {
             if (!Directory.Exists(TargetPath))
@@ -219,23 +206,19 @@ namespace EasySave_by_ProSoft.Models
                 string ext = Path.GetExtension(sourceFile);
                 bool isPriority = PriorityExtensionManager.IsPriorityExtension(ext);
 
-
-
                 if (!isPriority && _backupManager != null && _backupManager.HasAnyPendingPriorityFiles())
                 {
                     ignoredNonPriority.Add(sourceFile);
                     continue;
                 }
 
-
                 await ProcessLargeFileWithSemaphore(sourceFile, largeFileSizeThresholdBytes);
                 this.toProcessFiles.Remove(sourceFile);
             }
 
-       
             if (ignoredNonPriority.Count > 0)
             {
-                }
+            }
 
             // Barrier to wait for all priority files to finish processing
             while (_backupManager != null && _backupManager.HasAnyPendingPriorityFiles())
@@ -254,7 +237,6 @@ namespace EasySave_by_ProSoft.Models
                 }
                 if (_stopRequested) break;
 
-               
                 await ProcessLargeFileWithSemaphore(sourceFile, largeFileSizeThresholdBytes);
                 this.toProcessFiles.Remove(sourceFile);
             }
@@ -290,10 +272,6 @@ namespace EasySave_by_ProSoft.Models
                 }
             }
         }
-
-
-
-
 
         /// <summary>
         /// Processes a single file for backup
@@ -345,19 +323,6 @@ namespace EasySave_by_ProSoft.Models
                 Status.RemainingSize -= fileSize;
                 Status.EncryptionTimeMs = _encryptionTime;
                 Status.Update();
-
-                if (_businessMonitor.IsRunning())
-                {
-                    string businessSoftwareName = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
-                    string message = $"Backup stopped due to business software {businessSoftwareName} being detected while processing file {sourceFile}";
-
-                    System.Windows.Forms.MessageBox.Show($"Business software {businessSoftwareName} detected. " +
-                                    $"Backup job {Name} will stop after processing file {sourceFile}.",
-                                    "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
-
-                    Status.Details = message;
-                    Stop();
-                }
             }
             catch (Exception ex)
             {
@@ -365,79 +330,12 @@ namespace EasySave_by_ProSoft.Models
             }
         }
 
-
-
-
-        /// <summary>
-        /// Pauses the backup job
-        /// </summary>
-        public void Pause()
-        {
-            if (_isRunning && !_stopRequested)
-            {
-                _isPaused = true;
-                Status.Pause();
-            }
-        }
-
-        /// <summary>
-        /// Stops the backup job
-        /// </summary>
-        public void Stop()
-        {
-            if (_isRunning)
-            {
-                _stopRequested = true;
-                _isPaused = false;
-
-                // If Details property is not already set with a specific reason,
-                // set a generic reason for stopping
-                if (string.IsNullOrEmpty(Status.Details))
-                {
-                    Status.Details = "Backup stopped by user";
-                }
-
-                Status.SetError(Status.Details);
-            }
-        }
-
-        /// <summary>
-        /// Resumes a paused backup job
-        /// </summary>
-        public void Resume()
-        {
-            if (_isPaused && !_stopRequested)
-            {
-                _isPaused = false;
-                Status.Resume();
-
-                // Complete the job if we finished successfully
-                if (!_isRunning && Status.State == BackupState.Paused)
-                {
-                    _isRunning = true;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets the current status of the job
-        /// </summary>
-        public JobStatus GetStatus()
-        {
-            return Status;
-        }
-
-        public IEnumerable<string> GetPendingFiles()
-        {
-            return toProcessFiles;
-        }
         private async Task ProcessLargeFileWithSemaphore(string sourceFile, long largeFileSizeThresholdBytes)
         {
             long fileSize = _fileSystemService.GetSize(sourceFile);
             if (fileSize > largeFileSizeThresholdBytes)
             {
                 double thresholdKB = largeFileSizeThresholdBytes / 1024.0;
-                
 
                 await _largeFileTransferSemaphore.WaitAsync();
                 try
@@ -455,6 +353,75 @@ namespace EasySave_by_ProSoft.Models
             }
         }
 
+        /// <summary>
+        /// Pauses the backup job
+        /// </summary>
+        /// <param name="isPausedByBusinessApp">Indicates if the job was paused by business app monitor</param>
+        public void Pause(bool isPausedByBusinessApp = false)
+        {
+            lock (statusLock)
+            {
+                if (Status.State != BackupState.Running)
+                    return;
 
+                _isPaused = true;
+                IsPausedByBusinessApp = isPausedByBusinessApp;
+                Status.State = BackupState.Paused;
+                Status.Details = isPausedByBusinessApp ? "Job paused by business application" : "Job paused by user";
+                Status.Update();
+            }
+        }
+
+        /// <summary>
+        /// Resumes the backup job if it was paused
+        /// </summary>
+        public void Resume()
+        {
+            lock (statusLock)
+            {
+                if (Status.State != BackupState.Paused)
+                    return;
+
+                _isPaused = false;
+                IsPausedByBusinessApp = false;
+                Status.State = BackupState.Running;
+                Status.Details = "Job resumed";
+                Status.Update();
+            }
+        }
+
+        /// <summary>
+        /// Stops the backup job
+        /// </summary>
+        public void Stop()
+        {
+            lock (statusLock)
+            {
+                _stopRequested = true;
+                IsPausedByBusinessApp = false;
+                Status.State = BackupState.Error;
+                Status.Details = "Job stopped by user";
+                Status.Update();
+
+                // Unregister from business application monitor if needed
+                if (_backupManager is BackupManager manager)
+                {
+                    manager.UnregisterJobFromBusinessMonitor(this);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the current status of the job
+        /// </summary>
+        public JobStatus GetStatus()
+        {
+            return Status;
+        }
+
+        public IEnumerable<string> GetPendingFiles()
+        {
+            return toProcessFiles;
+        }
     }
 }

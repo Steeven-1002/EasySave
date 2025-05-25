@@ -12,6 +12,7 @@ namespace EasySave_by_ProSoft
         private readonly BackupManager _backupManager;
         private BackupJobsView _backupJobsView;
         private SettingsView _settingsView;
+        private RemoteControlView _remoteControlView;
 
         public MainWindow()
         {
@@ -23,6 +24,7 @@ namespace EasySave_by_ProSoft
             // Create views with the BackupManager
             _backupJobsView = new BackupJobsView(_backupManager);
             _settingsView = new SettingsView();
+            _remoteControlView = new RemoteControlView();
 
             // Show the default view
             MainContentArea.Content = _backupJobsView;
@@ -40,8 +42,19 @@ namespace EasySave_by_ProSoft
             MainContentArea.Content = _settingsView;
         }
 
+        private void ShowRemoteControl_Click(object sender, RoutedEventArgs e)
+        {
+            MainContentArea.Content = _remoteControlView;
+        }
+
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
+            // Clean up resources
+            if (_remoteControlView != null)
+            {
+                _remoteControlView.Cleanup();
+            }
+            
             System.Windows.Application.Current.Shutdown();
         }
     }

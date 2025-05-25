@@ -61,6 +61,33 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à The application is already running..
+        /// </summary>
+        public static string ApplicationAlreadyRunning {
+            get {
+                return ResourceManager.GetString("ApplicationAlreadyRunning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Application Settings.
+        /// </summary>
+        public static string ApplicationSettings {
+            get {
+                return ResourceManager.GetString("ApplicationSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Backup Settings.
+        /// </summary>
+        public static string BackupSettings {
+            get {
+                return ResourceManager.GetString("BackupSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Differential.
         /// </summary>
         public static string BackupTypeDifferential {
@@ -133,7 +160,7 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
-        ///   Recherche une chaîne localisée semblable à Launch selected job.
+        ///   Recherche une chaîne localisée semblable à Launch.
         /// </summary>
         public static string BackupWorkManagementStartBackupSelected {
             get {
@@ -183,6 +210,15 @@ namespace EasySave_by_ProSoft.Localization {
         public static string BusinessApplicationError {
             get {
                 return ResourceManager.GetString("BusinessApplicationError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Business Software.
+        /// </summary>
+        public static string BusinessSoftware {
+            get {
+                return ResourceManager.GetString("BusinessSoftware", resourceCulture);
             }
         }
         
@@ -268,6 +304,51 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Connect.
+        /// </summary>
+        public static string Connect {
+            get {
+                return ResourceManager.GetString("Connect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Culture &apos;{0}&apos; not found. Switching to default language &apos;{1}&apos;..
+        /// </summary>
+        public static string CultureNotFoundMessage {
+            get {
+                return ResourceManager.GetString("CultureNotFoundMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Current File.
+        /// </summary>
+        public static string CurrentFile {
+            get {
+                return ResourceManager.GetString("CurrentFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Disconnect.
+        /// </summary>
+        public static string Disconnect {
+            get {
+                return ResourceManager.GetString("Disconnect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Encryption Key.
+        /// </summary>
+        public static string EncryptionKey {
+            get {
+                return ResourceManager.GetString("EncryptionKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à An error occurred while trying to restart the application. Please restart it manually..
         /// </summary>
         public static string ErrorRestartingApplicationMessage {
@@ -304,6 +385,15 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Files.
+        /// </summary>
+        public static string Files {
+            get {
+                return ResourceManager.GetString("Files", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à General settings.
         /// </summary>
         public static string GeneralSettings {
@@ -318,6 +408,15 @@ namespace EasySave_by_ProSoft.Localization {
         public static string InformationTitle {
             get {
                 return ResourceManager.GetString("InformationTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Invalid Culture.
+        /// </summary>
+        public static string InvalidCultureTitle {
+            get {
+                return ResourceManager.GetString("InvalidCultureTitle", resourceCulture);
             }
         }
         
@@ -358,11 +457,38 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Loading encryption key.
+        /// </summary>
+        public static string LoadEncryptionKey {
+            get {
+                return ResourceManager.GetString("LoadEncryptionKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Log file format :.
         /// </summary>
         public static string LogFileFormatSetting {
             get {
                 return ResourceManager.GetString("LogFileFormatSetting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à JSON.
+        /// </summary>
+        public static string LogFormatJSON {
+            get {
+                return ResourceManager.GetString("LogFormatJSON", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à XML.
+        /// </summary>
+        public static string LogFormatXML {
+            get {
+                return ResourceManager.GetString("LogFormatXML", resourceCulture);
             }
         }
         
@@ -381,6 +507,15 @@ namespace EasySave_by_ProSoft.Localization {
         public static string MainQuit {
             get {
                 return ResourceManager.GetString("MainQuit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Remote Control.
+        /// </summary>
+        public static string MainRemoteControl {
+            get {
+                return ResourceManager.GetString("MainRemoteControl", resourceCulture);
             }
         }
         
@@ -439,6 +574,87 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à No language saved. Switching to default language &apos;{0}&apos;..
+        /// </summary>
+        public static string NoLanguageSavedMessage {
+            get {
+                return ResourceManager.GetString("NoLanguageSavedMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à No Language Saved.
+        /// </summary>
+        public static string NoLanguageSavedTitle {
+            get {
+                return ResourceManager.GetString("NoLanguageSavedTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Pause.
+        /// </summary>
+        public static string Pause {
+            get {
+                return ResourceManager.GetString("Pause", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Processed Files.
+        /// </summary>
+        public static string ProcessedFiles {
+            get {
+                return ResourceManager.GetString("ProcessedFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Remote Control Management.
+        /// </summary>
+        public static string RemoteControlTitle {
+            get {
+                return ResourceManager.GetString("RemoteControlTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Resume.
+        /// </summary>
+        public static string Resume {
+            get {
+                return ResourceManager.GetString("Resume", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Selected jobs actions.
+        /// </summary>
+        public static string SelectedButtonsTitle {
+            get {
+                return ResourceManager.GetString("SelectedButtonsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Server Address:.
+        /// </summary>
+        public static string ServerAddress {
+            get {
+                return ResourceManager.GetString("ServerAddress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Port:.
+        /// </summary>
+        public static string ServerPort {
+            get {
+                return ResourceManager.GetString("ServerPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Settings.
         /// </summary>
         public static string Settings {
@@ -462,6 +678,33 @@ namespace EasySave_by_ProSoft.Localization {
         public static string SettingsValidatedMessage {
             get {
                 return ResourceManager.GetString("SettingsValidatedMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Single Instance.
+        /// </summary>
+        public static string SingleInstanceTitle {
+            get {
+                return ResourceManager.GetString("SingleInstanceTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Size.
+        /// </summary>
+        public static string Size {
+            get {
+                return ResourceManager.GetString("Size", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Stop.
+        /// </summary>
+        public static string Stop {
+            get {
+                return ResourceManager.GetString("Stop", resourceCulture);
             }
         }
         

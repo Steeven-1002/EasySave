@@ -1,21 +1,25 @@
 using EasySave_by_ProSoft.Models;
+using EasySave_by_ProSoft.Services;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 
 namespace EasySave_by_ProSoft.ViewModels
 {
-
-    public class JobAddViewModel : INotifyPropertyChanged, JobEventListeners
+    public class JobAddViewModel : INotifyPropertyChanged
     {
         private readonly BackupManager _backupManager;
+        private readonly IDialogService _dialogService;
         private string _name = string.Empty;
         private string _sourcePath = string.Empty;
         private string _targetPath = string.Empty;
         private BackupType _type = BackupType.Full;
-        private BackupState _status = BackupState.Initialise;
-        private int _progressPercentage = 0;
-        private JobEventManager _jobEventManager = JobEventManager.Instance;
+
+        // Event for validation errors
+        public event Action<string> ValidationError;
+
+        // Event for successful job creation
+        public event Action<string> JobCreated;
 
         public string Name
         {
@@ -41,65 +45,81 @@ namespace EasySave_by_ProSoft.ViewModels
             set { _type = value; OnPropertyChanged(); }
         }
 
-        public BackupState Status
-        {
-            get => _status;
-            set
-            {
-                _status = value;
-                OnPropertyChanged();
-            }
-        }
-        public int ProgressPercentage
-        {
-            get => _progressPercentage;
-            set { _progressPercentage = value; OnPropertyChanged(); }
-        }
-
         public ICommand AddJobCommand { get; }
+        public ICommand CancelCommand { get; }
 
         public event Action<BackupJob>? JobAdded;
+        public event Action? JobCancelled;
 
-        public JobAddViewModel(BackupManager backupManager)
+        public JobAddViewModel(BackupManager backupManager) : this(backupManager, new DialogService()) { }
+
+        public JobAddViewModel(BackupManager backupManager, IDialogService dialogService)
         {
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
+            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             AddJobCommand = new RelayCommand(_ => AddJob(), _ => CanAddJob());
-            _jobEventManager.AddListener(this);
+            CancelCommand = new RelayCommand(_ => CancelJob());
         }
-        public void Update(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile, double transfertDuration, double encryptionTimeMs, string details = null)
+
+        /// <summary>
+        /// Validates if all required fields for a job are provided
+        /// </summary>
+        public bool ValidateJobInputs()
         {
-            // Update the job status based on the event data
-            Status = newState;
-            
-            // Calculate progress percentage properly based on remaining vs total
-            if (totalSize > 0)
+            if (string.IsNullOrWhiteSpace(Name))
             {
-                ProgressPercentage = (int)Math.Round((double)(totalSize - remainingSize) / totalSize * 100, 0);
+                ValidationError?.Invoke("Job name cannot be empty.");
+                return false;
             }
-            else if (totalFiles > 0)
+
+            if (string.IsNullOrWhiteSpace(SourcePath))
             {
-                ProgressPercentage = (int)Math.Round((double)(totalFiles - remainingFiles) / totalFiles * 100, 0);
+                ValidationError?.Invoke("Source path cannot be empty.");
+                return false;
             }
-            else
+
+            if (string.IsNullOrWhiteSpace(TargetPath))
             {
-                ProgressPercentage = 100;
+                ValidationError?.Invoke("Target path cannot be empty.");
+                return false;
             }
-            
-            // Make sure to notify property changes
-            OnPropertyChanged(nameof(Status));
-            OnPropertyChanged(nameof(ProgressPercentage));
+
+            return true;
         }
 
         private void AddJob()
         {
+            if (!ValidateJobInputs())
+                return;
+
             string sourcePath = SourcePath;
             string targetPath = TargetPath;
             BackupType type = Type;
 
-            var job = _backupManager.AddJob(Name, ref sourcePath, ref targetPath, ref type);
+            try
+            {
+                var job = _backupManager.AddJob(Name, ref sourcePath, ref targetPath, ref type);
+                JobAdded?.Invoke(job);
+                JobCreated?.Invoke(Localization.Resources.MessageNewJobValidated);
 
-            JobAdded?.Invoke(job);
+                // Reset inputs
+                ResetInputFields();
+            }
+            catch (Exception ex)
+            {
+                ValidationError?.Invoke($"Error creating job: {ex.Message}");
+            }
+        }
 
+        private void CancelJob()
+        {
+            // Reset all fields and notify the view that the operation was cancelled
+            ResetInputFields();
+            JobCancelled?.Invoke();
+        }
+
+        private void ResetInputFields()
+        {
             Name = string.Empty;
             SourcePath = string.Empty;
             TargetPath = string.Empty;
