@@ -153,7 +153,7 @@ namespace EasySave_by_ProSoft.Network
                         }
                         else
                         {
-                            await Task.Delay(100, token);
+                            await Task.Delay(1000, token);
                         }
                     }
                     catch (Exception ex)
