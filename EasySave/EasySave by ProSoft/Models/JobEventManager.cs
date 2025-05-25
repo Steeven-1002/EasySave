@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,6 +19,7 @@ namespace EasySave_by_ProSoft.Models
 
         // Path to the state.json file maintained in real time
         private readonly string stateFilePath;
+        private static readonly object _stateFileLock = new object();
 
         /// <summary>
         /// Initializes a new instance of the job event manager
@@ -66,6 +68,11 @@ namespace EasySave_by_ProSoft.Models
         /// <param name="jobStatus">The job status that was modified</param>
         public void NotifyListeners(JobStatus jobStatus)
         {
+            if (jobStatus == null)
+            {
+                Debug.WriteLine("JobEventManager.NotifyListeners: jobStatus is null. Aborting notification.");
+                return;
+            }
             try
             {
                 // Update the state.json file in real time
@@ -130,146 +137,76 @@ namespace EasySave_by_ProSoft.Models
         {
             if (jobStatus?.BackupJob == null || string.IsNullOrEmpty(jobStatus.BackupJob.Name))
             {
-                // Cannot serialize without a valid job name
+                Debug.WriteLine("JobEventManager.UpdateStateFile: Cannot update state file due to null jobStatus, BackupJob, or empty JobName.");
                 return;
             }
 
-            try
+            lock (_stateFileLock)
             {
-                // Use file locking to prevent concurrent access issues
-                using (FileStream fileStream = new FileStream(stateFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read))
+                int threadId = Thread.CurrentThread.ManagedThreadId;
+                Debug.WriteLine($"Thread-{threadId}: Attempting to update state.json for job '{jobStatus.BackupJob.Name}', Status: {jobStatus.State}");
+                try
                 {
-                    // Create a snapshot of the job for serialization
                     var snapshot = jobStatus.CreateSnapshot();
+                    List<JobState> allJobStates;
 
-                    // Load existing states, if any
-                    List<JobState> allJobStates = new List<JobState>();
-                    if (fileStream.Length > 0)
+                    if (File.Exists(stateFilePath))
                     {
-                        try
-                        {
-                            // Read existing JSON content
-                            fileStream.Position = 0;
-                            using (StreamReader reader = new StreamReader(fileStream, leaveOpen: true))
-                            {
-                                string jsonContent = reader.ReadToEnd();
-                                if (!string.IsNullOrEmpty(jsonContent))
-                                {
-
-                                    allJobStates = JsonSerializer.Deserialize<List<JobState>>(jsonContent) ?? new List<JobState>();
-
-                                    // Ensure proper state for each job
-                                    foreach (var state in allJobStates)
-                                    {
-                                        // Convert any Initialise states to their proper representation
-                                        if (state.State == BackupState.Initialise && !string.IsNullOrEmpty(state.StateAsString))
-                                        {
-                                            state.State = JobState.ConvertStringToState(state.StateAsString);
-                                        }
-                                    }
-
-                                }
-                            }
-                        }
-                        catch (JsonException)
-                        {
-                            // In case of deserialization error, start with an empty list
-                            System.Windows.Forms.MessageBox.Show("Error reading state.json file. Starting with an empty list.");
-                            allJobStates = new List<JobState>();
-                        }
-                    }
-
-                    // Update the current job state or add it if it doesn't exist
-                    bool jobFound = false;
-                    for (int i = 0; i < allJobStates.Count; i++)
-                    {
-                        if (allJobStates[i].JobName == snapshot.JobName)
-                        {
-                            // Preserve processed files from previous state if needed for resume capability
-                            if (snapshot.State == BackupState.Running &&
-                                allJobStates[i].ProcessedFiles?.Count > 0 &&
-                                snapshot.ProcessedFiles?.Count == 0)
-                            {
-                                snapshot.ProcessedFiles = allJobStates[i].ProcessedFiles;
-                            }
-
-                            // Copy updated job state but be careful not to reset important fields
-                            if (snapshot.State == BackupState.Initialise)
-                            {
-                                // Keep the existing state if the new state is Initialise
-                                // This preserves the previous state during initialization
-                                snapshot.State = allJobStates[i].State;
-                            }
-
-                            allJobStates[i] = snapshot;
-                            jobFound = true;
-                            break;
-                        }
-                    }
-
-                    if (!jobFound)
-                    {
-                        // Validate state before adding a new job
-                        if (snapshot.State == BackupState.Initialise)
-                        {
-                            snapshot.State = BackupState.Waiting;
-                        }
-                        allJobStates.Add(snapshot);
+                        string jsonContent = File.ReadAllText(stateFilePath);
+                        allJobStates = string.IsNullOrWhiteSpace(jsonContent) ? new List<JobState>() : JsonSerializer.Deserialize<List<JobState>>(jsonContent) ?? new List<JobState>();
                     }
                     else
                     {
-                        // BUGFIX: Ensure other jobs' states aren't affected by this update
-                        // For each job that isn't the current one being updated, check if we need to preserve its state
-                        // This prevents other jobs from being incorrectly set to WAITING during another job's execution
-                        for (int i = 0; i < allJobStates.Count; i++)
+                        allJobStates = new List<JobState>();
+                    }
+
+                    // Update or add current job status
+                    int existingStateIndex = allJobStates.FindIndex(s => s.JobName == snapshot.JobName);
+                    if (existingStateIndex != -1)
+                    {
+                        allJobStates[existingStateIndex] = snapshot; // Replace the old state
+                    }
+                    else
+                    {
+                        allJobStates.Add(snapshot);
+                    }
+                    for (int i = 0; i < allJobStates.Count; i++)
+                    {
+                        if (allJobStates[i].JobName == snapshot.JobName) continue;
+                        if (allJobStates[i].State == BackupState.Completed || allJobStates[i].State == BackupState.Error) continue;
+                        if (allJobStates[i].State == BackupState.Initialise)
                         {
-                            // Skip the job we just updated
-                            if (allJobStates[i].JobName == snapshot.JobName)
-                                continue;
-
-                            // Don't modify jobs that are in a final state (Completed or Error)
-                            if (allJobStates[i].State == BackupState.Completed ||
-                                allJobStates[i].State == BackupState.Error)
-                                continue;
-
-                            // Preserve the state of Running or Paused jobs instead of resetting them to Waiting
-                            if (allJobStates[i].State == BackupState.Initialise)
-                            {
-                                // If a job is in Initialise state, set it to Waiting (this is safe)
-                                allJobStates[i].State = BackupState.Waiting;
-                            }
-
-                            // Otherwise leave the job in its current state (Running, Paused, or Waiting)
+                            allJobStates[i].State = BackupState.Waiting;
                         }
                     }
 
-                    // Serialization options for JSON format
+
                     var options = new JsonSerializerOptions
                     {
                         WriteIndented = true,
                         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
                     };
+                    string serializedData = JsonSerializer.Serialize(allJobStates, options);
+                    File.WriteAllText(stateFilePath, serializedData); // Overwrites the file with the new full list
+                    Debug.WriteLine($"Thread-{threadId}: Successfully updated state.json for job '{jobStatus.BackupJob.Name}'.");
 
-                    // Clear file content and write updated JSON
-                    fileStream.SetLength(0);
-                    fileStream.Position = 0;
-                    using (StreamWriter writer = new StreamWriter(fileStream))
-                    {
-                        string serializedData = JsonSerializer.Serialize(allJobStates, options);
-                        writer.Write(serializedData);
-                        writer.Flush();
-                    }
                 }
-            }
-            catch (IOException ex)
-            {
-                System.Windows.Forms.MessageBox.Show($"Error writing to state.json file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
-                // File might be locked by another process, try again later
-            }
-            catch (Exception ex)
-            {
-                System.Windows.Forms.MessageBox.Show($"Unexpected error: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
-                // Don't propagate error to avoid disrupting main flow
+                // The external lock is the main protection against concurrent access.
+                catch (IOException ex)
+                {
+                    Debug.WriteLine($"Thread-{threadId}: IOException in UpdateStateFile for '{jobStatus.BackupJob.Name}': {ex.Message}. File: {stateFilePath}");
+                    // System.Windows.Forms.MessageBox.Show($"Error writing to state.json file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                }
+                catch (JsonException ex)
+                {
+                    Debug.WriteLine($"Thread-{threadId}: JsonException in UpdateStateFile for '{jobStatus.BackupJob.Name}': {ex.Message}. File content might be corrupt. File: {stateFilePath}");
+                    // System.Windows.Forms.MessageBox.Show($"Error processing state.json (JSON format error): {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Thread-{threadId}: Unexpected error in UpdateStateFile for '{jobStatus.BackupJob.Name}': {ex.Message}. File: {stateFilePath}");
+                    // System.Windows.Forms.MessageBox.Show($"Unexpected error updating state file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                }
             }
         }
 

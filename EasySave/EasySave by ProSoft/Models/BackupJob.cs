@@ -1,6 +1,8 @@
 using EasySave.Services;
 using System.IO;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EasySave_by_ProSoft.Models
 {
@@ -27,6 +29,8 @@ namespace EasySave_by_ProSoft.Models
         private bool _stopRequested = false;
         private List<string> toProcessFiles = new List<string>();
 
+        private readonly SemaphoreSlim _largeFileTransferSemaphore;
+
         private bool _isSelected;
         public bool IsSelected
         {
@@ -42,7 +46,7 @@ namespace EasySave_by_ProSoft.Models
         /// <summary>
         /// Initializes a new backup job
         /// </summary>
-        public BackupJob(string name, string sourcePath, string targetPath, BackupType type, BackupManager manager)
+        public BackupJob(string name, string sourcePath, string targetPath, BackupType type, BackupManager manager, SemaphoreSlim largeFileSemaphore)
         {
             Name = name;
             SourcePath = sourcePath;
@@ -52,6 +56,8 @@ namespace EasySave_by_ProSoft.Models
 
             // Link this job to its status for proper state tracking
             Status.BackupJob = this;
+
+            _largeFileTransferSemaphore = largeFileSemaphore ?? throw new ArgumentNullException(nameof(largeFileSemaphore));
 
             string appNameToMonitor = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
             _businessMonitor = new BusinessApplicationMonitor(appNameToMonitor);
@@ -120,158 +126,140 @@ namespace EasySave_by_ProSoft.Models
         /// Starts the backup job
         /// </summary>
         public void Start()
+{
+    lock (this)
+    {
+        if (_isRunning || Status.State == BackupState.Completed)
+            return;
+
+        _isRunning = true;
+        _isPaused = false;
+        _stopRequested = false;
+    }
+
+    try
+    {
+        // Check if business software is running
+        if (_businessMonitor.IsRunning())
         {
-            if (_isRunning)
-                return;
+            string businessSoftwareName = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
+            string message = $"Business software {businessSoftwareName} detected. Cannot start backup job {Name}.";
 
-            _isRunning = true;
-            _stopRequested = false;
+            System.Windows.Forms.MessageBox.Show($"{message}",
+                              "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
 
-            try
-            {
-                // Check if business software is running
-                if (_businessMonitor.IsRunning())
-                {
-                    string businessSoftwareName = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
-                    string message = $"Business software {businessSoftwareName} detected. Cannot start backup job {Name}.";
-
-                    System.Windows.Forms.MessageBox.Show($"{message}",
-                                      "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
-
-                    Status.Details = message;
-                    Status.SetError(message);
-                    _isRunning = false;
-                    return;
-                }
-
-                // Start the job with start details
-                string startDetails = null;
-                Status.Start(startDetails);
-
-                // Get files using the selected strategy
-                BackupJob jobRef = this;
-                toProcessFiles = _backupFileStrategy.GetFiles(ref jobRef);
-
-                // Process files if we have a valid status
-                if (Status.State == BackupState.Running)
-                {
-                    ProcessFiles(toProcessFiles);
-                }
-
-                // Complete the job if it wasn't paused or stopped
-                if (Status.State == BackupState.Running)
-                {
-                    Status.Complete();
-                }
-            }
-            catch (Exception ex)
-            {
-                Status.SetError($"Backup failed: {ex.Message}");
-            }
-            finally
-            {
-                _isRunning = false;
-            }
+            Status.Details = message;
+            Status.SetError(message);
+            _isRunning = false;
+            return;
         }
+
+        // Start the job with start details
+        string startDetails = null;
+        Status.Start(startDetails);
+
+        // Get files using the selected strategy
+        if (toProcessFiles.Count == 0)
+        {
+            BackupJob jobRef = this;
+            toProcessFiles = _backupFileStrategy.GetFiles(ref jobRef);
+        }
+
+        // Process files if we have a valid status
+        if (Status.State == BackupState.Running)
+        {
+            ProcessFiles(toProcessFiles).GetAwaiter().GetResult();
+        }
+
+        // Complete the job if it wasn't paused or stopped
+        if (Status.State == BackupState.Running)
+        {
+            Status.Complete();
+        }
+    }
+    catch (Exception ex)
+    {
+        Status.SetError($"Backup failed: {ex.Message}");
+    }
+    finally
+    {
+        _isRunning = false;
+    }
+}
+
 
         /// <summary>
         /// Processes all files that need to be backed up
         /// </summary>
-        private void ProcessFiles(List<String> toProcessFiles)
+
+
+
+        private async Task ProcessFiles(List<string> toProcessFiles)
         {
-            // Create target directory if it doesn't exist
             if (!Directory.Exists(TargetPath))
-            {
                 Directory.CreateDirectory(TargetPath);
-            }
 
-            // Process each file that needs to be backed up
-            foreach (string sourceFile in toProcessFiles)
+            var filesToHandle = toProcessFiles.ToList();
+            var ignoredNonPriority = new List<string>();
+
+            double thresholdKBSetting = (double)(AppSettings.Instance.GetSetting("LargeFileSizeThresholdKey") as double?
+                                        ?? AppSettings.Instance.GetSetting("DefaultLargeFileSizeThresholdKey"));
+            long largeFileSizeThresholdBytes = (long)(thresholdKBSetting * 1024);
+
+            // First pass: process priority files first
+            foreach (string sourceFile in filesToHandle)
             {
-                if (_stopRequested || _isPaused)
-                    break;
-
-                try
+                if (_stopRequested) break;
+                while (_isPaused && !_stopRequested)
                 {
-                    Status.CurrentSourceFile = sourceFile;
-
-                    // Build relative and full path to the destination file
-                    string relativePath = sourceFile.Substring(SourcePath.Length).TrimStart('\\', '/');
-                    string targetFile = Path.Combine(TargetPath, relativePath);
-                    Status.CurrentTargetFile = targetFile;
-
-                    // Create the target directory if it doesn't exist
-                    string? targetDir = Path.GetDirectoryName(targetFile);
-                    if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
-                        Directory.CreateDirectory(targetDir);
-
-                    // Get the size for tracking
-                    long fileSize = _fileSystemService.GetSize(sourceFile);
-
-                    // copy the source file to the destination
-                    _fileSystemService.CopyFile(sourceFile, targetFile);
-
-                    // if necessary, encrypt the destination file
-                    List<string> encryptionExtensions = new();
-                    var extensionsElement = AppSettings.Instance.GetSetting("EncryptionExtensions");
-                    if (extensionsElement != null && extensionsElement is JsonElement jsonElement)
-                    {
-                        foreach (var ext in jsonElement.EnumerateArray())
-                        {
-                            encryptionExtensions.Add(ext.GetString()!);
-                        }
-                    }
-                    if (_encryptionService.ShouldEncrypt(sourceFile, encryptionExtensions))
-                    {
-                        // Encrypt the file
-                        string key = AppSettings.Instance.GetSetting("EncryptionKey") as string ?? string.Empty;
-                        if (!string.IsNullOrEmpty(key))
-                        {
-                            // Encrypt the file and update the encryption time
-                            _encryptionTime = _encryptionService.EncryptFile(ref targetFile, key);
-                        }
-                        else
-                        {
-                            // If no key is provided, just set the encryption time to 0
-                            _encryptionTime = 0;
-                            System.Windows.Forms.MessageBox.Show("Encryption key is empty. File will not be encrypted.", "Warning", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
-                        }
-                        _encryptionTime = _encryptionService.EncryptFile(ref targetFile, key);
-                    }
-                    else
-                    {
-                        // If not encrypting, just set the encryption time to 0
-                        _encryptionTime = 0;
-                    }
-                    Status.RemainingFiles--;
-                    Status.RemainingSize -= fileSize;
-                    Status.EncryptionTimeMs = _encryptionTime;
-                    Status.Update();
-
-                    if (_businessMonitor.IsRunning())
-                    {
-                        string businessSoftwareName = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
-                        string message = $"Backup stopped due to business software {businessSoftwareName} being detected while processing file {sourceFile}";
-
-                        System.Windows.Forms.MessageBox.Show($"Business software {businessSoftwareName} detected. " +
-                                        $"Backup job {Name} will stop after processing file {sourceFile}.",
-                                        "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
-
-                        // Add details about the business software stop reason
-                        Status.Details = message;
-                        Stop();
-
-                        break;
-                    }
+                    await Task.Delay(500);
                 }
-                catch (Exception ex)
+                if (_stopRequested) break;
+
+                string ext = Path.GetExtension(sourceFile);
+                bool isPriority = PriorityExtensionManager.IsPriorityExtension(ext);
+
+
+
+                if (!isPriority && _backupManager != null && _backupManager.HasAnyPendingPriorityFiles())
                 {
-                    System.Windows.Forms.MessageBox.Show($"Error processing file {sourceFile}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
-                    // Continue with next file instead of failing the entire job
+                    ignoredNonPriority.Add(sourceFile);
+                    continue;
                 }
+
+
+                await ProcessLargeFileWithSemaphore(sourceFile, largeFileSizeThresholdBytes);
+                this.toProcessFiles.Remove(sourceFile);
             }
 
-            // Remove directory in target if not anymore in source
+       
+            if (ignoredNonPriority.Count > 0)
+            {
+                }
+
+            // Barrier to wait for all priority files to finish processing
+            while (_backupManager != null && _backupManager.HasAnyPendingPriorityFiles())
+            {
+                if (_stopRequested) break;
+                await Task.Delay(500);
+            }
+
+            // Second pass: process non-priority files after the barrier
+            foreach (string sourceFile in ignoredNonPriority)
+            {
+                if (_stopRequested) break;
+                while (_isPaused && !_stopRequested)
+                {
+                    await Task.Delay(500);
+                }
+                if (_stopRequested) break;
+
+               
+                await ProcessLargeFileWithSemaphore(sourceFile, largeFileSizeThresholdBytes);
+                this.toProcessFiles.Remove(sourceFile);
+            }
+
+            // Clean up: delete files and directories in the target that no longer exist in the source
             List<string> sourceDirectories = _fileSystemService.GetDirectoriesInDirectory(SourcePath);
             List<string> targetDirectories = _fileSystemService.GetDirectoriesInDirectory(TargetPath);
             foreach (string targetDirectory in targetDirectories)
@@ -287,7 +275,6 @@ namespace EasySave_by_ProSoft.Models
                 }
             }
 
-            // Remove file in target if not anymore in source
             List<string> sourceFiles = _fileSystemService.GetFilesInDirectory(SourcePath);
             List<string> targetFiles = _fileSystemService.GetFilesInDirectory(TargetPath);
             foreach (string targetFile in targetFiles)
@@ -303,6 +290,83 @@ namespace EasySave_by_ProSoft.Models
                 }
             }
         }
+
+
+
+
+
+        /// <summary>
+        /// Processes a single file for backup
+        /// </summary>
+        private async Task ProcessSingleFile(string sourceFile, long largeFileSizeThresholdBytes)
+        {
+            try
+            {
+                Status.CurrentSourceFile = sourceFile;
+                string relativePath = sourceFile.Substring(SourcePath.Length).TrimStart('\\', '/');
+                string targetFile = Path.Combine(TargetPath, relativePath);
+                Status.CurrentTargetFile = targetFile;
+
+                string? targetDir = Path.GetDirectoryName(targetFile);
+                if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
+                    Directory.CreateDirectory(targetDir);
+
+                long fileSize = _fileSystemService.GetSize(sourceFile);
+                _fileSystemService.CopyFile(sourceFile, targetFile);
+
+                List<string> encryptionExtensions = new();
+                var extensionsElement = AppSettings.Instance.GetSetting("EncryptionExtensions");
+                if (extensionsElement != null && extensionsElement is JsonElement encryptJson)
+                {
+                    foreach (var extEncrypt in encryptJson.EnumerateArray())
+                    {
+                        encryptionExtensions.Add(extEncrypt.GetString()!);
+                    }
+                }
+                if (_encryptionService.ShouldEncrypt(sourceFile, encryptionExtensions))
+                {
+                    string key = AppSettings.Instance.GetSetting("EncryptionKey") as string ?? string.Empty;
+                    if (!string.IsNullOrEmpty(key))
+                    {
+                        _encryptionTime = _encryptionService.EncryptFile(ref targetFile, key);
+                    }
+                    else
+                    {
+                        _encryptionTime = 0;
+                        System.Windows.Forms.MessageBox.Show("Encryption key is empty. File will not be encrypted.", "Warning", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
+                    }
+                }
+                else
+                {
+                    _encryptionTime = 0;
+                }
+
+                Status.RemainingFiles--;
+                Status.RemainingSize -= fileSize;
+                Status.EncryptionTimeMs = _encryptionTime;
+                Status.Update();
+
+                if (_businessMonitor.IsRunning())
+                {
+                    string businessSoftwareName = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
+                    string message = $"Backup stopped due to business software {businessSoftwareName} being detected while processing file {sourceFile}";
+
+                    System.Windows.Forms.MessageBox.Show($"Business software {businessSoftwareName} detected. " +
+                                    $"Backup job {Name} will stop after processing file {sourceFile}.",
+                                    "Business Software Detected", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
+
+                    Status.Details = message;
+                    Stop();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.Forms.MessageBox.Show($"Error processing file {sourceFile}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+            }
+        }
+
+
+
 
         /// <summary>
         /// Pauses the backup job
@@ -324,6 +388,7 @@ namespace EasySave_by_ProSoft.Models
             if (_isRunning)
             {
                 _stopRequested = true;
+                _isPaused = false;
 
                 // If Details property is not already set with a specific reason,
                 // set a generic reason for stopping
@@ -346,16 +411,11 @@ namespace EasySave_by_ProSoft.Models
                 _isPaused = false;
                 Status.Resume();
 
-                // Continue processing files
-                ProcessFiles(toProcessFiles);
-
                 // Complete the job if we finished successfully
-                if (Status.State == BackupState.Running)
+                if (!_isRunning && Status.State == BackupState.Paused)
                 {
-                    Status.Complete();
+                    _isRunning = true;
                 }
-
-                _isRunning = false;
             }
         }
 
@@ -366,5 +426,35 @@ namespace EasySave_by_ProSoft.Models
         {
             return Status;
         }
+
+        public IEnumerable<string> GetPendingFiles()
+        {
+            return toProcessFiles;
+        }
+        private async Task ProcessLargeFileWithSemaphore(string sourceFile, long largeFileSizeThresholdBytes)
+        {
+            long fileSize = _fileSystemService.GetSize(sourceFile);
+            if (fileSize > largeFileSizeThresholdBytes)
+            {
+                double thresholdKB = largeFileSizeThresholdBytes / 1024.0;
+                
+
+                await _largeFileTransferSemaphore.WaitAsync();
+                try
+                {
+                    await ProcessSingleFile(sourceFile, largeFileSizeThresholdBytes);
+                }
+                finally
+                {
+                    _largeFileTransferSemaphore.Release();
+                }
+            }
+            else
+            {
+                await ProcessSingleFile(sourceFile, largeFileSizeThresholdBytes);
+            }
+        }
+
+
     }
 }

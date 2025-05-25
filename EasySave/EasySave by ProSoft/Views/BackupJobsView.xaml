@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:EasySave_by_ProSoft.Views"
              xmlns:localization="clr-namespace:EasySave_by_ProSoft.Localization"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="980">
+             d:DesignHeight="621.282" d:DesignWidth="980">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

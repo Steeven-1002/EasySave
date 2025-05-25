@@ -81,27 +81,27 @@ namespace EasySave_by_ProSoft.Views
         private void LaunchSelectedJob_Click(object sender, RoutedEventArgs e)
         {
             // Check for selected jobs via checkboxes
-            if (_backupJobsViewModel.SelectedJob == null || _backupJobsViewModel.SelectedJob.Count == 0)
+            if (_backupJobsViewModel.SelectedJobs == null || _backupJobsViewModel.SelectedJobs.Count == 0)
             {
                 System.Windows.MessageBox.Show("No backup selected");
                 return;
             }
-            else if (_backupJobsViewModel.SelectedJob.Count == 1)
+            else if (_backupJobsViewModel.SelectedJobs.Count == 1)
                 // Run the command with the selected job
                 _backupJobsViewModel.LaunchJobCommand.Execute(null);
             else
                 // Run the command with all selected jobs
-                foreach (var job in _backupJobsViewModel.SelectedJob)
+                foreach (var job in _backupJobsViewModel.SelectedJobs)
                 {
                     _backupJobsViewModel.LaunchJobCommand.Execute(job);
                 }
             // Update the UI to reflect the job status
-            RefreshJobsList();
+            // RefreshJobsList();
         }
 
         private void DeleteSelectedJob_Click(object sender, RoutedEventArgs e)
         {
-            if (_backupJobsViewModel.SelectedJob == null)
+            if (_backupJobsViewModel.SelectedJobs == null)
             {
                 System.Windows.MessageBox.Show("Please select a job to delete.");
                 return;
@@ -199,7 +199,7 @@ namespace EasySave_by_ProSoft.Views
                 JobTypeComboBox.SelectedIndex = 0;
 
                 // Refresh the jobs list after adding a new job
-                RefreshJobsList();
+                // RefreshJobsList();
             }
         }
 
@@ -233,7 +233,7 @@ namespace EasySave_by_ProSoft.Views
                 .ToList();
 
             // Update the view model
-            _backupJobsViewModel.SelectedJob = selectedJobs.Count > 0 ? selectedJobs : null;
+            // _backupJobsViewModel.SelectedJobs = selectedJobs.Count > 0 ? selectedJobs : null;
             _backupJobsViewModel.SelectedJobs = selectedJobs;
         }
     }

@@ -173,7 +173,15 @@ namespace EasySave_by_ProSoft.Models
         /// <summary>
         /// Progress percentage
         /// </summary>
-        public double ProgressPercentage => TotalSize > 0 ? Math.Round((double)(TotalSize - RemainingSize) / TotalSize * 100, 2) : 100;
+        public double ProgressPercentage
+        {
+            get
+            {
+                if (TotalSize <= 0) return (State == BackupState.Completed && TotalFiles == 0) ? 100 : 0; // Case where there is nothing to save but the job is "complete"
+                if (State == BackupState.Completed) return 100;
+                return Math.Round((double)TransferredSize / TotalSize * 100, 2);
+            }
+        }
 
         /// <summary>
         /// Transfer rate in bytes per second
@@ -209,22 +217,12 @@ namespace EasySave_by_ProSoft.Models
         public JobEventManager Events;
 
         private JobEventManager jobEventManager;
-        private BackupJob backupJob;
+        private BackupJob? backupJob; // Make nullable
 
-        /// <summary>
-        /// Backup job associated with this status
-        /// </summary>
-        public BackupJob BackupJob
+        public BackupJob? BackupJob // Make nullable
         {
-            get { return backupJob; }
-            set
-            {
-                if (backupJob != value)
-                {
-                    backupJob = value;
-                    OnPropertyChanged();
-                }
-            }
+            get => backupJob;
+            set { if (backupJob != value) { backupJob = value; OnPropertyChanged(); } }
         }
 
         /// <summary>
@@ -238,14 +236,16 @@ namespace EasySave_by_ProSoft.Models
         /// <param name="jobName">Name of the job to load state for</param>
         public JobStatus(string jobName)
         {
-            // Initialize the event manager for observer notifications
             Events = JobEventManager.Instance;
-            Events.AddListener(LoggingService.Instance);
-            ExecutionId = Guid.NewGuid();
-            LastStateChangeTime = DateTime.Now;
-            StartTime = DateTime.Now;
-
-            LoadStateFromPrevious(jobName);
+            this.state = BackupState.Initialise;
+            this.totalFiles = 0;
+            this.totalSize = 0;
+            this.remainingFiles = 0;
+            this.remainingSize = 0;
+            this.EncryptionTimeMs = 0;
+            this.StartTime = DateTime.MinValue;
+            this.LastStateChangeTime = DateTime.Now;
+            this.ExecutionId = Guid.NewGuid();
         }
 
         /// <summary>
@@ -255,70 +255,37 @@ namespace EasySave_by_ProSoft.Models
         /// <returns>True if a previous state was successfully loaded</returns>
         public bool LoadStateFromPrevious(string jobName)
         {
-            if (string.IsNullOrEmpty(jobName))
-                return false;
-
+            if (string.IsNullOrEmpty(jobName)) return false;
             try
             {
-                // Get the state.json file path 
                 string stateFilePath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "EasySave",
-                    "state.json"
-                );
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EasySave", "state.json");
 
-                // Attempt to load the state from file
                 var previousState = JobState.LoadFromStateFile(jobName, stateFilePath);
                 if (previousState != null)
                 {
-                    // Apply the loaded state to this JobStatus
-                    if (backupJob != null)
+                    if (previousState.State == BackupState.Paused) // Only resume state if it was paused
                     {
-                        // If we already have a job reference, make sure the names match
-                        if (!backupJob.Name.Equals(previousState.JobName, StringComparison.OrdinalIgnoreCase))
-                            return false;
-                    }
-
-                    // Set properties from the loaded state
-                    TotalFiles = previousState.TotalFiles;
-                    TotalSize = previousState.TotalSize;
-                    RemainingFiles = previousState.RemainingFiles;
-                    RemainingSize = previousState.TotalSize - (long)(previousState.TotalSize * previousState.ProgressPercentage / 100);
-
-                    // Only initialize these if we actually have values
-                    if (!string.IsNullOrEmpty(previousState.CurrentSourceFile))
-                        CurrentSourceFile = previousState.CurrentSourceFile;
-
-                    if (!string.IsNullOrEmpty(previousState.CurrentTargetFile))
-                        CurrentTargetFile = previousState.CurrentTargetFile;
-
-                    // Only use the previous state if it's not completed or error
-                    if (previousState.State == BackupState.Running || previousState.State == BackupState.Paused)
-                    {
-                        // Set to waiting instead of the previous state to avoid automatic resumption
-                        State = BackupState.Waiting;
-
-                        // Import processed files for resuming capability
-                        if (previousState.ProcessedFiles?.Count > 0)
-                        {
-                            foreach (var file in previousState.ProcessedFiles)
-                            {
-                                AddProcessedFile(file);
-                            }
-                        }
-
-                        // Initialize time-related fields
-                        StartTime = previousState.StartTime != DateTime.MinValue ? previousState.StartTime : DateTime.Now;
-
+                        TotalFiles = previousState.TotalFiles;
+                        TotalSize = previousState.TotalSize;
+                        RemainingFiles = previousState.RemainingFiles;
+                        RemainingSize = previousState.RemainingSize; // Recalculate if ProgressPercentage is more reliable
+                        CurrentSourceFile = previousState.CurrentSourceFile ?? string.Empty;
+                        CurrentTargetFile = previousState.CurrentTargetFile ?? string.Empty;
+                        processedFiles = new List<string>(previousState.ProcessedFiles ?? new List<string>());
+                        StartTime = previousState.StartTime != DateTime.MinValue ? previousState.StartTime : DateTime.Now; // Keep original start time
+                        State = BackupState.Paused; // Pause so the user can resume
+                        Details = previousState.Details ?? string.Empty;
+                        Update(); // Notify changes
                         return true;
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Windows.Forms.MessageBox.Show($"Error loading state from file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                System.Diagnostics.Debug.WriteLine($"Error loading state from file for {jobName}: {ex.Message}");
+                // System.Windows.Forms.MessageBox.Show($"Error loading state from file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
             }
-
             return false;
         }
 
@@ -440,6 +407,26 @@ namespace EasySave_by_ProSoft.Models
             }
         }
 
+        public void ResetForRun()
+        {
+            State = BackupState.Initialise;
+            TotalFiles = 0;
+            TotalSize = 0;
+            RemainingFiles = 0;
+            RemainingSize = 0;
+            CurrentSourceFile = string.Empty;
+            CurrentTargetFile = string.Empty;
+            Details = string.Empty;
+            ErrorMessage = string.Empty;
+            EncryptionTimeMs = 0;
+            StartTime = DateTime.MinValue; // Indicates that the job has not actually started yet for this run
+            EndTime = null;
+            processedFiles.Clear(); // Clear the list of processed files for the new run
+            ExecutionId = Guid.NewGuid(); // A new ID for this new execution attempt
+
+            System.Diagnostics.Debug.WriteLine($"JobStatus for '{BackupJob?.Name ?? "Unknown Job"}' has been RESET for run.");
+            Update(); // Notify the UI and listeners that the state has been reset
+        }
         #region INotifyPropertyChanged Implementation
         public event PropertyChangedEventHandler? PropertyChanged;
 

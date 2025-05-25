@@ -295,6 +295,15 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Priority File Management.
+        /// </summary>
+        public static string ExtensionFilePriority {
+            get {
+                return ResourceManager.GetString("ExtensionFilePriority", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à General settings.
         /// </summary>
         public static string GeneralSettings {
@@ -336,6 +345,15 @@ namespace EasySave_by_ProSoft.Localization {
         public static string LanguageChangeRestartMessage {
             get {
                 return ResourceManager.GetString("LanguageChangeRestartMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Large file size (in KB) :.
+        /// </summary>
+        public static string LargeFileSizeSetting {
+            get {
+                return ResourceManager.GetString("LargeFileSizeSetting", resourceCulture);
             }
         }
         
