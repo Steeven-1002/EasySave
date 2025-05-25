@@ -1,8 +1,10 @@
 ﻿using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Properties; // For Settings.Default
+using EasySave_by_ProSoft.Views;
 using System.Globalization;
 using System.Windows;
-
+using System.Windows.Data;
+using System.Windows.Media;
 
 namespace EasySave_by_ProSoft
 {
@@ -12,7 +14,6 @@ namespace EasySave_by_ProSoft
         private static Mutex? _mutex;
         private const string MutexName = "EasySave_by_ProSoft_SingleInstanceMutex";
 
-
         protected override void OnStartup(StartupEventArgs e)
         {
             bool createdNew;
@@ -21,7 +22,11 @@ namespace EasySave_by_ProSoft
             if (!createdNew)
             {
                 // Another instance is already running, show a message and exit
-                System.Windows.MessageBox.Show("L'application est déjà en cours d'exécution.", "Instance unique", MessageBoxButton.OK, MessageBoxImage.Information);
+                System.Windows.MessageBox.Show(
+                    Localization.Resources.ApplicationAlreadyRunning, 
+                    Localization.Resources.SingleInstanceTitle, 
+                    MessageBoxButton.OK, 
+                    MessageBoxImage.Information);
                 Shutdown();
                 return;
             }
@@ -41,18 +46,33 @@ namespace EasySave_by_ProSoft
                 }
                 catch (CultureNotFoundException)
                 {
-                    //The saved language is not valid, fallback to default language
-                    System.Windows.MessageBox.Show($"App.OnStartup: Culture '{savedLang}' non trouvée. Passage à la langue par défaut '{DefaultCultureName}'.", "Debug Startup - Culture invalide");
-                    targetCulture = new CultureInfo(DefaultCultureName);
+                    // Apply the default culture first to ensure we can use resources
+                    CultureInfo defaultCulture = new CultureInfo(DefaultCultureName);
+                    Thread.CurrentThread.CurrentUICulture = defaultCulture;
+                    Thread.CurrentThread.CurrentCulture = defaultCulture;
+                    
+                    // The saved language is not valid, fallback to default language
+                    System.Windows.MessageBox.Show(
+                        string.Format(Localization.Resources.CultureNotFoundMessage, savedLang, DefaultCultureName),
+                        Localization.Resources.InvalidCultureTitle);
+                        
+                    targetCulture = defaultCulture;
                     Settings.Default.UserLanguage = DefaultCultureName;
                     Settings.Default.Save(); // Save the default language
                 }
             }
             else
             {
-                // Any saved language is empty, use the default language and save it
-                System.Windows.MessageBox.Show($"App.OnStartup: Aucune langue sauvegardée. Passage à la langue par défaut '{DefaultCultureName}'.", "Debug Startup - Aucune langue sauvegardée");
+                // Apply the default culture first to ensure we can use resources
                 targetCulture = new CultureInfo(DefaultCultureName);
+                Thread.CurrentThread.CurrentUICulture = targetCulture;
+                Thread.CurrentThread.CurrentCulture = targetCulture;
+                
+                // Any saved language is empty, use the default language and save it
+                System.Windows.MessageBox.Show(
+                    string.Format(Localization.Resources.NoLanguageSavedMessage, DefaultCultureName),
+                    Localization.Resources.NoLanguageSavedTitle);
+                    
                 Settings.Default.UserLanguage = DefaultCultureName;
                 Settings.Default.Save(); // Save the default language
             }
@@ -61,7 +81,6 @@ namespace EasySave_by_ProSoft
 
             base.OnStartup(e);
         }
-
 
         private void ApplyCulture(CultureInfo culture)
         {
@@ -77,12 +96,52 @@ namespace EasySave_by_ProSoft
 
         /// <summary>
         /// Handles the application exit event to release the mutex.
+        /// </summary>
         protected override void OnExit(ExitEventArgs e)
         {
             _mutex?.ReleaseMutex();
             _mutex?.Dispose();
             base.OnExit(e);
         }
+    }
 
+    // These converters were originally in RemoteControlWindow.xaml.cs
+    public class InverseBooleanConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return !(bool)value;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return !(bool)value;
+        }
+    }
+
+    public class BoolToRunningConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return (bool)value ? "Running" : "Not Running";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return value.ToString().Equals("Running");
+        }
+    }
+
+    public class BoolToColorConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return (bool)value ? System.Windows.Media.Brushes.Red : System.Windows.Media.Brushes.Green;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return value.Equals(System.Windows.Media.Brushes.Red);
+        }
     }
 }

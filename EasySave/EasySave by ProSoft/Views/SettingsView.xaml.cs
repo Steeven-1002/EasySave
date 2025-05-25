@@ -12,6 +12,10 @@ namespace EasySave_by_ProSoft.Views
     /// </summary>
     public partial class SettingsView : System.Windows.Controls.UserControl
     {
+        // Define constants for log formats
+        private const string LOG_FORMAT_XML = "XML";
+        private const string LOG_FORMAT_JSON = "JSON";
+
         private string _initialCultureName;
         private SettingsViewModel _settingsViewModel;
         private readonly IDialogService _dialogService;
@@ -32,7 +36,7 @@ namespace EasySave_by_ProSoft.Views
             _settingsViewModel.LanguageChangeCancelled += OnLanguageChangeCancelled;
             _settingsViewModel.ApplicationRestartFailed += OnApplicationRestartFailed;
 
-            // Recharge la clé de chiffrement si elle existe
+            // Load the encryption key if it exists
             string? savedKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
             if (!string.IsNullOrEmpty(savedKey))
             {
@@ -52,7 +56,7 @@ namespace EasySave_by_ProSoft.Views
             // Initialize the log format ComboBox
             if (LogFormatComboBox != null)
             {
-                if (_settingsViewModel.LogFormat.ToUpper() == "XML")
+                if (_settingsViewModel.LogFormat.ToUpper() == LOG_FORMAT_XML)
                 {
                     LogFormatComboBox.SelectedIndex = 1; // XML
                 }
@@ -139,7 +143,7 @@ namespace EasySave_by_ProSoft.Views
             Settings.Default.Save();
         }
 
-        // Add this event handler to synchronize PasswordBox with ViewModel
+        // Event handler to synchronize PasswordBox with ViewModel
         private void EncryptionKeyBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
             if (DataContext is SettingsViewModel vm)

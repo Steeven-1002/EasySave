@@ -29,6 +29,10 @@
                             Margin="5" 
                             Click="ShowBackupJobs_Click" 
                             VerticalAlignment="Center"/>
+                    <Button Content="{x:Static localization:Resources.MainRemoteControl}" 
+                            Margin="5" 
+                            Click="ShowRemoteControl_Click" 
+                            VerticalAlignment="Center"/>
                     <Button Content="{x:Static localization:Resources.MainSettings}" 
                             Margin="5" 
                             Click="ShowSettings_Click" 
