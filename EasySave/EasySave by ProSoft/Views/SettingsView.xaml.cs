@@ -2,7 +2,6 @@
 using EasySave_by_ProSoft.Properties;
 using EasySave_by_ProSoft.Services;
 using EasySave_by_ProSoft.ViewModels;
-using System;
 using System.Diagnostics;
 using System.Windows;
 
@@ -135,7 +134,7 @@ namespace EasySave_by_ProSoft.Views
             _dialogService.ShowError(
                 $"{Localization.Resources.ErrorRestartingApplicationMessage}\n{ex.Message}",
                 Localization.Resources.ErrorTitle);
-                
+
             Settings.Default.UserLanguage = _initialCultureName;
             Settings.Default.Save();
         }

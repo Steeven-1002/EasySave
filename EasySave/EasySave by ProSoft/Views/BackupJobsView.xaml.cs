@@ -1,8 +1,6 @@
 ﻿using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Services;
 using EasySave_by_ProSoft.ViewModels;
-using System;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using WinForms = System.Windows.Forms;

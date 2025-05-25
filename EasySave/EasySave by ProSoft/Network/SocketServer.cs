@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
+using EasySave_by_ProSoft.Models;
 using System.Diagnostics;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
-using EasySave_by_ProSoft.Models;
 
 namespace EasySave_by_ProSoft.Network
 {
@@ -124,7 +119,7 @@ namespace EasySave_by_ProSoft.Network
             {
                 using NetworkStream stream = client.GetStream();
                 byte[] buffer = new byte[4096];
-                
+
                 // Send initial job status list to the client
                 await SendJobStatuses(client);
 

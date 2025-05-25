@@ -1,8 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Network;
+using System.Diagnostics;
 
 namespace EasySave_by_ProSoft.Core
 {
@@ -72,7 +70,7 @@ namespace EasySave_by_ProSoft.Core
             }
 
             Debug.WriteLine($"EventManager: Notifying job status change for job '{status.BackupJob?.Name}' - State: {status.State}");
-            
+
             foreach (var listener in _listeners.ToList()) // Use a copy to avoid modification issues during iteration
             {
                 try
@@ -92,7 +90,7 @@ namespace EasySave_by_ProSoft.Core
         public void NotifyBusinessSoftwareStateChanged(bool isRunning)
         {
             Debug.WriteLine($"EventManager: Notifying business software state change - IsRunning: {isRunning}");
-            
+
             foreach (var listener in _listeners.ToList()) // Use a copy to avoid modification issues during iteration
             {
                 try

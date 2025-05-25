@@ -102,7 +102,7 @@ namespace EasySave_by_ProSoft.Models
         {
             // Make a copy of the listeners collection to avoid modification during iteration
             var listenersCopy = new List<JobEventListeners>(listeners);
-            
+
             // Notify all listeners (logs, interfaces, etc.)
             foreach (var listener in listenersCopy)
             {

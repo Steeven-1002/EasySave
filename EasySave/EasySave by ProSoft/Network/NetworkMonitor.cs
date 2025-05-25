@@ -1,8 +1,5 @@
-using System;
 using System.Diagnostics;
 using System.Net.NetworkInformation;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EasySave_by_ProSoft.Network
 {
@@ -67,7 +64,7 @@ namespace EasySave_by_ProSoft.Network
 
             _isMonitoring = true;
             _cancellationTokenSource = new CancellationTokenSource();
-            
+
             Task.Run(() => MonitorNetworkAsync(updateIntervalMs, _cancellationTokenSource.Token));
         }
 
@@ -111,22 +108,22 @@ namespace EasySave_by_ProSoft.Network
             {
                 IPv4InterfaceStatistics stats = _networkInterface.GetIPv4Statistics();
                 DateTime now = DateTime.Now;
-                
+
                 long bytesReceived = stats.BytesReceived;
                 long bytesSent = stats.BytesSent;
-                
+
                 long bytesReceivedDelta = bytesReceived - _lastBytesReceived;
                 long bytesSentDelta = bytesSent - _lastBytesSent;
                 double seconds = (now - _lastCheckTime).TotalSeconds;
-                
+
                 if (seconds > 0)
                 {
                     // Total throughput in KB/s
                     _currentBandwidthKBps = Math.Round((bytesReceivedDelta + bytesSentDelta) / 1024.0 / seconds, 2);
-                    
+
                     BandwidthUpdated?.Invoke(this, _currentBandwidthKBps);
                 }
-                
+
                 _lastBytesReceived = bytesReceived;
                 _lastBytesSent = bytesSent;
                 _lastCheckTime = now;

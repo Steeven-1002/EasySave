@@ -1,14 +1,11 @@
-using System;
-using System.Collections.Generic;
+using EasySave_by_ProSoft.Models;
+using EasySave_by_ProSoft.Services;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Threading;
-using EasySave_by_ProSoft.Models;
-using EasySave_by_ProSoft.Services;
 
 namespace EasySave_by_ProSoft.ViewModels
 {
@@ -169,7 +166,7 @@ namespace EasySave_by_ProSoft.ViewModels
                     };
                 }
                 */
-                
+
                 Jobs.Add(job);
                 OnPropertyChanged(nameof(Jobs));
             }
@@ -342,7 +339,7 @@ namespace EasySave_by_ProSoft.ViewModels
         /// <summary>
         /// Removes the selected backup job
         /// </summary>
-        
+
         private void RemoveSelectedJob()
         {
             var jobsToRemove = new List<BackupJob>(SelectedJobs);
@@ -351,7 +348,7 @@ namespace EasySave_by_ProSoft.ViewModels
             {
                 if (_backupManager.RemoveJobByName(job.Name))
                 {
-                    Jobs.Remove(job); 
+                    Jobs.Remove(job);
                 }
             }
             UpdateSelectionFromCheckboxes();
@@ -430,7 +427,7 @@ namespace EasySave_by_ProSoft.ViewModels
             OnPropertyChanged(nameof(NotificationMessage));
             OnPropertyChanged(nameof(HasNotification));
         }
-        
+
         /// <summary>
         /// Shows an error message
         /// </summary>
@@ -438,7 +435,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             ShowErrorMessage?.Invoke(message);
         }
-        
+
         /// <summary>
         /// Shows an information message
         /// </summary>
@@ -446,7 +443,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             ShowInfoMessage?.Invoke(message);
         }
-        
+
         /// <summary>
         /// Validates if jobs are selected, shows error if not
         /// </summary>
@@ -459,7 +456,7 @@ namespace EasySave_by_ProSoft.ViewModels
             }
             return true;
         }
-        
+
         /// <summary>
         /// Notifies about successfully launched jobs
         /// </summary>
@@ -467,7 +464,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             NotifyInfo($"{count} jobs have been launched.");
         }
-        
+
         /// <summary>
         /// Notifies about job deletion
         /// </summary>

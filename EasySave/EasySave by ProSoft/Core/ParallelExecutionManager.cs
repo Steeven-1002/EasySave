@@ -1,12 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Network;
+using System.Diagnostics;
+using System.IO;
 
 namespace EasySave_by_ProSoft.Core
 {
@@ -84,8 +79,8 @@ namespace EasySave_by_ProSoft.Core
         {
             lock (_activeJobs)
             {
-                return _activeJobs.Any(job => 
-                    job.GetPendingFiles().Any(file => 
+                return _activeJobs.Any(job =>
+                    job.GetPendingFiles().Any(file =>
                         IsPriorityFile(file)));
             }
         }
@@ -101,9 +96,9 @@ namespace EasySave_by_ProSoft.Core
             // Check if the file size exceeds the threshold
             double thresholdKBSetting = AppSettings.Instance.GetSetting("LargeFileSizeThresholdKey") as double?
                 ?? AppSettings.Instance.GetSetting("DefaultLargeFileSizeThresholdKey") as double? ?? 100.0;
-            
+
             long largeFileSizeThresholdBytes = (long)(thresholdKBSetting * 1024);
-            
+
             return fileSize <= largeFileSizeThresholdBytes || _largeFileTransferSemaphore.CurrentCount > 0;
         }
 

@@ -1,5 +1,5 @@
-using System;
-using System.Collections.Generic;
+using EasySave_by_ProSoft.Models;
+using EasySave_by_ProSoft.ViewModels;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -7,11 +7,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Input;
-using EasySave_by_ProSoft.Models;
-using EasySave_by_ProSoft.ViewModels;
 
 namespace EasySave_by_ProSoft.Network
 {
@@ -191,10 +187,10 @@ namespace EasySave_by_ProSoft.Network
             {
                 _client = new TcpClient();
                 await _client.ConnectAsync(ServerAddress, ServerPort);
-                
+
                 IsConnected = true;
                 ConnectionStatus = $"Connected to {ServerAddress}:{ServerPort}";
-                
+
                 _cancellationTokenSource = new CancellationTokenSource();
                 _ = Task.Run(() => ReceiveMessagesAsync(_cancellationTokenSource.Token));
             }
@@ -261,7 +257,7 @@ namespace EasySave_by_ProSoft.Network
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error receiving messages: {ex.Message}");
-                
+
                 // Handle disconnection on UI thread
                 App.Current.Dispatcher.Invoke(() =>
                 {
@@ -344,7 +340,7 @@ namespace EasySave_by_ProSoft.Network
 
                         Jobs.Add(job);
                     }
-                    
+
                     CommandManager.InvalidateRequerySuggested();
                 });
             }
@@ -388,7 +384,7 @@ namespace EasySave_by_ProSoft.Network
             {
                 Debug.WriteLine($"Error sending command: {ex.Message}");
                 ConnectionStatus = $"Error sending command: {ex.Message}";
-                
+
                 // Handle connection issues
                 if (!_client.Connected)
                 {

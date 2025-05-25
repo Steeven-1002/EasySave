@@ -1,7 +1,6 @@
-using System;
+using EasySave_by_ProSoft.Network;
 using System.Windows;
 using System.Windows.Data;
-using EasySave_by_ProSoft.Network;
 
 namespace EasySave_by_ProSoft.Views
 {

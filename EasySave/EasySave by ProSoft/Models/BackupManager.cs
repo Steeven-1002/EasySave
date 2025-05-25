@@ -1,9 +1,7 @@
+using EasySave_by_ProSoft.Core;
 using System.Diagnostics;
-using System;
 using System.IO;
 using System.Text.Json;
-using System.Threading.Tasks;
-using EasySave_by_ProSoft.Core;
 
 namespace EasySave_by_ProSoft.Models
 {
@@ -25,7 +23,7 @@ namespace EasySave_by_ProSoft.Models
         public BackupManager()
         {
             backupJobs = new List<BackupJob>();
-            
+
             // Define the jobs configuration file path in ApplicationData/EasySave
             jobsConfigFilePath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -42,8 +40,8 @@ namespace EasySave_by_ProSoft.Models
             // Initialize the business application monitor
             string appNameToMonitor = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
             _businessMonitor = new BusinessApplicationMonitor(appNameToMonitor);
-            _businessMonitor.BusinessAppStarted += (_, _) => _eventManager.NotifyBusinessSoftwareStateChanged(true);
-            _businessMonitor.BusinessAppStopped += (_, _) => _eventManager.NotifyBusinessSoftwareStateChanged(false);
+            _businessMonitor.BusinessAppStarted += BusinessMonitor_BusinessAppStarted;
+            _businessMonitor.BusinessAppStopped += BusinessMonitor_BusinessAppStopped;
             _businessMonitor.StartMonitoring();
 
             // Register as an event listener
@@ -137,6 +135,9 @@ namespace EasySave_by_ProSoft.Models
 
                     Debug.WriteLine($"BackupManager.ExecuteJobsAsync: Adding job '{jobToRun.Name}' (Index: {index}) to execution list. Current state: {jobToRun.Status.State}");
 
+                    // Register the job with business application monitor
+                    _businessMonitor.RegisterJob(jobToRun);
+
                     if (jobToRun.Status.State != BackupState.Initialise)
                     {
                         Debug.WriteLine($"WARNING - BackupManager.ExecuteJobsAsync: Job '{jobToRun.Name}' is not in Initialize state (Current: {jobToRun.Status.State}). Make sure ResetForRun() was called by the ViewModel.");
@@ -148,17 +149,7 @@ namespace EasySave_by_ProSoft.Models
                 }
             }
 
-            if (_businessMonitor.IsRunning())
-            {
-                Debug.WriteLine("BackupManager.ExecuteJobsAsync: Business software is running, cannot execute jobs.");
-                System.Windows.Forms.MessageBox.Show(
-                    $"Business software {_businessMonitor.BusinessSoftwareName} is running. Cannot start backup jobs.",
-                    "Business Software Detected",
-                    System.Windows.Forms.MessageBoxButtons.OK,
-                    System.Windows.Forms.MessageBoxIcon.Warning);
-                return;
-            }
-
+            // Run jobs without checking business software state (monitor will handle interruption)
             await _parallelManager.ExecuteJobsInParallelAsync(jobsToRun);
         }
 
@@ -167,13 +158,16 @@ namespace EasySave_by_ProSoft.Models
             if (jobNames == null || !jobNames.Any()) return;
 
             List<BackupJob> jobsToRun = new List<BackupJob>();
-            
+
             foreach (var name in jobNames)
             {
                 BackupJob jobToRun = backupJobs.FirstOrDefault(j => j.Name == name);
                 if (jobToRun != null)
                 {
                     jobsToRun.Add(jobToRun);
+                    // Register the job with business application monitor
+                    _businessMonitor.RegisterJob(jobToRun);
+
                     if (jobToRun.Status.State != BackupState.Initialise)
                     {
                         Debug.WriteLine($"WARNING - Job '{jobToRun.Name}' is not in Initialize state");
@@ -310,10 +304,9 @@ namespace EasySave_by_ProSoft.Models
 
         public void OnBusinessSoftwareStateChanged(bool isRunning)
         {
-            if (isRunning)
-            {
-                // Maybe pause all running jobs when business software starts
-            }
+            // The BusinessApplicationMonitor now handles pausing/resuming jobs
+            // This method remains for compatibility with IEventListener
+            Debug.WriteLine($"BackupManager.OnBusinessSoftwareStateChanged: Business software running state is now {isRunning}");
         }
 
         /// <summary>
@@ -325,7 +318,7 @@ namespace EasySave_by_ProSoft.Models
             if (jobNames == null || !jobNames.Any()) return;
 
             Debug.WriteLine($"BackupManager.OnLaunchJobsRequested: Processing launch request for jobs: {string.Join(", ", jobNames)}");
-            
+
             // Reset job status for each job before executing
             foreach (var name in jobNames)
             {
@@ -336,7 +329,7 @@ namespace EasySave_by_ProSoft.Models
                     Debug.WriteLine($"BackupManager.OnLaunchJobsRequested: Reset job '{name}' status for execution");
                 }
             }
-            
+
             // Execute the jobs
             await ExecuteJobsByNameAsync(jobNames);
         }
@@ -419,6 +412,35 @@ namespace EasySave_by_ProSoft.Models
             public string SourcePath { get; set; } = string.Empty;
             public string TargetPath { get; set; } = string.Empty;
             public BackupType Type { get; set; }
+        }
+
+        /// <summary>
+        /// Handles the event when the business application starts
+        /// </summary>
+        private void BusinessMonitor_BusinessAppStarted(object sender, EventArgs e)
+        {
+            Debug.WriteLine("BackupManager: Business application started event received");
+            _eventManager.NotifyBusinessSoftwareStateChanged(true);
+        }
+
+        /// <summary>
+        /// Handles the event when the business application stops
+        /// </summary>
+        private void BusinessMonitor_BusinessAppStopped(object sender, EventArgs e)
+        {
+            Debug.WriteLine("BackupManager: Business application stopped event received");
+            _eventManager.NotifyBusinessSoftwareStateChanged(false);
+        }
+        /// <summary>
+        /// Unregisters a job from the business application monitor
+        /// </summary>
+        /// <param name="job">The job to unregister</param>
+        public void UnregisterJobFromBusinessMonitor(BackupJob job)
+        {
+            if (job != null)
+            {
+                _businessMonitor.UnregisterJob(job);
+            }
         }
     }
 }

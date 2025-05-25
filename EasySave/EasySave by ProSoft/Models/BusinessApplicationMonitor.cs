@@ -1,11 +1,10 @@
 using System.Diagnostics;
 using System.IO;
-using System.Threading;
 
 namespace EasySave_by_ProSoft.Models
 {
     /// <summary>
-    /// Monitors business application to check if it's running
+    /// Monitors business application to check if it's running and actively interrupts jobs
     /// </summary>
     public class BusinessApplicationMonitor
     {
@@ -16,6 +15,8 @@ namespace EasySave_by_ProSoft.Models
         private bool isApplicationRunning = false;
         private bool isMonitoring = false;
         private int checkIntervalMs = 1000; // Default to 1 second
+        private readonly List<BackupJob> activeJobs = new List<BackupJob>();
+        private readonly object jobsLock = new object();
 
         /// <summary>
         /// Event triggered when the business application starts
@@ -39,6 +40,80 @@ namespace EasySave_by_ProSoft.Models
         public BusinessApplicationMonitor(string applicationName)
         {
             monitoredApplication = applicationName;
+        }
+
+        /// <summary>
+        /// Registers a job to be managed by this monitor
+        /// </summary>
+        /// <param name="job">The job to register</param>
+        public void RegisterJob(BackupJob job)
+        {
+            if (job == null) return;
+            
+            lock (jobsLock)
+            {
+                if (!activeJobs.Contains(job))
+                {
+                    activeJobs.Add(job);
+                    Debug.WriteLine($"BusinessApplicationMonitor: Registered job '{job.Name}' for monitoring");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Unregisters a job from being managed by this monitor
+        /// </summary>
+        /// <param name="job">The job to unregister</param>
+        public void UnregisterJob(BackupJob job)
+        {
+            if (job == null) return;
+            
+            lock (jobsLock)
+            {
+                if (activeJobs.Contains(job))
+                {
+                    activeJobs.Remove(job);
+                    Debug.WriteLine($"BusinessApplicationMonitor: Unregistered job '{job.Name}' from monitoring");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Pauses all active jobs due to business application running
+        /// </summary>
+        private void PauseAllActiveJobs()
+        {
+            lock (jobsLock)
+            {
+                Debug.WriteLine($"BusinessApplicationMonitor: Pausing {activeJobs.Count} active jobs due to business application running");
+                foreach (var job in activeJobs.ToList()) // Use ToList to avoid collection modification issues
+                {
+                    if (job.Status.State == BackupState.Running)
+                    {
+                        Debug.WriteLine($"BusinessApplicationMonitor: Pausing job '{job.Name}'");
+                        job.Pause(isPausedByBusinessApp: true);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Resumes all jobs that were paused by the business application monitor
+        /// </summary>
+        private void ResumeJobsPausedByMonitor()
+        {
+            lock (jobsLock)
+            {
+                Debug.WriteLine($"BusinessApplicationMonitor: Attempting to resume jobs paused by business application");
+                foreach (var job in activeJobs.ToList()) // Use ToList to avoid collection modification issues
+                {
+                    if (job.Status.State == BackupState.Paused && job.IsPausedByBusinessApp)
+                    {
+                        Debug.WriteLine($"BusinessApplicationMonitor: Resuming job '{job.Name}'");
+                        job.Resume();
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -115,11 +190,13 @@ namespace EasySave_by_ProSoft.Models
                             if (currentState && !previousState)
                             {
                                 Debug.WriteLine($"Business application '{monitoredApplication}' has started.");
+                                PauseAllActiveJobs(); // Actively pause all running jobs
                                 BusinessAppStarted?.Invoke(this, EventArgs.Empty);
                             }
                             else if (!currentState && previousState)
                             {
                                 Debug.WriteLine($"Business application '{monitoredApplication}' has stopped.");
+                                ResumeJobsPausedByMonitor(); // Resume jobs that were paused by the monitor
                                 BusinessAppStopped?.Invoke(this, EventArgs.Empty);
                             }
 

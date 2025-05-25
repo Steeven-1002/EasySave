@@ -1,14 +1,11 @@
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Properties;
 using EasySave_by_ProSoft.Services;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Windows.Input;
 
 namespace EasySave_by_ProSoft.ViewModels
@@ -256,7 +253,7 @@ namespace EasySave_by_ProSoft.ViewModels
             catch (CultureNotFoundException ex)
             {
                 _dialogService.ShowError(
-                    $"Culture {newLanguage} not found: {ex.Message}", 
+                    $"Culture {newLanguage} not found: {ex.Message}",
                     Localization.Resources.ErrorTitle);
                 return;
             }
