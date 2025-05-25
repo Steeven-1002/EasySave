@@ -61,6 +61,15 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Application Settings.
+        /// </summary>
+        public static string ApplicationSettings {
+            get {
+                return ResourceManager.GetString("ApplicationSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Differential.
         /// </summary>
         public static string BackupTypeDifferential {
@@ -133,7 +142,7 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
-        ///   Recherche une chaîne localisée semblable à Launch selected job.
+        ///   Recherche une chaîne localisée semblable à Launch.
         /// </summary>
         public static string BackupWorkManagementStartBackupSelected {
             get {
@@ -264,6 +273,24 @@ namespace EasySave_by_ProSoft.Localization {
         public static string ConfirmationTitle {
             get {
                 return ResourceManager.GetString("ConfirmationTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Encryption Key.
+        /// </summary>
+        public static string EncryptionKey {
+            get {
+                return ResourceManager.GetString("EncryptionKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Encryption Settings.
+        /// </summary>
+        public static string EncryptionSettings {
+            get {
+                return ResourceManager.GetString("EncryptionSettings", resourceCulture);
             }
         }
         
@@ -439,6 +466,33 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Pause.
+        /// </summary>
+        public static string Pause {
+            get {
+                return ResourceManager.GetString("Pause", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Resume.
+        /// </summary>
+        public static string Resume {
+            get {
+                return ResourceManager.GetString("Resume", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Selected jobs actions.
+        /// </summary>
+        public static string SelectedButtonsTitle {
+            get {
+                return ResourceManager.GetString("SelectedButtonsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Settings.
         /// </summary>
         public static string Settings {
@@ -462,6 +516,15 @@ namespace EasySave_by_ProSoft.Localization {
         public static string SettingsValidatedMessage {
             get {
                 return ResourceManager.GetString("SettingsValidatedMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Stop.
+        /// </summary>
+        public static string Stop {
+            get {
+                return ResourceManager.GetString("Stop", resourceCulture);
             }
         }
         

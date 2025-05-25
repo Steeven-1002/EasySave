@@ -331,7 +331,6 @@ namespace EasySave_by_ProSoft.ViewModels
         /// <summary>
         /// Removes the selected backup job
         /// </summary>
-
         private void RemoveSelectedJob()
         {
             var jobsToRemove = new List<BackupJob>(SelectedJobs);

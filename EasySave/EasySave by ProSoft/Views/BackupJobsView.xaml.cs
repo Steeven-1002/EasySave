@@ -104,10 +104,8 @@ namespace EasySave_by_ProSoft.Views
 
         private void DeleteSelectedJob_Click(object sender, RoutedEventArgs e)
         {
-            if (!_backupJobsViewModel.ValidateJobSelection())
-                return;
-
-            _backupJobsViewModel.RemoveJobCommand.Execute(null);
+            // The button will be disabled when no jobs are selected via the Command binding
+            // But we still keep this method to notify about the deletion
             _backupJobsViewModel.NotifyJobDeleted();
         }
 
@@ -287,6 +285,49 @@ namespace EasySave_by_ProSoft.Views
 
             _backupJobsViewModel.StopJobCommand.Execute(null);
             _backupJobsViewModel.NotifyInfo("Selected jobs have been stopped.");
+        }
+
+        // Update the code where ambiguity occurs
+        private void JobPause_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button button && button.Tag is BackupJob job) // Replaced 'WpfButton' with 'System.Windows.Controls.Button'
+            {
+                if (job.Status.State == BackupState.Running)
+                {
+                    job.Pause();
+                    _backupJobsViewModel.NotifyInfo($"Job '{job.Name}' has been paused.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Resumes a specific job when its resume button is clicked
+        /// </summary>
+        private void JobResume_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button button && button.Tag is BackupJob job) // Replaced 'WpfButton' with 'System.Windows.Controls.Button'
+            {
+                if (job.Status.State == BackupState.Paused)
+                {
+                    job.Resume();
+                    _backupJobsViewModel.NotifyInfo($"Job '{job.Name}' has been resumed.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Stops a specific job when its stop button is clicked
+        /// </summary>
+        private void JobStop_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button button && button.Tag is BackupJob job) // Replaced 'WpfButton' with 'System.Windows.Controls.Button'
+            {
+                if (job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused)
+                {
+                    job.Stop();
+                    _backupJobsViewModel.NotifyInfo($"Job '{job.Name}' has been stopped.");
+                }
+            }
         }
     }
 }
