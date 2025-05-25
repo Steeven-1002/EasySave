@@ -267,16 +267,12 @@ namespace EasySave_by_ProSoft.ViewModels
         /// <summary>
         /// Determines if the selected job can be paused
         /// </summary>
-        private bool CanPauseSelectedJob()
+        public bool CanPauseSelectedJob()
         {
             if (SelectedJobs == null || SelectedJobs.Count == 0)
                 return false;
-            foreach (var job in SelectedJobs)
-            {
-                if (job.Status.State != BackupState.Running)
-                    return false;
-            }
-            return true;
+            
+            return SelectedJobs.Any(job => job.Status.State == BackupState.Running);
         }
 
         /// <summary>
@@ -297,16 +293,12 @@ namespace EasySave_by_ProSoft.ViewModels
         /// <summary>
         /// Determines if the selected job can be resumed
         /// </summary>
-        private bool CanResumeSelectedJob()
+        public bool CanResumeSelectedJob()
         {
             if (SelectedJobs == null || SelectedJobs.Count == 0)
                 return false;
-            foreach (var job in SelectedJobs)
-            {
-                if (job.Status.State != BackupState.Paused)
-                    return false;
-            }
-            return true;
+            
+            return SelectedJobs.Any(job => job.Status.State == BackupState.Paused);
         }
 
         /// <summary>
@@ -439,7 +431,7 @@ namespace EasySave_by_ProSoft.ViewModels
         /// <summary>
         /// Shows an information message
         /// </summary>
-        private void NotifyInfo(string message)
+        public void NotifyInfo(string message)
         {
             ShowInfoMessage?.Invoke(message);
         }

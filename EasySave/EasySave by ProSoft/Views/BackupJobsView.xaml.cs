@@ -237,5 +237,56 @@ namespace EasySave_by_ProSoft.Views
             // Update the view model
             _backupJobsViewModel.SelectedJobs = selectedJobs;
         }
+
+        private void PauseSelectedJob_Click(object sender, RoutedEventArgs e)
+        {
+            // Check for job selection using the ViewModel method
+            if (!_backupJobsViewModel.ValidateJobSelection())
+                return;
+
+            if (!_backupJobsViewModel.CanPauseSelectedJob())
+            {
+                _dialogService.ShowWarning("Selected jobs cannot be paused. Only running jobs can be paused.");
+                return;
+            }
+
+            _backupJobsViewModel.PauseJobCommand.Execute(null);
+            _backupJobsViewModel.NotifyInfo("Selected jobs have been paused.");
+        }
+
+        private void ResumeSelectedJob_Click(object sender, RoutedEventArgs e)
+        {
+            // Check for job selection using the ViewModel method
+            if (!_backupJobsViewModel.ValidateJobSelection())
+                return;
+
+            if (!_backupJobsViewModel.CanResumeSelectedJob())
+            {
+                _dialogService.ShowWarning("Selected jobs cannot be resumed. Only paused jobs can be resumed.");
+                return;
+            }
+
+            _backupJobsViewModel.ResumeJobCommand.Execute(null);
+            _backupJobsViewModel.NotifyInfo("Selected jobs have been resumed.");
+        }
+
+        private void StopSelectedJob_Click(object sender, RoutedEventArgs e)
+        {
+            // Check for job selection using the ViewModel method
+            if (!_backupJobsViewModel.ValidateJobSelection())
+                return;
+
+            var jobsToStop = _backupJobsViewModel.SelectedJobs.Where(job => 
+                job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused).ToList();
+            
+            if (jobsToStop.Count == 0)
+            {
+                _dialogService.ShowWarning("No running or paused jobs selected to stop.");
+                return;
+            }
+
+            _backupJobsViewModel.StopJobCommand.Execute(null);
+            _backupJobsViewModel.NotifyInfo("Selected jobs have been stopped.");
+        }
     }
 }

@@ -14,8 +14,14 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="{x:Static localization:Resources.BackupWorkManagement}" FontSize="20" FontWeight="Bold" Margin="10"/>
-        <ListView Grid.Row="1" x:Name="BackupJobsListView" Margin="10">
+        <TextBlock Grid.Row="0" Text="{x:Static localization:Resources.BackupWorkManagement}" 
+                   Style="{StaticResource HeaderTextBlockStyle}" 
+                   Margin="0,0,0,15"/>
+        
+        <ListView Grid.Row="1" x:Name="BackupJobsListView" 
+                  Style="{StaticResource ModernListView}"
+                  BorderThickness="1" 
+                  Margin="0,0,0,15">
             <ListView.View>
                 <GridView>
                     <GridViewColumn Width="40">
@@ -31,12 +37,47 @@
                     <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementSource}" DisplayMemberBinding="{Binding SourcePath}" Width="200"/>
                     <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementTarget}" DisplayMemberBinding="{Binding TargetPath}" Width="200"/>
                     <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementType}" DisplayMemberBinding="{Binding Type}" Width="100"/>
-                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementStatus}" DisplayMemberBinding="{Binding Status.State, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementStatus}" Width="100">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Status.State, UpdateSourceTrigger=PropertyChanged}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Status.State}" Value="Running">
+                                                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status.State}" Value="Paused">
+                                                    <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status.State}" Value="Error">
+                                                    <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status.State}" Value="Completed">
+                                                    <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
                     <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementProgressPercentage}" Width="150">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
-                                <ProgressBar Value="{Binding Status.ProgressPercentage, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}"
-                                             Minimum="0" Maximum="100" Width="120" Height="15" />
+                                <Grid>
+                                    <ProgressBar Value="{Binding Status.ProgressPercentage, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}"
+                                                 Minimum="0" Maximum="100" Width="120" />
+                                    <TextBlock Text="{Binding Status.ProgressPercentage, StringFormat={}{0:F1}%}" 
+                                               HorizontalAlignment="Center" 
+                                               VerticalAlignment="Center"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"/>
+                                </Grid>
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
@@ -44,35 +85,90 @@
             </ListView.View>
         </ListView>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
-            <Button Content="{x:Static localization:Resources.BackupWorkManagementStartBackupSelected}" Margin="5" Click="LaunchSelectedJob_Click"/>
-            <Button Content="{x:Static localization:Resources.BackupWorkManagementDeleteBackupSelected}" Margin="5" Click="DeleteSelectedJob_Click"/>
-            <Button Content="{x:Static localization:Resources.BackupWorkManagementNewBackup}" Margin="5" Click="CreateNewJob_Click"/>
-        </StackPanel>
+        <Border Grid.Row="2" Padding="0,15,0,0" BorderThickness="0,1,0,0" BorderBrush="{StaticResource BorderBrush}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="{x:Static localization:Resources.BackupWorkManagementStartBackupSelected}" 
+                        Style="{StaticResource ActionButtonStyle}" 
+                        Click="LaunchSelectedJob_Click"/>
+                <Button x:Name="PauseButton" 
+                        Content="Pause" 
+                        Style="{StaticResource PauseButtonStyle}"
+                        Margin="5" 
+                        Click="PauseSelectedJob_Click"/>
+                <Button x:Name="ResumeButton" 
+                        Content="Resume" 
+                        Style="{StaticResource ActionButtonStyle}"
+                        Margin="5" 
+                        Click="ResumeSelectedJob_Click"/>
+                <Button x:Name="StopButton" 
+                        Content="Stop" 
+                        Style="{StaticResource StopButtonStyle}"
+                        Margin="5" 
+                        Click="StopSelectedJob_Click"/>
+                <Button Content="{x:Static localization:Resources.BackupWorkManagementDeleteBackupSelected}" 
+                        Style="{StaticResource StopButtonStyle}"
+                        Margin="5" 
+                        Click="DeleteSelectedJob_Click"/>
+                <Button Content="{x:Static localization:Resources.BackupWorkManagementNewBackup}" 
+                        Style="{StaticResource ActionButtonStyle}"
+                        Margin="5" 
+                        Click="CreateNewJob_Click"/>
+            </StackPanel>
+        </Border>
 
-        <Border Grid.Row="1" Grid.RowSpan="2" x:Name="CreateJobPanel" Visibility="Collapsed" Background="LightGray" Padding="15" Margin="50,20">
+        <Border Grid.Row="1" Grid.RowSpan="2" x:Name="CreateJobPanel" 
+                Visibility="Collapsed" 
+                Background="{StaticResource BackgroundLightBrush}" 
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="25" 
+                Margin="50,20">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.3" />
+            </Border.Effect>
             <StackPanel>
-                <TextBlock Text="{x:Static localization:Resources.BackupWorkManagementNewBackup}" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
-                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobName}"/>
-                <TextBox x:Name="JobNameTextBox" Margin="0,0,0,5"/>
-                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobSourceDirectory}"/>
-                <StackPanel Orientation="Horizontal">
-                    <TextBox x:Name="JobSourcePathTextBox" Margin="0,0,0,5" Width="200"/>
-                    <Button Content="{x:Static localization:Resources.Browse}" Margin="5,0,0,5" Click="BrowseSource_Click"/>
-                </StackPanel>
-                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobTargetDirectory}"/>
-                <StackPanel Orientation="Horizontal">
-                    <TextBox x:Name="JobTargetPathTextBox" Margin="0,0,0,5" Width="200"/>
-                    <Button Content="{x:Static localization:Resources.Browse}" Margin="5,0,0,5" Click="BrowseTarget_Click"/>
-                </StackPanel>
-                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobBackupType}"/>
-                <ComboBox x:Name="JobTypeComboBox" Margin="0,0,0,5">
+                <TextBlock Text="{x:Static localization:Resources.BackupWorkManagementNewBackup}" 
+                           Style="{StaticResource SubHeaderTextBlockStyle}" 
+                           Margin="0,0,0,15"/>
+                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobName}" Margin="0,5,0,2"/>
+                <TextBox x:Name="JobNameTextBox" Margin="0,0,0,10"/>
+                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobSourceDirectory}" Margin="0,5,0,2"/>
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="JobSourcePathTextBox" Grid.Column="0"/>
+                    <Button Grid.Column="1" Content="{x:Static localization:Resources.Browse}" 
+                            Margin="5,0,0,0" 
+                            Click="BrowseSource_Click"/>
+                </Grid>
+                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobTargetDirectory}" Margin="0,5,0,2"/>
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="JobTargetPathTextBox" Grid.Column="0"/>
+                    <Button Grid.Column="1" Content="{x:Static localization:Resources.Browse}" 
+                            Margin="5,0,0,0" 
+                            Click="BrowseTarget_Click"/>
+                </Grid>
+                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobBackupType}" Margin="0,5,0,2"/>
+                <ComboBox x:Name="JobTypeComboBox" Margin="0,0,0,20">
                     <ComboBoxItem Content="{x:Static localization:Resources.BackupTypeFull}"/>
                     <ComboBoxItem Content="{x:Static localization:Resources.BackupTypeDifferential}"/>
                 </ComboBox>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="{x:Static localization:Resources.ConfigNewJobValidate}" Margin="5" Click="ValidateNewJob_Click"/>
-                    <Button Content="{x:Static localization:Resources.Cancel}" Margin="5" Click="CancelNewJob_Click"/>
+                    <Button Content="{x:Static localization:Resources.ConfigNewJobValidate}" 
+                            Style="{StaticResource ActionButtonStyle}"
+                            Margin="5" 
+                            Click="ValidateNewJob_Click"/>
+                    <Button Content="{x:Static localization:Resources.Cancel}" 
+                            Style="{StaticResource StopButtonStyle}"
+                            Margin="5" 
+                            Click="CancelNewJob_Click"/>
                 </StackPanel>
             </StackPanel>
         </Border>
