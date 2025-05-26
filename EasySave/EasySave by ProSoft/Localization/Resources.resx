@@ -339,4 +339,7 @@
   <data name="ProcessedFiles" xml:space="preserve">
     <value>Processed Files</value>
   </data>
+  <data name="StatusRunning" xml:space="preserve">
+    <value>Running</value>
+  </data>
 </root>

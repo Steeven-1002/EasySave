@@ -122,7 +122,10 @@ namespace EasySave_by_ProSoft.Models
             _backupFileStrategy = type switch
             {
                 BackupType.Full => new FullBackupStrategy(),
+                BackupType.Complète => new FullBackupStrategy(),
+
                 BackupType.Differential => new DiffBackupStrategy(),
+                BackupType.Différentielle => new DiffBackupStrategy(),
                 _ => new FullBackupStrategy() // Default to full backup if unknown type
             };
         }
