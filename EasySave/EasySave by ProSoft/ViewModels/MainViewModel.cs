@@ -424,7 +424,7 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private void NotifyError(string message)
         {
-            ShowErrorMessage?.Invoke(message);
+            _dialogService.ShowError(message);
         }
 
         /// <summary>
@@ -432,7 +432,7 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         public void NotifyInfo(string message)
         {
-            ShowInfoMessage?.Invoke(message);
+            _dialogService.ShowInfo(message);
         }
 
         /// <summary>

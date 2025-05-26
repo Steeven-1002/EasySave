@@ -277,6 +277,9 @@ namespace EasySave_by_ProSoft.ViewModels
             ApplicationRestartFailed?.Invoke(ex);
         }
 
+        // Ensure all dialog interactions use the IDialogService and are invoked from the ViewModel.
+        // Remove any direct UI logic or event handler dependencies.
+
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

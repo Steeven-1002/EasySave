@@ -269,14 +269,16 @@ namespace EasySave_by_ProSoft.Models
                         TotalFiles = previousState.TotalFiles;
                         TotalSize = previousState.TotalSize;
                         RemainingFiles = previousState.RemainingFiles;
-                        RemainingSize = previousState.RemainingSize; // Recalculate if ProgressPercentage is more reliable
+                        RemainingSize = previousState.RemainingSize;
                         CurrentSourceFile = previousState.CurrentSourceFile ?? string.Empty;
                         CurrentTargetFile = previousState.CurrentTargetFile ?? string.Empty;
-                        processedFiles = new List<string>(previousState.ProcessedFiles ?? new List<string>());
-                        StartTime = previousState.StartTime != DateTime.MinValue ? previousState.StartTime : DateTime.Now; // Keep original start time
-                        State = BackupState.Paused; // Pause so the user can resume
+                        processedFiles = previousState.ProcessedFiles != null
+                            ? new List<string>(previousState.ProcessedFiles)
+                            : new List<string>();
+                        StartTime = previousState.StartTime != DateTime.MinValue ? previousState.StartTime : DateTime.Now;
+                        State = BackupState.Paused;
                         Details = previousState.Details ?? string.Empty;
-                        Update(); // Notify changes
+                        Update();
                         return true;
                     }
                 }
@@ -284,7 +286,6 @@ namespace EasySave_by_ProSoft.Models
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading state from file for {jobName}: {ex.Message}");
-                // System.Windows.Forms.MessageBox.Show($"Error loading state from file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
             }
             return false;
         }

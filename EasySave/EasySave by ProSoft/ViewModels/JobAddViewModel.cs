@@ -16,10 +16,10 @@ namespace EasySave_by_ProSoft.ViewModels
         private BackupType _type = BackupType.Full;
 
         // Event for validation errors
-        public event Action<string> ValidationError;
+        public event Action<string>? ValidationError;
 
         // Event for successful job creation
-        public event Action<string> JobCreated;
+        public event Action<string>? JobCreated;
 
         public string Name
         {

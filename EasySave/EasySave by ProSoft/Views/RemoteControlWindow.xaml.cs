@@ -1,6 +1,8 @@
-using EasySave_by_ProSoft.Network;
+using System; // Add this to resolve EventArgs
 using System.Windows;
 using System.Windows.Data;
+using System.Windows.Media;
+using EasySave_by_ProSoft.ViewModels;
 
 namespace EasySave_by_ProSoft.Views
 {
@@ -25,7 +27,7 @@ namespace EasySave_by_ProSoft.Views
         }
     }
 
-    // Add these converters to App.xaml resources if not already there
+    // Move converters to a separate file if they are reused, or keep them here if only used in this view.
     public class InverseBooleanConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
@@ -56,12 +58,12 @@ namespace EasySave_by_ProSoft.Views
     {
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            return (bool)value ? Brushes.Red : Brushes.Green;
+            return (bool)value ? System.Windows.Media.Brushes.Red : System.Windows.Media.Brushes.Green; // Fully qualify Brushes to resolve ambiguity
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            return value.Equals(Brushes.Red);
+            return value.Equals(System.Windows.Media.Brushes.Red); // Fully qualify Brushes to resolve ambiguity
         }
     }
 }

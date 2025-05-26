@@ -235,18 +235,27 @@ namespace EasySave_by_ProSoft.Models
                             PropertyNameCaseInsensitive = true
                         };
 
-                        return JsonSerializer.Deserialize<List<JobState>>(jsonContent, options) ?? new List<JobState>();
+                        // Defensive: handle corrupt or partial JSON
+                        try
+                        {
+                            return JsonSerializer.Deserialize<List<JobState>>(jsonContent, options) ?? new List<JobState>();
+                        }
+                        catch (JsonException ex)
+                        {
+                            Debug.WriteLine($"Error deserializing state.json: {ex.Message}");
+                            // Optionally backup the corrupt file here
+                            return new List<JobState>();
+                        }
                     }
                 }
             }
             catch (JsonException ex)
             {
-                System.Windows.Forms.MessageBox.Show($"Error deserializing state.json file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
-                // File might be corrupted, consider backing it up and creating a new one
+                Debug.WriteLine($"Error deserializing state.json file: {ex.Message}");
             }
             catch (Exception ex)
             {
-                System.Windows.Forms.MessageBox.Show($"Unexpected error: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                Debug.WriteLine($"Unexpected error: {ex.Message}");
             }
 
             return new List<JobState>();

@@ -85,22 +85,29 @@ namespace EasySave_by_ProSoft.ViewModels
             // Register as a listener for job events
             _jobEventManager.AddListener(this);
 
-            Predicate<object?> canLaunchPredicate = _ =>
-               SelectedJobs != null &&
-               SelectedJobs.Any(job => job.Status.State == BackupState.Initialise ||
-                                       job.Status.State == BackupState.Error ||
-                                       job.Status.State == BackupState.Completed) &&
-               !_isLaunchingJobs;
-
-            LaunchJobCommand = new RelayCommand(async _ => await LaunchSelectedJob(), canLaunchPredicate);
+            LaunchJobCommand = new RelayCommand(async _ => await LaunchSelectedJob(), _ => CanLaunchJob());
             RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(), _ => SelectedJobs != null && SelectedJobs.Count > 0);
             PauseJobCommand = new RelayCommand(_ => PauseSelectedJob(), _ => CanPauseSelectedJob());
             ResumeJobCommand = new RelayCommand(_ => ResumeSelectedJob(), _ => CanResumeSelectedJob());
-            StopJobCommand = new RelayCommand(_ => StopSelectedJobs(), _ => SelectedJobs != null && SelectedJobs.Any(job => job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused));
+            StopJobCommand = new RelayCommand(_ => StopSelectedJobs(), _ => CanStopSelectedJob());
             LaunchMultipleJobsCommand = new RelayCommand(_ => LaunchMultipleJobs(), _ => CanLaunchMultipleJobs());
 
             // Load jobs initially
             LoadJobs();
+        }
+
+        private bool CanLaunchJob()
+        {
+            return SelectedJobs != null &&
+                   SelectedJobs.Any(job => job.Status.State == BackupState.Initialise ||
+                                          job.Status.State == BackupState.Error ||
+                                          job.Status.State == BackupState.Completed) &&
+                   !_isLaunchingJobs;
+        }
+
+        private bool CanStopSelectedJob()
+        {
+            return SelectedJobs != null && SelectedJobs.Any(job => job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused);
         }
 
         public void Update(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile, double transfertDuration, double encryptionTimeMs, string details = null)
