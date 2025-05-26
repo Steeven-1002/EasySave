@@ -221,12 +221,22 @@ namespace EasySave_by_ProSoft.Network
 
         private async Task ProcessStatusUpdateRequest(TcpClient client, RemoteCommand command)
         {
-            if (client == null || !client.Connected) return;
+            if (client == null) return;
+            
+            // Additional check to verify the client is still connected
+            if (!client.Connected)
+            {
+                Debug.WriteLine("Client disconnected before status update could be sent");
+                return;
+            }
 
             try
             {
                 // Send current job statuses
                 await SendJobStatuses(client);
+
+                // Check again if client is still connected before sending command response
+                if (!client.Connected) return;
 
                 // Also send a command response confirming receipt
                 var response = new
@@ -241,6 +251,18 @@ namespace EasySave_by_ProSoft.Network
                 NetworkStream stream = client.GetStream();
                 await stream.WriteAsync(data, 0, data.Length);
                 await stream.FlushAsync();
+            }
+            catch (SocketException ex)
+            {
+                Debug.WriteLine($"Socket error during status update request: {ex.Message}");
+                // Don't attempt further communication with this client
+                if (_connectedClients.Contains(client))
+                {
+                    lock (_connectedClients)
+                    {
+                        _connectedClients.Remove(client);
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -259,15 +281,47 @@ namespace EasySave_by_ProSoft.Network
                 clientsCopy = _connectedClients.ToList();
             }
 
+            List<TcpClient> disconnectedClients = new List<TcpClient>();
+            
             foreach (var client in clientsCopy)
             {
                 try
                 {
-                    await SendJobStatuses(client);
+                    if (client.Connected)
+                    {
+                        await SendJobStatuses(client);
+                    }
+                    else
+                    {
+                        // Track clients that are no longer connected
+                        disconnectedClients.Add(client);
+                    }
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine($"Error broadcasting job statuses: {ex.Message}");
+                    // If we catch an exception, the client might be disconnected
+                    disconnectedClients.Add(client);
+                }
+            }
+            
+            // Clean up any disconnected clients we found
+            if (disconnectedClients.Count > 0)
+            {
+                lock (_connectedClients)
+                {
+                    foreach (var client in disconnectedClients)
+                    {
+                        if (_connectedClients.Contains(client))
+                        {
+                            _connectedClients.Remove(client);
+                            try
+                            {
+                                client.Close();
+                            }
+                            catch { }
+                        }
+                    }
                 }
             }
         }
@@ -308,17 +362,48 @@ namespace EasySave_by_ProSoft.Network
             catch (ObjectDisposedException ex)
             {
                 Debug.WriteLine($"Socket was disposed: {ex.Message}");
-                throw;
+                // Don't rethrow - client is likely disconnected
             }
             catch (SocketException ex)
             {
-                Debug.WriteLine($"Socket error sending job statuses: {ex.Message}");
-                throw;
+                // Handle the specific case where the remote party initiated a proper shutdown sequence
+                if (ex.SocketErrorCode == SocketError.ConnectionAborted || 
+                    ex.SocketErrorCode == SocketError.ConnectionReset ||
+                    ex.SocketErrorCode == SocketError.Shutdown)
+                {
+                    Debug.WriteLine($"Remote client initiated a proper shutdown sequence: {ex.Message}");
+                    
+                    // Ensure this client is removed from the connected clients list
+                    lock (_connectedClients)
+                    {
+                        if (_connectedClients.Contains(client))
+                        {
+                            _connectedClients.Remove(client);
+                            try
+                            {
+                                string clientAddress = ((IPEndPoint)client.Client.RemoteEndPoint)?.Address.ToString() ?? "unknown";
+                                ClientDisconnected?.Invoke(this, clientAddress);
+                                Debug.WriteLine($"Client {clientAddress} disconnected gracefully");
+                            }
+                            catch
+                            {
+                                // Can't get client address, but still need to report disconnection
+                                ClientDisconnected?.Invoke(this, "unknown");
+                                Debug.WriteLine("Unknown client disconnected gracefully");
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // For other socket errors, log but don't throw
+                    Debug.WriteLine($"Socket error sending job statuses: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error sending job statuses to client: {ex.Message}");
-                throw;
+                // Don't rethrow - we want to continue even if one client fails
             }
         }
 
