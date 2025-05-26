@@ -151,6 +151,15 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Backup Size.
+        /// </summary>
+        public static string BackupWorkManagementSize {
+            get {
+                return ResourceManager.GetString("BackupWorkManagementSize", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Source.
         /// </summary>
         public static string BackupWorkManagementSource {

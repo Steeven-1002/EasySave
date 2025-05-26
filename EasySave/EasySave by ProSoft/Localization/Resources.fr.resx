@@ -341,5 +341,8 @@
   </data>
   <data name="PopUpBusinessSoftware" xml:space="preserve">
     <value>Impossible de démarrer la sauvegarde tant que le logiciel métier est ouvert. Veuillez fermer le logiciel métier pour lancer la sauvegarde.</value>
+   </data>
+  <data name="BackupWorkManagementSize" xml:space="preserve">
+    <value>Taille de la sauvegarde</value>    
   </data>
 </root>
