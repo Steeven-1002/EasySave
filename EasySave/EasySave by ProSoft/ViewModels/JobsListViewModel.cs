@@ -353,7 +353,7 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private void StopSelectedJobs()
         {
-            if (SelectedJobs == null || _isLaunchingJobs) return;
+            if (SelectedJobs == null) return;
             Debug.WriteLine($"JobsListViewModel.StopSelectedJobs called for: {string.Join(", ", SelectedJobs.Where(j => j.Status.State == BackupState.Running || j.Status.State == BackupState.Paused).Select(j => j.Name))}");
             foreach (var job in SelectedJobs)
             {
