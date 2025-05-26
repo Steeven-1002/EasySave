@@ -120,6 +120,9 @@
   <data name="BackupTypeDifferential" xml:space="preserve">
     <value>Différentielle</value>
   </data>
+  <data name="SelectedButtonsTitle" xml:space="preserve">
+    <value>Travail de sauvegarde sélectionné</value>
+  </data>
   <data name="BackupTypeFull" xml:space="preserve">
     <value>Complète</value>
   </data>
@@ -254,18 +257,9 @@
   </data>
   <data name="ExtensionFilePriority" xml:space="preserve">
     <value>Gestion des fichiers prioritaires</value>
-  </data>
+   </data>
   <data name="LargeFileSizeSetting" xml:space="preserve">
     <value>Taille de fichier volumineux (en Ko) :</value>
-  </data>
-  <data name="Pause" xml:space="preserve">
-    <value>Pause</value>
-  </data>
-  <data name="Resume" xml:space="preserve">
-    <value>Reprendre</value>
-  </data>
-  <data name="Stop" xml:space="preserve">
-    <value>Arrêter</value>
   </data>
   <data name="BackupSettings" xml:space="preserve">
     <value>Paramètres de sauvegarde</value>
@@ -276,8 +270,14 @@
   <data name="ApplicationSettings" xml:space="preserve">
     <value>Paramètres d'application</value>
   </data>
-  <data name="SelectedButtonsTitle" xml:space="preserve">
-    <value>Travail de sauvegarde sélectionné</value>
+  <data name="Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Resume" xml:space="preserve">
+    <value>Reprendre</value>
+  </data>
+  <data name="Stop" xml:space="preserve">
+    <value>Arrêter</value>
   </data>
   <data name="ApplicationAlreadyRunning" xml:space="preserve">
     <value>L'application est déjà en cours d'exécution.</value>
@@ -338,8 +338,5 @@
   </data>
   <data name="ProcessedFiles" xml:space="preserve">
     <value>Fichiers traités</value>
-  </data>
-  <data name="BackupWorkManagementSize" xml:space="preserve">
-    <value>Taille de la sauvegarde</value>
   </data>
 </root>

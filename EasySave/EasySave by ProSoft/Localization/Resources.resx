@@ -339,7 +339,4 @@
   <data name="ProcessedFiles" xml:space="preserve">
     <value>Processed Files</value>
   </data>
-  <data name="BackupWorkManagementSize" xml:space="preserve">
-    <value>Backup Size</value>
-  </data>
 </root>

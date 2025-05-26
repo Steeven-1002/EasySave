@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace EasySave_by_ProSoft.Network
 {
@@ -24,6 +25,10 @@ namespace EasySave_by_ProSoft.Network
         private string _connectionStatus = "Disconnected";
         private bool _isBusinessSoftwareRunning = false;
         private ObservableCollection<RemoteJobStatus> _jobs = new();
+        private DispatcherTimer _autoRefreshTimer;
+        private bool _autoRefreshEnabled = true;
+        private double _refreshInterval = 3.0; // Default refresh interval in seconds
+        private bool _isRealTimeFollowEnabled = true;
         private string _lastOperationStatus = "";
         private bool _isOperationInProgress = false;
 
@@ -63,6 +68,12 @@ namespace EasySave_by_ProSoft.Network
                     _isConnected = value;
                     OnPropertyChanged();
                     CommandManager.InvalidateRequerySuggested();
+
+                    // Start/stop the auto-refresh timer based on connection state
+                    if (_isConnected && AutoRefreshEnabled)
+                        StartAutoRefresh();
+                    else
+                        StopAutoRefresh();
                 }
             }
         }
@@ -102,6 +113,59 @@ namespace EasySave_by_ProSoft.Network
                 if (_jobs != value)
                 {
                     _jobs = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool AutoRefreshEnabled
+        {
+            get => _autoRefreshEnabled;
+            set
+            {
+                if (_autoRefreshEnabled != value)
+                {
+                    _autoRefreshEnabled = value;
+                    OnPropertyChanged();
+
+                    if (_isConnected)
+                    {
+                        if (_autoRefreshEnabled)
+                            StartAutoRefresh();
+                        else
+                            StopAutoRefresh();
+                    }
+                }
+            }
+        }
+
+        public double RefreshInterval
+        {
+            get => _refreshInterval;
+            set
+            {
+                if (_refreshInterval != value && value >= 1.0)
+                {
+                    _refreshInterval = value;
+                    OnPropertyChanged();
+
+                    // Update the timer interval if it's running
+                    if (_autoRefreshTimer != null && _autoRefreshTimer.IsEnabled)
+                    {
+                        _autoRefreshTimer.Interval = TimeSpan.FromSeconds(_refreshInterval);
+                    }
+                }
+            }
+        }
+
+        public bool IsRealTimeFollowEnabled
+        {
+            get => _isRealTimeFollowEnabled;
+            set
+            {
+                if (_isRealTimeFollowEnabled != value)
+                {
+                    _isRealTimeFollowEnabled = value;
                     OnPropertyChanged();
                 }
             }
@@ -151,6 +215,48 @@ namespace EasySave_by_ProSoft.Network
             ResumeJobsCommand = new RelayCommand(_ => ResumeSelectedJobs(), _ => CanResumeSelectedJobs() && !IsOperationInProgress);
             StopJobsCommand = new RelayCommand(_ => StopSelectedJobs(), _ => CanStopSelectedJobs() && !IsOperationInProgress);
             RefreshJobsCommand = new RelayCommand(_ => RefreshJobs(), _ => IsConnected && !IsOperationInProgress);
+
+            // Initialize the auto-refresh timer
+            _autoRefreshTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(_refreshInterval)
+            };
+            _autoRefreshTimer.Tick += AutoRefreshTimer_Tick;
+        }
+
+        private void AutoRefreshTimer_Tick(object sender, EventArgs e)
+        {
+            // Ensure we don't try to refresh if we're not connected or if an operation is in progress
+            if (!IsConnected || IsOperationInProgress || _client == null || !_client.Connected)
+            {
+                // If we thought we were connected but the socket is actually disconnected
+                if (IsConnected && (_client == null || !_client.Connected))
+                {
+                    Debug.WriteLine("AutoRefreshTimer_Tick detected disconnected socket");
+                    HandleConnectionLoss();
+                }
+                return;
+            }
+
+            RequestJobStatusUpdate();
+        }
+
+        private void StartAutoRefresh()
+        {
+            if (_autoRefreshTimer != null && !_autoRefreshTimer.IsEnabled && IsConnected && _client != null && _client.Connected)
+            {
+                _autoRefreshTimer.Start();
+                Debug.WriteLine($"Auto-refresh started with interval: {_refreshInterval} seconds");
+            }
+        }
+
+        private void StopAutoRefresh()
+        {
+            if (_autoRefreshTimer != null && _autoRefreshTimer.IsEnabled)
+            {
+                _autoRefreshTimer.Stop();
+                Debug.WriteLine("Auto-refresh stopped");
+            }
         }
 
         private void RefreshJobs()
@@ -286,9 +392,6 @@ namespace EasySave_by_ProSoft.Network
 
                 _cancellationTokenSource = new CancellationTokenSource();
                 _ = Task.Run(() => ReceiveMessagesAsync(_cancellationTokenSource.Token));
-                
-                // Request initial job status after connecting
-                RequestJobStatusUpdate();
             }
             catch (SocketException ex)
             {
@@ -319,6 +422,9 @@ namespace EasySave_by_ProSoft.Network
             IsOperationInProgress = true;
             try
             {
+                // Stop auto-refresh first
+                StopAutoRefresh();
+                
                 // Cancel the token before closing the client
                 if (_cancellationTokenSource != null)
                 {
@@ -335,8 +441,7 @@ namespace EasySave_by_ProSoft.Network
                         {
                             // Try to gracefully close the connection if possible
                             NetworkStream stream = _client.GetStream();
-                            // Use a shorter timeout to prevent hanging
-                            stream.Close(1000); // Give it 1 second to flush and close properly
+                            stream.Close(2000); // Give it 2 seconds to flush and close properly
                         }
                         catch (Exception ex)
                         {
@@ -392,12 +497,6 @@ namespace EasySave_by_ProSoft.Network
                                 string json = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                                 ProcessServerMessage(json);
                             }
-                            else if (bytesRead == 0)
-                            {
-                                // Zero bytes indicates a disconnection
-                                Debug.WriteLine("Received zero bytes - connection closed by server");
-                                throw new SocketException((int)SocketError.ConnectionReset);
-                            }
                         }
                         else
                         {
@@ -407,7 +506,6 @@ namespace EasySave_by_ProSoft.Network
                             // Periodically check if the client is still connected
                             if (_client == null || !_client.Connected)
                             {
-                                Debug.WriteLine("Periodic check found socket disconnected");
                                 throw new SocketException((int)SocketError.Disconnecting);
                             }
                         }
@@ -420,15 +518,7 @@ namespace EasySave_by_ProSoft.Network
                     }
                     catch (SocketException ex)
                     {
-                        // Check if this is a graceful shutdown from the server
-                        if (IsGracefulDisconnect(ex))
-                        {
-                            Debug.WriteLine($"Server initiated graceful disconnect: {ex.Message}");
-                        }
-                        else
-                        {
-                            Debug.WriteLine($"Socket Exception during receive: {ex.Message}");
-                        }
+                        Debug.WriteLine($"Socket Exception during receive: {ex.Message}");
                         throw;
                     }
                 }
@@ -441,125 +531,21 @@ namespace EasySave_by_ProSoft.Network
             catch (ObjectDisposedException)
             {
                 Debug.WriteLine("Network stream or client was disposed");
-                await CleanupClientResourcesSafely();
-            }
-            catch (SocketException ex)
-            {
-                // Handle graceful shutdown specific logic
-                if (IsGracefulDisconnect(ex))
-                {
-                    Debug.WriteLine($"Graceful socket disconnection detected: {ex.Message}");
-                }
-                else
-                {
-                    Debug.WriteLine($"Socket error: {ex.Message}");
-                }
-                await CleanupClientResourcesSafely();
-                
-                // Handle disconnection on UI thread
-                HandleConnectionLoss();
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error receiving messages: {ex.Message}");
-                await CleanupClientResourcesSafely();
-                
+
                 // Handle disconnection on UI thread
-                HandleConnectionLoss();
-            }
-        }
-
-        /// <summary>
-        /// Determines if a socket exception represents a graceful disconnection
-        /// </summary>
-        private bool IsGracefulDisconnect(SocketException ex)
-        {
-            return ex.SocketErrorCode == SocketError.ConnectionAborted ||
-                   ex.SocketErrorCode == SocketError.ConnectionReset ||
-                   ex.SocketErrorCode == SocketError.Disconnecting ||
-                   ex.SocketErrorCode == SocketError.Shutdown ||
-                   // Also check the message content as sometimes the error codes vary by platform
-                   ex.Message.Contains("shutdown", StringComparison.OrdinalIgnoreCase) ||
-                   ex.Message.Contains("reset", StringComparison.OrdinalIgnoreCase) ||
-                   ex.Message.Contains("closed by the remote host", StringComparison.OrdinalIgnoreCase);
-        }
-
-        /// <summary>
-        /// Safely cleans up client resources without throwing additional exceptions
-        /// </summary>
-        private async Task CleanupClientResourcesSafely()
-        {
-            if (_client == null) return;
-            
-            try
-            {
-                // First try to gracefully close the stream if still available
-                try
-                {
-                    if (_client.Connected && _client.GetStream() != null)
-                    {
-                        NetworkStream stream = _client.GetStream();
-                        // Use a very short timeout to avoid hanging
-                        var closeTask = Task.Run(() => stream.Close(500));
-                        // Add timeout to ensure we don't hang here
-                        if (await Task.WhenAny(closeTask, Task.Delay(1000)) != closeTask)
-                        {
-                            Debug.WriteLine("Stream close timed out");
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error during stream cleanup: {ex.Message}");
-                }
-                
-                // Then close the client
-                try
-                {
-                    _client.Close();
-                    _client.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error during client cleanup: {ex.Message}");
-                }
-                
-                _client = null;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Exception during client cleanup: {ex.Message}");
-                _client = null;
-            }
-        }
-
-        private void HandleConnectionLoss()
-        {
-            // Safely handle connection loss
-            App.Current.Dispatcher.Invoke(() =>
-            {
-                if (IsConnected)
+                App.Current.Dispatcher.Invoke(() =>
                 {
                     IsConnected = false;
-                    ConnectionStatus = "Connection lost";
-                    LastOperationStatus = "Connection to server was lost";
+                    ConnectionStatus = $"Connection lost: {ex.Message}";
+                    LastOperationStatus = $"Connection lost: {ex.Message}";
                     _client = null;
-                    Jobs.Clear();
-                    IsBusinessSoftwareRunning = false;
-                    
-                    // Ensure we cancel the token to free any pending tasks
-                    try
-                    {
-                        _cancellationTokenSource?.Cancel();
-                        _cancellationTokenSource?.Dispose();
-                        _cancellationTokenSource = null;
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Error canceling token during connection loss: {ex.Message}");
-                    }
-                }
-            });
+                    StopAutoRefresh();
+                });
+            }
         }
 
         private async Task SendCommandAsync(string commandType, string jobName = "", List<string> jobNames = null, Dictionary<string, object> parameters = null)
@@ -571,7 +557,14 @@ namespace EasySave_by_ProSoft.Network
                 if (IsConnected)
                 {
                     Debug.WriteLine("SendCommandAsync detected socket is disconnected while IsConnected=true");
-                    HandleConnectionLoss();
+                    App.Current.Dispatcher.Invoke(() =>
+                    {
+                        IsConnected = false;
+                        ConnectionStatus = "Connection lost";
+                        LastOperationStatus = "Connection lost - cannot send command";
+                        _client = null;
+                    });
+                    StopAutoRefresh();
                 }
                 return;
             }
@@ -611,7 +604,6 @@ namespace EasySave_by_ProSoft.Network
                 Debug.WriteLine($"Socket already disposed: {ex.Message}");
                 ConnectionStatus = "Connection closed";
                 LastOperationStatus = "Connection closed - cannot send command";
-                await CleanupClientResourcesSafely();
                 HandleConnectionLoss();
             }
             catch (InvalidOperationException ex)
@@ -619,26 +611,13 @@ namespace EasySave_by_ProSoft.Network
                 Debug.WriteLine($"Invalid socket operation: {ex.Message}");
                 ConnectionStatus = "Connection invalid";
                 LastOperationStatus = "Connection invalid - command not sent";
-                await CleanupClientResourcesSafely();
                 HandleConnectionLoss();
             }
             catch (SocketException ex)
             {
                 Debug.WriteLine($"Socket error: {ex.Message}");
-                
-                // Check if this is a graceful disconnect
-                if (IsGracefulDisconnect(ex))
-                {
-                    ConnectionStatus = "Server closed connection";
-                    LastOperationStatus = "Server closed the connection";
-                }
-                else
-                {
-                    ConnectionStatus = $"Socket error: {ex.Message}";
-                    LastOperationStatus = $"Socket error - command not sent";
-                }
-                
-                await CleanupClientResourcesSafely();
+                ConnectionStatus = $"Socket error: {ex.Message}";
+                LastOperationStatus = $"Socket error - command not sent";
                 HandleConnectionLoss();
             }
             catch (Exception ex)
@@ -650,7 +629,6 @@ namespace EasySave_by_ProSoft.Network
                 // Handle connection issues
                 if (_client == null || !_client.Connected)
                 {
-                    await CleanupClientResourcesSafely();
                     HandleConnectionLoss();
                 }
             }
@@ -658,6 +636,22 @@ namespace EasySave_by_ProSoft.Network
             {
                 IsOperationInProgress = false;
             }
+        }
+
+        private void HandleConnectionLoss()
+        {
+            // Safely handle connection loss
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                if (IsConnected)
+                {
+                    IsConnected = false;
+                    StopAutoRefresh();
+                    _client = null;
+                    Jobs.Clear();
+                    IsBusinessSoftwareRunning = false;
+                }
+            });
         }
 
         public void CheckConnectionStatus()
@@ -672,6 +666,11 @@ namespace EasySave_by_ProSoft.Network
             {
                 Debug.WriteLine("Connection check detected socket is disconnected while IsConnected=true");
                 HandleConnectionLoss();
+            }
+            else
+            {
+                // Request a status update to validate the connection is working
+                RequestJobStatusUpdate();
             }
         }
 
@@ -744,6 +743,13 @@ namespace EasySave_by_ProSoft.Network
                             }
                         }
 
+                        // Keep scrolling position if real-time follow is enabled
+                        RemoteJobStatus jobToFollow = null;
+                        if (IsRealTimeFollowEnabled && Jobs.Any(j => j.State == BackupState.Running))
+                        {
+                            jobToFollow = Jobs.FirstOrDefault(j => j.State == BackupState.Running);
+                        }
+
                         // Clear and rebuild job list
                         Jobs.Clear();
                         foreach (var state in jobStates)
@@ -773,6 +779,17 @@ namespace EasySave_by_ProSoft.Network
                             }
                         }
 
+                        // Signal real-time follow if job is still running
+                        if (IsRealTimeFollowEnabled && jobToFollow != null)
+                        {
+                            var updatedJob = Jobs.FirstOrDefault(j => j.Name == jobToFollow.Name && j.State == BackupState.Running);
+                            if (updatedJob != null)
+                            {
+                                // Raise event to scroll to this job (UI will handle this)
+                                RaiseFollowJobEvent(updatedJob);
+                            }
+                        }
+
                         CommandManager.InvalidateRequerySuggested();
                     }
                     catch (Exception ex)
@@ -785,6 +802,14 @@ namespace EasySave_by_ProSoft.Network
             {
                 Debug.WriteLine($"Error processing job statuses: {ex.Message}");
             }
+        }
+
+        // Event for notifying the UI to follow a specific job
+        public event Action<RemoteJobStatus> FollowJob;
+
+        private void RaiseFollowJobEvent(RemoteJobStatus job)
+        {
+            FollowJob?.Invoke(job);
         }
 
         private void ProcessBusinessAppState(bool isRunning)
@@ -864,6 +889,58 @@ namespace EasySave_by_ProSoft.Network
             {
                 LastOperationStatus = $"Stopping {jobNames.Count} job(s)...";
                 _ = SendCommandAsync("StopJobs", jobNames: jobNames);
+            }
+        }
+
+        private bool IsTcpClientConnected()
+        {
+            try
+            {
+                if (_client == null)
+                    return false;
+
+                // First check the Connected property
+                if (!_client.Connected)
+                    return false;
+
+                // If we're "connected" but Client/Socket is null, then we're not actually connected
+                if (_client.Client == null)
+                    return false;
+
+                // Check if the socket is truly connected with a non-blocking poll
+                // Poll with SelectRead - true means socket is closed or has pending data
+                bool blockingState = _client.Client.Blocking;
+                try
+                {
+                    _client.Client.Blocking = false;
+                    
+                    // Try to read 1 byte with timeout of 1 microsecond - if it throws or returns true, socket has issues
+                    byte[] tmp = new byte[1];
+                    if (_client.Client.Poll(1, SelectMode.SelectRead) && 
+                        _client.Client.Receive(tmp, SocketFlags.Peek) == 0)
+                    {
+                        // If we can read 0 bytes, the connection is closed or broken
+                        return false;
+                    }
+                    
+                    // Everything seems fine
+                    return true;
+                }
+                catch (SocketException)
+                {
+                    // Any socket exception means we're not connected properly
+                    return false;
+                }
+                finally
+                {
+                    // Restore original blocking state
+                    if (_client?.Client != null)
+                        _client.Client.Blocking = blockingState;
+                }
+            }
+            catch
+            {
+                return false;
             }
         }
 
