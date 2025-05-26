@@ -25,12 +25,19 @@ namespace EasySave_by_ProSoft.Services
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
+    
+
         /// <summary>
         /// Shows a warning message to the user
         /// </summary>
         public void ShowWarning(string message, string title = "Warning")
         {
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        public void ShowBusinessSoftware( string title = "Sauvegarde bloquée", string localization = null)
+        {
+            MessageBox.Show(localization, title, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         /// <summary>
@@ -50,5 +57,9 @@ namespace EasySave_by_ProSoft.Services
             MessageBoxResult result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question);
             return result == MessageBoxResult.Yes;
         }
+
+
+
+
     }
 }

@@ -601,6 +601,15 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Unable to start backup while the business software is open. Please close the business software to start backup..
+        /// </summary>
+        public static string PopUpBusinessSoftware {
+            get {
+                return ResourceManager.GetString("PopUpBusinessSoftware", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Processed Files.
         /// </summary>
         public static string ProcessedFiles {

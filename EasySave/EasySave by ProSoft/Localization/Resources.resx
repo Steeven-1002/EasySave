@@ -339,4 +339,7 @@
   <data name="ProcessedFiles" xml:space="preserve">
     <value>Processed Files</value>
   </data>
+  <data name="PopUpBusinessSoftware" xml:space="preserve">
+    <value>Unable to start backup while the business software is open. Please close the business software to start backup.</value>
+  </data>
 </root>
