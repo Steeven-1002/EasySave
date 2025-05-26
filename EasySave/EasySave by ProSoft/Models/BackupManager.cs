@@ -12,7 +12,7 @@ namespace EasySave_by_ProSoft.Models
     {
         private List<BackupJob> backupJobs;
         private string jobsConfigFilePath;
-        private readonly ParallelExecutionManager _parallelManager;
+        private readonly ParallelExecutionManager _parallelManager;  // Add missing field
         private readonly BusinessApplicationMonitor _businessMonitor;
         private readonly object _priorityLock = new();
         private readonly EventManager _eventManager = EventManager.Instance;
@@ -35,7 +35,7 @@ namespace EasySave_by_ProSoft.Models
             Directory.CreateDirectory(Path.GetDirectoryName(jobsConfigFilePath)!);
 
             // Initialize the parallel execution manager
-            _parallelManager = new ParallelExecutionManager();
+            _parallelManager = new ParallelExecutionManager();  // Initialize the missing field
 
             // Initialize the business application monitor
             string appNameToMonitor = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
@@ -46,6 +46,9 @@ namespace EasySave_by_ProSoft.Models
 
             // Register as an event listener
             _eventManager.AddListener(this);
+            
+            // Register instance for discovery by SocketServer
+            AppDomain.CurrentDomain.SetData("BackupManager", this);
         }
 
         /// <summary>
@@ -431,6 +434,7 @@ namespace EasySave_by_ProSoft.Models
             Debug.WriteLine("BackupManager: Business application stopped event received");
             _eventManager.NotifyBusinessSoftwareStateChanged(false);
         }
+
         /// <summary>
         /// Unregisters a job from the business application monitor
         /// </summary>
@@ -441,6 +445,15 @@ namespace EasySave_by_ProSoft.Models
             {
                 _businessMonitor.UnregisterJob(job);
             }
+        }
+
+        /// <summary>
+        /// Gets the current state of the business application
+        /// </summary>
+        /// <returns>True if the business application is running, otherwise false</returns>
+        public bool GetBusinessApplicationState()
+        {
+            return _businessMonitor?.IsRunning() ?? false;
         }
     }
 }

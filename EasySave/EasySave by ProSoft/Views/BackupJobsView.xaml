@@ -41,6 +41,8 @@
                         <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementName}" DisplayMemberBinding="{Binding Name}" Width="150"/>
                         <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementSource}" DisplayMemberBinding="{Binding SourcePath}" Width="150"/>
                         <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementTarget}" DisplayMemberBinding="{Binding TargetPath}" Width="150"/>
+                        <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementSize}" DisplayMemberBinding="{Binding Size, Converter={StaticResource SizeConverter}, UpdateSourceTrigger=PropertyChanged}"
+                                         Width="100"/>
                         <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementType}" DisplayMemberBinding="{Binding Type}" Width="80"/>
                         <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementStatus}" Width="100">
                             <GridViewColumn.CellTemplate>
