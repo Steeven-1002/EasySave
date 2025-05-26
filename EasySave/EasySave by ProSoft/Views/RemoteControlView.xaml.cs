@@ -59,7 +59,7 @@ namespace EasySave_by_ProSoft.Views
             }
             catch (Exception ex)
             {
-                // Log error but don't crash the application on connection check
+                // Log potential errors during connection check.
                 Debug.WriteLine($"Error in connection check timer: {ex.Message}");
             }
         }

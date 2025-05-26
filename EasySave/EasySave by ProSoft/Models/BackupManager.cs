@@ -232,9 +232,7 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (Exception ex)
             {
-                // Notify user with a popup
-                System.Windows.Forms.MessageBox.Show($"Error loading jobs from file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
-
+                Debug.WriteLine($"Error loading jobs from file: {ex.Message}. Consider a more robust error notification mechanism.");
                 // Initialize with empty list if loading fails
                 backupJobs = new List<BackupJob>();
             }
@@ -274,7 +272,7 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (Exception ex)
             {
-                System.Windows.Forms.MessageBox.Show($"Error saving jobs to file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                Debug.WriteLine($"Error saving jobs to file: {ex.Message}. Consider a more robust error notification mechanism.");
             }
         }
 

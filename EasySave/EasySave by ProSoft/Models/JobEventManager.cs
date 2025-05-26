@@ -91,7 +91,7 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (Exception ex)
             {
-                System.Windows.Forms.MessageBox.Show($"Error notifying listeners: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                Debug.WriteLine($"Error notifying listeners: {ex.Message}");
             }
         }
 
@@ -124,7 +124,7 @@ namespace EasySave_by_ProSoft.Models
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.Forms.MessageBox.Show($"Error updating listener: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                    Debug.WriteLine($"Error updating listener for job {jobStatus?.BackupJob?.Name}: {ex.Message}");
                 }
             }
         }
@@ -191,21 +191,17 @@ namespace EasySave_by_ProSoft.Models
                     Debug.WriteLine($"Thread-{threadId}: Successfully updated state.json for job '{jobStatus.BackupJob.Name}'.");
 
                 }
-                // The external lock is the main protection against concurrent access.
                 catch (IOException ex)
                 {
                     Debug.WriteLine($"Thread-{threadId}: IOException in UpdateStateFile for '{jobStatus.BackupJob.Name}': {ex.Message}. File: {stateFilePath}");
-                    // System.Windows.Forms.MessageBox.Show($"Error writing to state.json file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 }
                 catch (JsonException ex)
                 {
                     Debug.WriteLine($"Thread-{threadId}: JsonException in UpdateStateFile for '{jobStatus.BackupJob.Name}': {ex.Message}. File content might be corrupt. File: {stateFilePath}");
-                    // System.Windows.Forms.MessageBox.Show($"Error processing state.json (JSON format error): {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine($"Thread-{threadId}: Unexpected error in UpdateStateFile for '{jobStatus.BackupJob.Name}': {ex.Message}. File: {stateFilePath}");
-                    // System.Windows.Forms.MessageBox.Show($"Unexpected error updating state file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
                 }
             }
         }
@@ -283,7 +279,7 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (Exception ex)
             {
-                System.Windows.Forms.MessageBox.Show($"Unexpected error: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                Debug.WriteLine($"Unexpected error during CleanupCompletedJobs: {ex.Message}");
             }
         }
     }

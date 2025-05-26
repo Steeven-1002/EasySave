@@ -6,7 +6,7 @@ namespace EasySave_by_ProSoft.Models
     public class LoggingService : JobEventListeners
     {
         /// <summary>
-        /// Singleton instance of the <see cref="LoggingBackup"/> class.
+        /// Singleton instance of the <see cref="LoggingService"/> class.
         /// </summary>
         private static LoggingService? _instance;
 
@@ -42,7 +42,7 @@ namespace EasySave_by_ProSoft.Models
             // Ensure _instance is not null before accessing its members
             if (_instance != null)
             {
-                _instance._logService = null;
+                _instance._logService = null; // Dispose or release old service if necessary
                 _instance._logService = newFormat switch
                 {
                     "XML" => new LogService(_instance.GetLogFilePath(), new XmlLogFormatter()),
@@ -53,7 +53,7 @@ namespace EasySave_by_ProSoft.Models
         }
 
         /// <summary>
-        /// Gets the singleton instance of the <see cref="LoggingBackup"/> class.
+        /// Gets the singleton instance of the <see cref="LoggingService"/> class.
         /// </summary>
         public static LoggingService Instance
         {
@@ -92,7 +92,6 @@ namespace EasySave_by_ProSoft.Models
                 encryptionTimeMs,
                 details
             );
-
         }
 
         /// <summary>

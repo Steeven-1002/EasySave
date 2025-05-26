@@ -339,4 +339,25 @@
   <data name="ProcessedFiles" xml:space="preserve">
     <value>Processed Files</value>
   </data>
+  <data name="StateWaiting" xml:space="preserve">
+    <value>Waiting</value>
+  </data>
+  <data name="StateRunning" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="StatePaused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="StateCompleted" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <data name="StateError" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="StateUnknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Calculating" xml:space="preserve">
+    <value>Calculating</value>
+  </data>
 </root>

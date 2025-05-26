@@ -54,7 +54,6 @@ namespace EasySave_by_ProSoft.ViewModels
 
         public ICommand CreateJobCommand { get; }
         public ICommand LaunchJobCommand { get; }
-        public ICommand LaunchMultipleJobsCommand { get; }
         public ICommand RemoveJobCommand { get; }
         public ICommand PauseJobCommand { get; }
         public ICommand ResumeJobCommand { get; }
@@ -76,7 +75,6 @@ namespace EasySave_by_ProSoft.ViewModels
                !_isLaunchingJobs; // Do not allow launch if a launch is already in progress
 
             LaunchJobCommand = new RelayCommand(async _ => await LaunchSelectedJob(), canLaunchPredicate);
-            LaunchMultipleJobsCommand = new RelayCommand(async _ => await LaunchSelectedJob(), canLaunchPredicate);
 
             CreateJobCommand = new RelayCommand(_ => CreateJob(), _ => true);
             RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(), _ => SelectedJobs != null && SelectedJobs.Count > 0);
@@ -144,7 +142,6 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             var selected = Jobs.Where(j => j.IsSelected).ToList();
             SelectedJobs = selected;
-            //SelectedJobs = selected.Count > 0 ? selected : null;
         }
 
         /// <summary>
@@ -155,18 +152,6 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             if (!Jobs.Contains(job))
             {
-                /*
-                // Listen for property changes on the job's status
-                if (job.Status is INotifyPropertyChanged statusNotifier)
-                {
-                    statusNotifier.PropertyChanged += (s, e) => 
-                    {
-                        // Force UI refresh when job status changes
-                        OnPropertyChanged(nameof(Jobs));
-                    };
-                }
-                */
-
                 Jobs.Add(job);
                 OnPropertyChanged(nameof(Jobs));
             }
@@ -188,14 +173,14 @@ namespace EasySave_by_ProSoft.ViewModels
             // Checks if a launch is already in progress.
             if (_isLaunchingJobs)
             {
-                Debug.WriteLine("LaunchSelectedJob: Un lancement est déjà en cours. Annulation de la nouvelle requête de lancement.");
+                Debug.WriteLine("LaunchSelectedJob: A launch is already in progress. Cancelling the new launch request.");
                 return;
             }
 
             // Check if any jobs are selected.
             if (SelectedJobs == null || !SelectedJobs.Any())
             {
-                Debug.WriteLine("LaunchSelectedJob: Aucun travail sélectionné.");
+                Debug.WriteLine("LaunchSelectedJob: No job selected.");
                 return;
             }
 
@@ -208,14 +193,14 @@ namespace EasySave_by_ProSoft.ViewModels
             // Check if there are any jobs eligible for launch.
             if (!jobsToStartModels.Any())
             {
-                Debug.WriteLine("LaunchSelectedJob: Aucun travail approprié à démarrer en fonction de la sélection et de l'état actuels.");
+                Debug.WriteLine("LaunchSelectedJob: No suitable job to start based on current selection and status.");
                 CommandManager.InvalidateRequerySuggested(); // Updates the state of the buttons.
                 return;
             }
 
             _isLaunchingJobs = true; // Sets the indicator to show that a launch is in progress.
             CommandManager.InvalidateRequerySuggested(); // Disables launch buttons.
-            Debug.WriteLine($"MainViewModel.LaunchSelectedJob: DÉFINI _isLaunchingJobs = true. Lancement des travaux : {string.Join(", ", jobsToStartModels.Select(j => j.Name))}");
+            Debug.WriteLine($"MainViewModel.LaunchSelectedJob: SET _isLaunchingJobs = true. Launching jobs: {string.Join(", ", jobsToStartModels.Select(j => j.Name))}");
 
             try
             {
@@ -223,28 +208,28 @@ namespace EasySave_by_ProSoft.ViewModels
                 foreach (var jobModel in jobsToStartModels)
                 {
                     jobModel.Status.ResetForRun(); // Resets the job status for rerun.
-                    Debug.WriteLine($"MainViewModel.LaunchSelectedJob: Statut du travail '{jobModel.Name}' RÉINITIALISÉ pour l'exécution. Nouveau statut : {jobModel.Status.State}");
+                    Debug.WriteLine($"MainViewModel.LaunchSelectedJob: Job status '{jobModel.Name}' RESET for execution. New status: {jobModel.Status.State}");
                     jobNamesToRun.Add(jobModel.Name); // Adds the job name to the list of jobs to run.
                 }
 
                 if (jobNamesToRun.Any())
                 {
                     await _backupManager.ExecuteJobsByNameAsync(jobNamesToRun);
-                    Debug.WriteLine("MainViewModel.LaunchSelectedJob: BackupManager.ExecuteJobsByNameAsync attendu et terminé.");
+                    Debug.WriteLine("MainViewModel.LaunchSelectedJob: BackupManager.ExecuteJobsByNameAsync awaited and completed.");
                 }
                 else
                 {
-                    Debug.WriteLine("MainViewModel.LaunchSelectedJob: Aucun nom de travail valide trouvé à exécuter.");
+                    Debug.WriteLine("MainViewModel.LaunchSelectedJob: No valid job names found to execute.");
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"MainViewModel.LaunchSelectedJob: EXCEPTION lors de l'exécution du travail : {ex.Message}");
+                Debug.WriteLine($"MainViewModel.LaunchSelectedJob: EXCEPTION during job execution: {ex.Message}");
             }
             finally
             {
                 _isLaunchingJobs = false; // Resets the indicator after all jobs are completed or in case of error.
-                Debug.WriteLine("MainViewModel.LaunchSelectedJob: (dans finally) DÉFINI _isLaunchingJobs = false.");
+                Debug.WriteLine("MainViewModel.LaunchSelectedJob: (in finally) SET _isLaunchingJobs = false.");
                 CommandManager.InvalidateRequerySuggested(); // Reactivates the launch buttons.
             }
         }
@@ -302,33 +287,6 @@ namespace EasySave_by_ProSoft.ViewModels
         }
 
         /// <summary>
-        /// Launches multiple backup jobs that are selected in the UI
-        /// </summary>
-        private void LaunchMultipleJobs()
-        {
-            if (SelectedJobs == null || SelectedJobs.Count == 0)
-                return;
-
-            // Get indices of selected jobs
-            var jobIndices = new List<int>();
-            foreach (var job in SelectedJobs)
-            {
-                int index = Jobs.IndexOf(job);
-                if (index >= 0)
-                {
-                    jobIndices.Add(index);
-                }
-            }
-
-            // Execute selected jobs using BackupManager
-            if (jobIndices.Count > 0)
-            {
-                var jobIndicesRef = jobIndices; // Create a reference variable
-                _backupManager.ExecuteJobsAsync(jobIndicesRef);
-            }
-        }
-
-        /// <summary>
         /// Removes the selected backup job
         /// </summary>
         private void RemoveSelectedJob()
@@ -367,15 +325,14 @@ namespace EasySave_by_ProSoft.ViewModels
 
             return job.Status.State switch
             {
-                BackupState.Waiting => "En attente",
-                BackupState.Running => "En cours",
-                BackupState.Paused => "En pause",
-                BackupState.Completed => "Terminé",
-                BackupState.Error => "Erreur",
-                _ => "Inconnu"
+                BackupState.Waiting => Localization.Resources.StateWaiting ?? "Waiting",
+                BackupState.Running => Localization.Resources.StateRunning ?? "Running",
+                BackupState.Paused => Localization.Resources.StatePaused ?? "Paused",
+                BackupState.Completed => Localization.Resources.StateCompleted ?? "Completed",
+                BackupState.Error => Localization.Resources.StateError ?? "Error",
+                _ => Localization.Resources.StateUnknown ?? "Unknown"
             };
         }
-
 
         /// <summary>
         /// Gets the job progress as a string with percentage
@@ -399,7 +356,7 @@ namespace EasySave_by_ProSoft.ViewModels
             var remaining = job.Status.EstimatedTimeRemaining;
 
             if (remaining.TotalSeconds < 1)
-                return "Calcul en cours...";
+                return Localization.Resources.Calculating ?? "Calculating...";
 
             if (remaining.TotalHours >= 1)
                 return $"{(int)remaining.TotalHours}h {remaining.Minutes:D2}m {remaining.Seconds:D2}s";
