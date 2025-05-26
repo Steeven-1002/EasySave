@@ -86,7 +86,7 @@ namespace EasySave_by_ProSoft.ViewModels
             _jobEventManager.AddListener(this);
 
             LaunchJobCommand = new RelayCommand(async _ => await LaunchSelectedJob(), _ => CanLaunchJob());
-            RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(), _ => SelectedJobs != null && SelectedJobs.Count > 0);
+            RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(SelectedJobs), _ => SelectedJobs != null && SelectedJobs.Count > 0);
             PauseJobCommand = new RelayCommand(_ => PauseSelectedJob(), _ => CanPauseSelectedJob());
             ResumeJobCommand = new RelayCommand(_ => ResumeSelectedJob(), _ => CanResumeSelectedJob());
             StopJobCommand = new RelayCommand(_ => StopSelectedJobs(), _ => CanStopSelectedJob());
@@ -339,7 +339,7 @@ namespace EasySave_by_ProSoft.ViewModels
         /// <summary>
         /// Removes the selected backup job
         /// </summary>
-        private void RemoveSelectedJob()
+        public void RemoveSelectedJob(List<BackupJob> SelectedJobs)
         {
             var jobsToRemove = new List<BackupJob>(SelectedJobs);
 

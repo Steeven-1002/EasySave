@@ -556,11 +556,29 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Job(s) Deleted.
+        /// </summary>
+        public static string MessageConfirmDeleteJobs {
+            get {
+                return ResourceManager.GetString("MessageConfirmDeleteJobs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à New backup job validated !.
         /// </summary>
         public static string MessageNewJobValidated {
             get {
                 return ResourceManager.GetString("MessageNewJobValidated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à No job in selection.
+        /// </summary>
+        public static string MessageNoJobSelected {
+            get {
+                return ResourceManager.GetString("MessageNoJobSelected", resourceCulture);
             }
         }
         

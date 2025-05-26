@@ -389,7 +389,7 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         public void NotifyInfo(string message)
         {
-            _dialogService.ShowInfo(message);
+            _dialogService.ShowInformation(message);
         }
 
         /// <summary>

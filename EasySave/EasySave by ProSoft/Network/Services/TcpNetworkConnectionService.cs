@@ -140,28 +140,44 @@ namespace EasySave_by_ProSoft.Network.Services
         {
             if (_isDisposed) throw new ObjectDisposedException(nameof(TcpNetworkConnectionService));
             
-            // Validate connection state
+            // Enhanced validation with more detailed logging
             if (!IsConnected || _client == null || !_client.Connected)
             {
                 if (IsConnected)
                 {
-                    Debug.WriteLine("RequestJobStatusUpdate detected disconnected socket while IsConnected=true");
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] RequestJobStatusUpdate detected disconnected socket while IsConnected=true");
                     HandleConnectionLoss();
+                }
+                else
+                {
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] RequestJobStatusUpdate called but client is not connected");
                 }
                 return;
             }
             
             try
             {
-                // Ensure CommandType is set
-                var command = new RemoteCommand();
+                // Create command with explicit CommandType and add timestamp for tracking
+                var command = new RemoteCommand
+                {
+                    CommandType = "RequestStatusUpdate",
+                    Parameters = new Dictionary<string, object> { { "Timestamp", DateTime.Now.ToString("o") } }
+                };
+                
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Requesting job status update...");
                 await SendCommandAsync(command);
-                Debug.WriteLine($"Job status update requested (CommandType: {command.CommandType})");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Job status update requested (CommandType: {command.CommandType})");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error requesting job status update: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error requesting job status update: {ex.Message}");
                 UpdateStatusMessage($"Error requesting update: {ex.Message}");
+                
+                // Check if the connection is still valid after the error
+                if (_client != null && !_client.Connected && IsConnected)
+                {
+                    HandleConnectionLoss();
+                }
             }
         }
         
@@ -172,12 +188,12 @@ namespace EasySave_by_ProSoft.Network.Services
         {
             if (_isDisposed) throw new ObjectDisposedException(nameof(TcpNetworkConnectionService));
             
-            // Early validation
+            // Early validation with enhanced logging
             if (!IsConnected || _client == null || !_client.Connected)
             {
                 if (IsConnected)
                 {
-                    Debug.WriteLine("SendCommandAsync detected disconnected socket while IsConnected=true");
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] SendCommandAsync detected disconnected socket while IsConnected=true");
                     HandleConnectionLoss();
                 }
                 return;
@@ -186,7 +202,7 @@ namespace EasySave_by_ProSoft.Network.Services
             // Validate CommandType
             if (string.IsNullOrWhiteSpace(command.CommandType))
             {
-                Debug.WriteLine("SendCommandAsync: CommandType is empty. Command will not be sent.");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] SendCommandAsync: CommandType is empty. Command will not be sent.");
                 UpdateStatusMessage("Error: Attempted to send a command with an empty CommandType.");
                 return;
             }
@@ -204,19 +220,51 @@ namespace EasySave_by_ProSoft.Network.Services
                 }
                 
                 using NetworkStream stream = _client.GetStream();
-                await stream.WriteAsync(data);
-                await stream.FlushAsync();
                 
-                Debug.WriteLine($"Sent command: {command.CommandType} for {command.JobNames?.Count ?? 0} jobs");
-                
-                if (command.CommandType != "RequestStatusUpdate")
+                // Create a Task with timeout
+                CancellationTokenSource timeoutCts = new CancellationTokenSource(5000); // 5 second timeout
+                try
                 {
-                    UpdateStatusMessage($"{command.CommandType} command sent to server");
+                    await stream.WriteAsync(data, timeoutCts.Token);
+                    await stream.FlushAsync(timeoutCts.Token);
+                    
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Sent command: {command.CommandType} for {command.JobNames?.Count ?? 0} jobs");
+                    
+                    string messageType = command.CommandType switch
+                    {
+                        "LaunchJobs" => "Start",
+                        "PauseJobs" => "Pause",
+                        "ResumeJobs" => "Resume",
+                        "StopJobs" => "Stop",
+                        "RequestStatusUpdate" => "Update Request",
+                        _ => "Command"
+                    };
+                    
+                    if (command.CommandType != "RequestStatusUpdate")
+                    {
+                        UpdateStatusMessage($"{messageType} command sent to server");
+                    }
                 }
+                catch (OperationCanceledException)
+                {
+                    throw new TimeoutException($"Command {command.CommandType} send operation timed out after 5 seconds");
+                }
+                finally
+                {
+                    timeoutCts.Dispose();
+                }
+            }
+            catch (TimeoutException ex)
+            {
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Command timed out: {ex.Message}");
+                UpdateConnectionStatus("Connection timeout");
+                UpdateStatusMessage("Connection timeout - command not sent");
+                await CleanupClientResourcesAsync();
+                HandleConnectionLoss();
             }
             catch (ObjectDisposedException ex)
             {
-                Debug.WriteLine($"Socket disposed: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Socket disposed: {ex.Message}");
                 UpdateConnectionStatus("Connection closed");
                 UpdateStatusMessage("Connection closed - command not sent");
                 await CleanupClientResourcesAsync();
@@ -224,7 +272,7 @@ namespace EasySave_by_ProSoft.Network.Services
             }
             catch (InvalidOperationException ex)
             {
-                Debug.WriteLine($"Invalid socket operation: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Invalid socket operation: {ex.Message}");
                 UpdateConnectionStatus("Connection invalid");
                 UpdateStatusMessage("Connection invalid - command not sent");
                 await CleanupClientResourcesAsync();
@@ -232,7 +280,7 @@ namespace EasySave_by_ProSoft.Network.Services
             }
             catch (SocketException ex)
             {
-                Debug.WriteLine($"Socket error: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Socket error: {ex.Message}");
                 
                 if (IsGracefulDisconnect(ex))
                 {
@@ -250,7 +298,7 @@ namespace EasySave_by_ProSoft.Network.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error sending command: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error sending command: {ex.Message}");
                 UpdateConnectionStatus($"Error sending command: {ex.Message}");
                 UpdateStatusMessage($"Error sending command: {ex.Message}");
                 
@@ -264,6 +312,18 @@ namespace EasySave_by_ProSoft.Network.Services
             {
                 SetOperationInProgress(false);
             }
+        }
+
+        public Task SendCommandAsync(Models.RemoteCommand cmd)
+        {
+            // Convert from Models.RemoteCommand to Network.RemoteCommand
+            var command = new RemoteCommand(cmd.CommandType)
+            {
+                JobNames = cmd.JobNames,
+                Parameters = cmd.Parameters
+            };
+            
+            return SendCommandAsync(command);
         }
 
         #region Private Methods
@@ -280,7 +340,9 @@ namespace EasySave_by_ProSoft.Network.Services
                 }
                 
                 using NetworkStream stream = _client.GetStream();
-                byte[] buffer = new byte[8192]; // Large buffer for potentially large job lists
+                byte[] buffer = new byte[16384]; // Larger buffer for potentially large job lists
+                DateTime lastActivityTime = DateTime.Now;
+                bool connectionCheckPending = false;
                 
                 while (!cancellationToken.IsCancellationRequested && _client != null && _client.Connected)
                 {
@@ -293,39 +355,69 @@ namespace EasySave_by_ProSoft.Network.Services
                             {
                                 string json = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                                 ProcessServerMessage(json);
+                                lastActivityTime = DateTime.Now;
+                                connectionCheckPending = false;
                             }
                             else if (bytesRead == 0)
                             {
-                                Debug.WriteLine("Received zero bytes - connection closed by server");
+                                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Received zero bytes - connection closed by server");
                                 throw new SocketException((int)SocketError.ConnectionReset);
                             }
                         }
                         else
                         {
+                            // If no activity for more than 5 seconds, check connection with a ping
+                            if (!connectionCheckPending && DateTime.Now - lastActivityTime > TimeSpan.FromSeconds(5))
+                            {
+                                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] No activity for 5 seconds, checking connection");
+                                // Check connection health
+                                connectionCheckPending = true;
+                                if (!await CheckConnectionAsync())
+                                {
+                                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Connection check failed");
+                                    throw new SocketException((int)SocketError.Disconnecting);
+                                }
+                                
+                                // Send a keep alive request to server
+                                _ = Task.Run(async () => {
+                                    try {
+                                        var keepAliveCmd = new RemoteCommand("KeepAlive");
+                                        await SendCommandAsync(keepAliveCmd);
+                                        lastActivityTime = DateTime.Now;
+                                    }
+                                    catch (Exception ex) {
+                                        Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Keep alive failed: {ex.Message}");
+                                    }
+                                    finally {
+                                        connectionCheckPending = false;
+                                    }
+                                });
+                            }
+                            
                             await Task.Delay(100, cancellationToken);
                             
-                            // Check if client is still connected
+                            // Regular check if client is still connected
                             if (_client == null || !_client.Connected)
                             {
-                                Debug.WriteLine("Periodic check found socket disconnected");
+                                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Periodic check found socket disconnected");
                                 throw new SocketException((int)SocketError.Disconnecting);
                             }
                         }
                     }
                     catch (System.IO.IOException ex)
                     {
-                        Debug.WriteLine($"Socket IO Exception: {ex.Message}");
+                        Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Socket IO Exception: {ex.Message}");
                         throw;
                     }
                     catch (SocketException ex)
                     {
                         if (IsGracefulDisconnect(ex))
                         {
-                            Debug.WriteLine($"Server initiated graceful disconnect: {ex.Message}");
+                            Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Server initiated graceful disconnect: {ex.Message}");
                         }
                         else
                         {
-                            Debug.WriteLine($"Socket Exception during receive: {ex.Message}");
+                            Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Socket Exception during receive: {ex.Message}");
                         }
                         throw;
                     }
@@ -333,29 +425,29 @@ namespace EasySave_by_ProSoft.Network.Services
             }
             catch (OperationCanceledException)
             {
-                Debug.WriteLine("Receive messages operation was canceled");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Receive messages operation was canceled");
             }
             catch (ObjectDisposedException)
             {
-                Debug.WriteLine("Network stream or client was disposed");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Network stream or client was disposed");
                 await CleanupClientResourcesAsync();
             }
             catch (SocketException ex)
             {
                 if (IsGracefulDisconnect(ex))
                 {
-                    Debug.WriteLine($"Graceful socket disconnection detected: {ex.Message}");
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Graceful socket disconnection detected: {ex.Message}");
                 }
                 else
                 {
-                    Debug.WriteLine($"Socket error: {ex.Message}");
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Socket error: {ex.Message}");
                 }
                 await CleanupClientResourcesAsync();
                 HandleConnectionLoss();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error receiving messages: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error receiving messages: {ex.Message}");
                 await CleanupClientResourcesAsync();
                 HandleConnectionLoss();
             }
@@ -369,17 +461,23 @@ namespace EasySave_by_ProSoft.Network.Services
             try
             {
                 if (string.IsNullOrWhiteSpace(json))
+                {
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Received empty message from server");
                     return;
+                }
 
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Processing server message: {json.Length} bytes");
+                
                 using var document = JsonDocument.Parse(json);
                 string? messageType = null;
                 if (document.RootElement.TryGetProperty("Type", out var typeElement))
                 {
                     messageType = typeElement.GetString();
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Message type: {messageType}");
                 }
                 else
                 {
-                    Debug.WriteLine("Missing 'Type' property in server message.");
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Missing 'Type' property in server message.");
                     return;
                 }
 
@@ -403,22 +501,43 @@ namespace EasySave_by_ProSoft.Network.Services
                     case "CommandResponse":
                         if (document.RootElement.TryGetProperty("Status", out JsonElement statusElement))
                         {
-                            UpdateStatusMessage(statusElement.GetString() ?? string.Empty);
+                            string status = statusElement.GetString() ?? string.Empty;
+                            Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Received command response: {status}");
+                            UpdateStatusMessage(status);
                         }
+                        break;
+                        
+                    case "ConnectionCheck":
+                        Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Received connection check from server");
+                        // Respond to keep connection alive
+                        _ = Task.Run(async () => {
+                            try {
+                                var response = new RemoteCommand("ConnectionCheckResponse");
+                                await SendCommandAsync(response);
+                            } 
+                            catch (Exception ex) {
+                                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Failed to respond to connection check: {ex.Message}");
+                            }
+                        });
+                        break;
+                    
+                    case "KeepAliveResponse":
+                        Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Received keep alive response from server");
                         break;
 
                     default:
-                        Debug.WriteLine($"Unknown message type: {messageType}");
+                        Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Unknown message type: {messageType}");
                         break;
                 }
             }
             catch (JsonException ex)
             {
-                Debug.WriteLine($"Malformed JSON from server: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Malformed JSON from server: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] JSON content: {json}");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error processing message: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error processing message: {ex.Message}");
             }
         }
         
@@ -431,25 +550,51 @@ namespace EasySave_by_ProSoft.Network.Services
             {
                 if (jobStatesElement.ValueKind != JsonValueKind.Array)
                 {
-                    Debug.WriteLine("JobStatuses Data is not an array.");
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] JobStatuses Data is not an array. Value kind: {jobStatesElement.ValueKind}");
                     return;
                 }
 
+                // Log the raw JSON to examine its structure
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Processing job states: {jobStatesElement.GetArrayLength()} items");
+
                 var jobStates = JsonSerializer.Deserialize<List<JobState>>(jobStatesElement.GetRawText());
-                if (jobStates == null) return;
+                
+                if (jobStates == null)
+                {
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Deserialized job states is null");
+                    return;
+                }
 
                 // Filter out any invalid job states
-                jobStates = jobStates.FindAll(js => js != null && !string.IsNullOrEmpty(js.JobName));
-
-                JobStatusesUpdated?.Invoke(this, jobStates);
+                var validJobStates = jobStates.FindAll(js => js != null && !string.IsNullOrEmpty(js.JobName));
+                
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Found {validJobStates.Count} valid job states out of {jobStates.Count} total");
+                
+                // Only raise event if there are valid jobs to report
+                if (validJobStates.Count > 0)
+                {
+                    // Log each job state for debugging
+                    foreach (var job in validJobStates)
+                    {
+                        Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Job: {job.JobName}, State: {job.State}, Progress: {job.ProgressPercentage}%");
+                    }
+                    
+                    JobStatusesUpdated?.Invoke(this, validJobStates);
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] JobStatusesUpdated event raised with {validJobStates.Count} job states");
+                }
+                else
+                {
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] No valid job states found, event not raised");
+                }
             }
             catch (JsonException ex)
             {
-                Debug.WriteLine($"Error deserializing job states: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error deserializing job states: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Raw JSON: {jobStatesElement.GetRawText()}");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error processing job statuses: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error processing job statuses: {ex.Message}");
             }
         }
         
@@ -564,6 +709,46 @@ namespace EasySave_by_ProSoft.Network.Services
         {
             _isOperationInProgress = inProgress;
         }
+        
+        /// <summary>
+        /// Checks the connection health
+        /// </summary>
+        private async Task<bool> CheckConnectionAsync()
+        {
+            if (_client == null) return false;
+            
+            try
+            {
+                if (!_client.Connected)
+                    return false;
+                    
+                // Method 1: Use Socket.Poll to check connection status
+                if (_client.Client.Poll(1, SelectMode.SelectRead) && _client.Client.Available == 0)
+                {
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Socket.Poll indicates the connection is closed");
+                    return false;
+                }
+                
+                // Method 2: Check if we can get the network stream (will throw if disconnected)
+                try
+                {
+                    var stream = _client.GetStream();
+                    if (stream == null)
+                        return false;
+                }
+                catch
+                {
+                    return false;
+                }
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error checking connection: {ex.Message}");
+                return false;
+            }
+        }
         #endregion
         
         #region IDisposable Implementation
@@ -595,11 +780,6 @@ namespace EasySave_by_ProSoft.Network.Services
             }
             
             _isDisposed = true;
-        }
-
-        public Task SendCommandAsync(Models.RemoteCommand cmd)
-        {
-            throw new NotImplementedException();
         }
         #endregion
     }

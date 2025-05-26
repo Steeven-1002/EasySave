@@ -360,4 +360,10 @@
   <data name="Calculating" xml:space="preserve">
     <value>Calculating</value>
   </data>
+  <data name="MessageNoJobSelected" xml:space="preserve">
+    <value>No job in selection</value>
+  </data>
+  <data name="MessageConfirmDeleteJobs" xml:space="preserve">
+    <value>Job(s) Deleted</value>
+  </data>
 </root>

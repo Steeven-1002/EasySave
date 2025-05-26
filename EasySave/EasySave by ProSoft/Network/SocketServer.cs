@@ -17,6 +17,7 @@ namespace EasySave_by_ProSoft.Network
         private CancellationTokenSource _cancellationTokenSource;
         private readonly int _port;
         private bool _isRunning;
+        private readonly object _clientsLock = new object();
 
         public bool IsRunning => _isRunning;
         public event EventHandler<string> ClientConnected;
@@ -46,7 +47,7 @@ namespace EasySave_by_ProSoft.Network
             _server?.Stop();
             _isRunning = false;
 
-            lock (_connectedClients)
+            lock (_clientsLock)
             {
                 foreach (var client in _connectedClients)
                 {
@@ -79,7 +80,7 @@ namespace EasySave_by_ProSoft.Network
                         string clientAddress = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
                         Debug.WriteLine($"Client connected from {clientAddress}");
 
-                        lock (_connectedClients)
+                        lock (_clientsLock)
                         {
                             _connectedClients.Add(client);
                         }
@@ -138,6 +139,10 @@ namespace EasySave_by_ProSoft.Network
                     // Continue with handling - don't exit on initial status send failure
                 }
 
+                // Send keep-alive messages periodically to ensure connection
+                var keepAliveTokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
+                _ = Task.Run(async () => await SendPeriodicUpdates(client, keepAliveTokenSource.Token), token);
+
                 while (!token.IsCancellationRequested && client.Connected)
                 {
                     try
@@ -148,12 +153,12 @@ namespace EasySave_by_ProSoft.Network
                             if (bytesRead > 0)
                             {
                                 string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                                ProcessClientMessage(message, clientAddress);
+                                ProcessClientMessage(message, client, clientAddress);
                             }
                         }
                         else
                         {
-                            await Task.Delay(1000, token);
+                            await Task.Delay(100, token);
                         }
                     }
                     catch (Exception ex)
@@ -162,6 +167,9 @@ namespace EasySave_by_ProSoft.Network
                         break; // Exit the loop on error
                     }
                 }
+
+                // Cancel the keep-alive task when client handler exits
+                keepAliveTokenSource.Cancel();
             }
             catch (Exception ex)
             {
@@ -169,7 +177,7 @@ namespace EasySave_by_ProSoft.Network
             }
             finally
             {
-                lock (_connectedClients)
+                lock (_clientsLock)
                 {
                     _connectedClients.Remove(client);
                 }
@@ -183,39 +191,167 @@ namespace EasySave_by_ProSoft.Network
             }
         }
 
-        private void ProcessClientMessage(string message, string clientAddress)
+        private async Task SendPeriodicUpdates(TcpClient client, CancellationToken token)
         {
             try
             {
-                var command = JsonSerializer.Deserialize<RemoteCommand>(message);
-                if (command != null)
+                int heartbeatCounter = 0;
+                int backoffDelay = 5000; // Start with 5 seconds
+                
+                while (!token.IsCancellationRequested && client.Connected)
                 {
-                    Debug.WriteLine($"Received command: {command.CommandType} from {clientAddress}");
-
-                    // Special handling for RequestStatusUpdate
-                    if (command.CommandType == "RequestStatusUpdate")
+                    await Task.Delay(backoffDelay, token); // Adaptive delay
+                    
+                    if (!client.Connected) break;
+                    
+                    try
                     {
-                        // Find the client that sent this command
-                        lock (_connectedClients)
+                        // Every third cycle, also send a connection check
+                        if (++heartbeatCounter % 3 == 0)
                         {
-                            foreach (var client in _connectedClients)
-                            {
-                                if (((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString() == clientAddress)
-                                {
-                                    _ = ProcessStatusUpdateRequest(client, command);
-                                    return;
-                                }
-                            }
+                            await SendConnectionCheck(client);
                         }
+                        
+                        await SendJobStatuses(client);
+                        
+                        // If success, reset backoff delay
+                        backoffDelay = 5000;
                     }
-
-                    // For all other commands, use the standard event handling
-                    CommandReceived?.Invoke(this, command);
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error sending periodic update: {ex.Message}");
+                        
+                        // If client is no longer connected, break the loop
+                        if (!client.Connected)
+                        {
+                            Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Client disconnected during periodic update");
+                            break;
+                        }
+                        
+                        // Increase backoff delay for exponential backoff, cap at 15 seconds
+                        backoffDelay = Math.Min(backoffDelay * 2, 15000);
+                        Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Setting backoff delay to {backoffDelay}ms");
+                        
+                        // Wait a shorter time before retry on error
+                        await Task.Delay(1000, token);
+                    }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when token is canceled
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Periodic updates canceled");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error processing message from {clientAddress}: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error in periodic updates: {ex.Message}");
+            }
+        }
+
+        private void ProcessClientMessage(string message, TcpClient sender, string clientAddress)
+        {
+            try
+            {
+                // Detailed logging
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Received message from {clientAddress}: {message.Length} bytes");
+                
+                var command = JsonSerializer.Deserialize<RemoteCommand>(message);
+                if (command != null)
+                {
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Received command: {command.CommandType} from {clientAddress}");
+
+                    // Handle different command types
+                    switch (command.CommandType)
+                    {
+                        case "RequestStatusUpdate":
+                            _ = ProcessStatusUpdateRequest(sender, command);
+                            return;
+                        
+                        case "ConnectionCheckResponse":
+                            Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Received connection check response from {clientAddress}");
+                            return;
+                            
+                        case "KeepAlive":
+                            // Send keep alive response
+                            _ = Task.Run(async () => {
+                                try {
+                                    var response = new {
+                                        Type = "KeepAliveResponse",
+                                        Timestamp = DateTime.Now
+                                    };
+                                    
+                                    string json = JsonSerializer.Serialize(response);
+                                    byte[] data = Encoding.UTF8.GetBytes(json);
+                                    
+                                    NetworkStream stream = sender.GetStream();
+                                    await stream.WriteAsync(data, 0, data.Length);
+                                    await stream.FlushAsync();
+                                }
+                                catch (Exception ex) {
+                                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error sending keep alive response: {ex.Message}");
+                                }
+                            });
+                            return;
+
+                        default:
+                            // For all other commands, use the standard event handling
+                            CommandReceived?.Invoke(this, command);
+                            
+                            // Send acknowledgment to client
+                            _ = SendCommandAcknowledgement(sender, command);
+                            
+                            // Also send updated job states after a short delay to allow processing
+                            _ = Task.Run(async () => 
+                            {
+                                try
+                                {
+                                    await Task.Delay(500); // Give time for the command to be processed
+                                    await SendJobStatuses(sender);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error sending job statuses after command: {ex.Message}");
+                                }
+                            });
+                            break;
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error parsing JSON from {clientAddress}: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Raw message: {message}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error processing message from {clientAddress}: {ex.Message}");
+            }
+        }
+
+        private async Task SendCommandAcknowledgement(TcpClient client, RemoteCommand command)
+        {
+            if (client == null || !client.Connected) return;
+
+            try
+            {
+                var response = new
+                {
+                    Type = "CommandResponse",
+                    CommandType = command.CommandType,
+                    Status = $"{command.CommandType} command received and processed"
+                };
+
+                string json = JsonSerializer.Serialize(response);
+                byte[] data = Encoding.UTF8.GetBytes(json);
+
+                NetworkStream stream = client.GetStream();
+                await stream.WriteAsync(data, 0, data.Length);
+                await stream.FlushAsync();
+                Debug.WriteLine($"Sent command acknowledgement for {command.CommandType}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error sending command acknowledgement: {ex.Message}");
             }
         }
 
@@ -250,12 +386,12 @@ namespace EasySave_by_ProSoft.Network
 
         public async Task BroadcastJobStatusesAsync()
         {
-            if (!_isRunning || _connectedClients.Count == 0)
-                return;
+            if (!_isRunning) return;
 
             List<TcpClient> clientsCopy;
-            lock (_connectedClients)
+            lock (_clientsLock)
             {
+                if (_connectedClients.Count == 0) return;
                 clientsCopy = _connectedClients.ToList();
             }
 
@@ -263,7 +399,10 @@ namespace EasySave_by_ProSoft.Network
             {
                 try
                 {
-                    await SendJobStatuses(client);
+                    if (client.Connected)
+                    {
+                        await SendJobStatuses(client);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -284,11 +423,15 @@ namespace EasySave_by_ProSoft.Network
                 // Ensure we don't have null or invalid job states
                 jobStates = jobStates?.Where(js => js != null && !string.IsNullOrEmpty(js.JobName))
                                   .ToList() ?? new List<JobState>();
-                    
+                
+                // Log the job states being sent
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Preparing to send {jobStates.Count} job states to client");
+                
                 var response = new
                 {
                     Type = "JobStatuses",
-                    Data = jobStates
+                    Data = jobStates,
+                    Timestamp = DateTime.Now
                 };
 
                 var options = new JsonSerializerOptions
@@ -300,45 +443,144 @@ namespace EasySave_by_ProSoft.Network
                 string json = JsonSerializer.Serialize(response, options);
                 byte[] data = Encoding.UTF8.GetBytes(json);
 
-                NetworkStream stream = client.GetStream();
-                await stream.WriteAsync(data, 0, data.Length);
-                await stream.FlushAsync();
-                Debug.WriteLine($"Sent job statuses to client: {jobStates.Count} states");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Sending {data.Length} bytes of job status data");
+                
+                // Check connection again before trying to send
+                if (!client.Connected)
+                {
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Client disconnected before sending job statuses");
+                    throw new SocketException((int)SocketError.NotConnected);
+                }
+                
+                // Break up large payloads into smaller chunks if needed
+                if (data.Length > 4096)
+                {
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Using chunked sending for large job status payload ({data.Length} bytes)");
+                    await SendDataInChunks(client, data);
+                }
+                else
+                {
+                    // Send with timeout protection
+                    using (var timeoutCts = new CancellationTokenSource(5000)) // 5-second timeout
+                    {
+                        try
+                        {
+                            NetworkStream stream = client.GetStream();
+                            await stream.WriteAsync(data, 0, data.Length, timeoutCts.Token);
+                            await stream.FlushAsync(timeoutCts.Token);
+                            Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Successfully sent job statuses: {jobStates.Count} states");
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Sending job statuses timed out");
+                            throw new TimeoutException("Sending job statuses timed out after 5 seconds");
+                        }
+                    }
+                }
             }
             catch (ObjectDisposedException ex)
             {
-                Debug.WriteLine($"Socket was disposed: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Socket was disposed while sending job statuses: {ex.Message}");
                 throw;
             }
             catch (SocketException ex)
             {
-                Debug.WriteLine($"Socket error sending job statuses: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Socket error sending job statuses: {ex.Message}");
+                throw;
+            }
+            catch (TimeoutException ex)
+            {
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Timeout while sending job statuses: {ex.Message}");
                 throw;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error sending job statuses to client: {ex.Message}");
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error sending job statuses to client: {ex.Message}");
+                throw;
+            }
+        }
+
+        private async Task SendDataInChunks(TcpClient client, byte[] data)
+        {
+            const int chunkSize = 2048;
+            int totalBytes = data.Length;
+            int bytesSent = 0;
+            
+            try
+            {
+                NetworkStream stream = client.GetStream();
+                
+                while (bytesSent < totalBytes)
+                {
+                    int bytesToSend = Math.Min(chunkSize, totalBytes - bytesSent);
+                    using var timeoutCts = new CancellationTokenSource(3000);
+                    await stream.WriteAsync(data, bytesSent, bytesToSend, timeoutCts.Token);
+                    bytesSent += bytesToSend;
+                    
+                    // Report progress
+                    if (bytesSent < totalBytes)
+                        Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Sent chunk: {bytesSent}/{totalBytes} bytes");
+                    
+                    // Small delay between chunks
+                    await Task.Delay(10);
+                }
+                
+                await stream.FlushAsync();
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Successfully sent all {totalBytes} bytes in chunks");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error sending chunked data: {ex.Message}. Sent {bytesSent}/{totalBytes} bytes");
+                throw;
+            }
+        }
+
+        private async Task SendConnectionCheck(TcpClient client)
+        {
+            if (client == null || !client.Connected) return;
+            
+            try
+            {
+                var response = new
+                {
+                    Type = "ConnectionCheck",
+                    Timestamp = DateTime.Now
+                };
+                
+                string json = JsonSerializer.Serialize(response);
+                byte[] data = Encoding.UTF8.GetBytes(json);
+                
+                NetworkStream stream = client.GetStream();
+                await stream.WriteAsync(data, 0, data.Length);
+                await stream.FlushAsync();
+                
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Sent connection check to client");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error sending connection check: {ex.Message}");
                 throw;
             }
         }
 
         public async Task BroadcastBusinessAppStateAsync(bool isRunning)
         {
-            if (!_isRunning || _connectedClients.Count == 0)
-                return;
+            if (!_isRunning) return;
 
             var response = new
             {
                 Type = "BusinessAppState",
-                IsRunning = isRunning
+                IsRunning = isRunning,
+                Timestamp = DateTime.Now
             };
 
             string json = JsonSerializer.Serialize(response);
             byte[] data = Encoding.UTF8.GetBytes(json);
 
             List<TcpClient> clientsCopy;
-            lock (_connectedClients)
+            lock (_clientsLock)
             {
+                if (_connectedClients.Count == 0) return;
                 clientsCopy = _connectedClients.ToList();
             }
 
@@ -371,7 +613,15 @@ namespace EasySave_by_ProSoft.Network
 
         public RemoteCommand()
         {
-            CommandType = string.Empty;
+            CommandType = "RequestStatusUpdate"; // Default command type
+            JobName = string.Empty;
+            JobNames = new List<string>();
+            Parameters = new Dictionary<string, object>();
+        }
+        
+        public RemoteCommand(string commandType)
+        {
+            CommandType = string.IsNullOrWhiteSpace(commandType) ? "RequestStatusUpdate" : commandType;
             JobName = string.Empty;
             JobNames = new List<string>();
             Parameters = new Dictionary<string, object>();
