@@ -7,7 +7,7 @@ namespace EasySave_by_ProSoft.Models
 {
     /// <summary>
     /// Implements Observer pattern responsible for communicating job state changes
-    /// to different listeners (logs, state.json file, MVVM view)
+    /// to different listeners
     /// </summary>
     public class JobEventManager
     {

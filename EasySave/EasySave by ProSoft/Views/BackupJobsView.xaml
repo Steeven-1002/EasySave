@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:EasySave_by_ProSoft.Views"
              xmlns:localization="clr-namespace:EasySave_by_ProSoft.Localization"
              mc:Ignorable="d" 
-             d:DesignHeight="621.282" d:DesignWidth="980">
+             d:DesignHeight="450" d:DesignWidth="980">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -14,281 +14,68 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="{x:Static localization:Resources.BackupWorkManagement}" 
-                   Style="{StaticResource HeaderTextBlockStyle}" 
-                   Margin="0,0,0,15"/>
+        <TextBlock Grid.Row="0" Text="{x:Static localization:Resources.BackupWorkManagement}" FontSize="20" FontWeight="Bold" Margin="10"/>
+        <ListView Grid.Row="1" x:Name="BackupJobsListView" Margin="10">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Width="40">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                          Checked="BackupJob_CheckChanged"
+                                          Unchecked="BackupJob_CheckChanged"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementName}" DisplayMemberBinding="{Binding Name}" Width="100"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementSource}" DisplayMemberBinding="{Binding SourcePath}" Width="200"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementTarget}" DisplayMemberBinding="{Binding TargetPath}" Width="200"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementSize}" DisplayMemberBinding="{Binding Status.TotalSize}" Width="100"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementType}" DisplayMemberBinding="{Binding Type}" Width="100"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementStatus}" DisplayMemberBinding="{Binding Status.State, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
+                    <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementProgressPercentage}" Width="150">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <ProgressBar Value="{Binding Status.ProgressPercentage, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}"
+                                             Minimum="0" Maximum="100" Width="120" Height="15" />
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                </GridView>
+            </ListView.View>
+        </ListView>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-            <ListView x:Name="BackupJobsListView" 
-                      Style="{StaticResource ModernListView}"
-                      BorderThickness="1" 
-                      Margin="0,0,0,15"
-                      VirtualizingStackPanel.IsVirtualizing="True"
-                      VirtualizingStackPanel.VirtualizationMode="Recycling"
-                      ScrollViewer.IsDeferredScrollingEnabled="True">
-                <ListView.View>
-                    <GridView>
-                        <GridViewColumn Width="40">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                              Checked="BackupJob_CheckChanged"
-                                              Unchecked="BackupJob_CheckChanged"
-                                              AutomationProperties.Name="{Binding Name, StringFormat='Sélectionner le travail {0}'}"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementName}" DisplayMemberBinding="{Binding Name}" Width="150"/>
-                        <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementSource}" DisplayMemberBinding="{Binding SourcePath}" Width="150"/>
-                        <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementTarget}" DisplayMemberBinding="{Binding TargetPath}" Width="150"/>
-                        <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementType}" DisplayMemberBinding="{Binding Type}" Width="80"/>
-                        <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementStatus}" Width="100">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Status.State, UpdateSourceTrigger=PropertyChanged}">
-                                        <TextBlock.Style>
-                                            <Style TargetType="{x:Type TextBlock}">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Status.State}" Value="Running">
-                                                        <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
-                                                        <Setter Property="FontWeight" Value="SemiBold"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Status.State}" Value="Paused">
-                                                        <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
-                                                        <Setter Property="FontWeight" Value="SemiBold"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Status.State}" Value="Error">
-                                                        <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
-                                                        <Setter Property="FontWeight" Value="SemiBold"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Status.State}" Value="Completed">
-                                                        <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Header="{x:Static localization:Resources.BackupWorkManagementProgressPercentage}" Width="120">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Grid>
-                                        <ProgressBar Value="{Binding Status.ProgressPercentage, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                                                     Minimum="0" Maximum="100" Width="100" />
-                                        <TextBlock Text="{Binding Status.ProgressPercentage, StringFormat=\{0:F1\}%}" 
-                                                   HorizontalAlignment="Center" 
-                                                   VerticalAlignment="Center"
-                                                   FontSize="11"
-                                                   FontWeight="SemiBold"/>
-                                    </Grid>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Header="Actions" Width="150">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal">
-                                        <!-- Pause Button -->
-                                        <Button Width="42" Height="24" 
-                                                ToolTip="Pause" 
-                                                Margin="2,0" 
-                                                Command="{Binding DataContext.PauseJobCommand, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
-                                                CommandParameter="{Binding}">
-                                            <Button.Style>
-                                                <Style TargetType="{x:Type Button}" BasedOn="{StaticResource PauseButtonStyle}">
-                                                    <Setter Property="Content" Value="||"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Running">
-                                                            <Setter Property="IsEnabled" Value="True"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Paused">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Completed">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Error">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Initialise">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                        </Button>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
+            <Button Content="{x:Static localization:Resources.BackupWorkManagementStartBackupSelected}" Margin="5" Click="LaunchSelectedJob_Click"/>
+            <Button Content="{x:Static localization:Resources.BackupWorkManagementDeleteBackupSelected}" Margin="5" Click="DeleteSelectedJob_Click"/>
+            <Button Content="{x:Static localization:Resources.BackupWorkManagementNewBackup}" Margin="5" Click="CreateNewJob_Click"/>
+        </StackPanel>
 
-                                        <!-- Resume Button -->
-                                        <Button Width="40" Height="24" 
-                                                ToolTip="Resume" 
-                                                Margin="2,0" 
-                                                Command="{Binding DataContext.ResumeJobCommand, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
-                                                CommandParameter="{Binding}">
-                                            <Button.Style>
-                                                <Style TargetType="{x:Type Button}" BasedOn="{StaticResource ActionButtonStyle}">
-                                                    <Setter Property="Content" Value="▶️"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Paused">
-                                                            <Setter Property="IsEnabled" Value="True"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Running">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Completed">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Error">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Initialise">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                        </Button>
-
-                                        <!-- Stop Button -->
-                                        <Button Width="40" Height="24" 
-                                                ToolTip="Stop" 
-                                                Margin="2,0" 
-                                                Command="{Binding DataContext.StopJobCommand, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
-                                                CommandParameter="{Binding}">
-                                            <Button.Style>
-                                                <Style TargetType="{x:Type Button}" BasedOn="{StaticResource StopButtonStyle}">
-                                                    <Setter Property="Content" Value="■"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Running">
-                                                            <Setter Property="IsEnabled" Value="True"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Paused">
-                                                            <Setter Property="IsEnabled" Value="True"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Completed">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Error">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Initialise">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                        </Button>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                    </GridView>
-                </ListView.View>
-            </ListView>
-        </ScrollViewer>
-
-        <Border Grid.Row="2" Padding="0,15,0,0" BorderThickness="0,1,0,0" BorderBrush="{StaticResource BorderBrush}">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="{x:Static localization:Resources.BackupWorkManagementStartBackupSelected}" 
-                        Style="{StaticResource ActionButtonStyle}" 
-                        Command="{Binding LaunchJobCommand}"/>
-                <Button x:Name="PauseButton" 
-                        Content="Pause" 
-                        Style="{StaticResource PauseButtonStyle}"
-                        Margin="5" 
-                        Command="{Binding PauseJobCommand}"/>
-                <Button x:Name="ResumeButton" 
-                        Content="Resume" 
-                        Style="{StaticResource ActionButtonStyle}"
-                        Margin="5" 
-                        Command="{Binding ResumeJobCommand}"/>
-                <Button x:Name="StopButton" 
-                        Content="Stop" 
-                        Style="{StaticResource StopButtonStyle}"
-                        Margin="5" 
-                        Command="{Binding StopJobCommand}"/>
-                <Button Content="{x:Static localization:Resources.BackupWorkManagementDeleteBackupSelected}" 
-                        Style="{StaticResource StopButtonStyle}"
-                        Margin="5" 
-                        Command="{Binding RemoveJobCommand}"
-                        Click="DeleteSelectedJob_Click"/>
-                <Button Content="{x:Static localization:Resources.BackupWorkManagementNewBackup}" 
-                        Style="{StaticResource ActionButtonStyle}"
-                        Margin="100,5,5,5" 
-                        Click="CreateNewJob_Click"/>
-            </StackPanel>
-        </Border>
-
-        <Border Grid.Row="1" Grid.RowSpan="2" x:Name="CreateJobPanel" 
-                Visibility="Collapsed" 
-                Background="{StaticResource BackgroundLightBrush}" 
-                BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="1"
-                CornerRadius="4"
-                Padding="25" 
-                Margin="50,20">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.3" />
-            </Border.Effect>
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" 
-                          MaxHeight="500">
-                <StackPanel>
-                    <TextBlock Text="{x:Static localization:Resources.BackupWorkManagementNewBackup}" 
-                               Style="{StaticResource SubHeaderTextBlockStyle}" 
-                               Margin="0,0,0,15"/>
-                    <TextBlock Text="{x:Static localization:Resources.ConfigNewJobName}" Margin="0,5,0,2"/>
-                    <TextBox x:Name="JobNameTextBox" Margin="0,0,0,10">
-                        <TextBox.Style>
-                            <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource {x:Type TextBox}}">
-                                <Style.Triggers>
-                                    <Trigger Property="Text" Value="">
-                                        <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}"/>
-                                        <Setter Property="ToolTip" Value="Le nom du travail est obligatoire"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBox.Style>
-                    </TextBox>
-                    <TextBlock Text="{x:Static localization:Resources.ConfigNewJobSourceDirectory}" Margin="0,5,0,2"/>
-                    <Grid Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox x:Name="JobSourcePathTextBox" Grid.Column="0"/>
-                        <Button Grid.Column="1" Content="{x:Static localization:Resources.Browse}" 
-                                Margin="5,0,0,0" 
-                                Click="BrowseSource_Click"/>
-                    </Grid>
-                    <TextBlock Text="{x:Static localization:Resources.ConfigNewJobTargetDirectory}" Margin="0,5,0,2"/>
-                    <Grid Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox x:Name="JobTargetPathTextBox" Grid.Column="0"/>
-                        <Button Grid.Column="1" Content="{x:Static localization:Resources.Browse}" 
-                                Margin="5,0,0,0" 
-                                Click="BrowseTarget_Click"/>
-                    </Grid>
-                    <TextBlock Text="{x:Static localization:Resources.ConfigNewJobBackupType}" Margin="0,5,0,2"/>
-                    <ComboBox x:Name="JobTypeComboBox" Margin="0,0,0,20">
-                        <ComboBoxItem Content="{x:Static localization:Resources.BackupTypeFull}"/>
-                        <ComboBoxItem Content="{x:Static localization:Resources.BackupTypeDifferential}"/>
-                    </ComboBox>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="Cancel" 
-                                Style="{StaticResource StopButtonStyle}"
-                                Margin="5" 
-                                Click="CancelNewJob_Click"/>
-                        <Button Content="{x:Static localization:Resources.ConfigNewJobValidate}" 
-                                Style="{StaticResource ActionButtonStyle}"
-                                Margin="5" 
-                                Click="ValidateNewJob_Click"/>
-                    </StackPanel>
+        <Border Grid.Row="1" Grid.RowSpan="2" x:Name="CreateJobPanel" Visibility="Collapsed" Background="LightGray" Padding="15" Margin="50,20">
+            <StackPanel>
+                <TextBlock Text="{x:Static localization:Resources.BackupWorkManagementNewBackup}" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobName}"/>
+                <TextBox x:Name="JobNameTextBox" Margin="0,0,0,5"/>
+                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobSourceDirectory}"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBox x:Name="JobSourcePathTextBox" Margin="0,0,0,5" Width="200"/>
+                    <Button Content="{x:Static localization:Resources.Browse}" Margin="5,0,0,5" Click="BrowseSource_Click"/>
                 </StackPanel>
-            </ScrollViewer>
+                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobTargetDirectory}"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBox x:Name="JobTargetPathTextBox" Margin="0,0,0,5" Width="200"/>
+                    <Button Content="{x:Static localization:Resources.Browse}" Margin="5,0,0,5" Click="BrowseTarget_Click"/>
+                </StackPanel>
+                <TextBlock Text="{x:Static localization:Resources.ConfigNewJobBackupType}"/>
+                <ComboBox x:Name="JobTypeComboBox" Margin="0,0,0,5">
+                    <ComboBoxItem Content="{x:Static localization:Resources.BackupTypeFull}"/>
+                    <ComboBoxItem Content="{x:Static localization:Resources.BackupTypeDifferential}"/>
+                </ComboBox>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="{x:Static localization:Resources.ConfigNewJobValidate}" Margin="5" Click="ValidateNewJob_Click"/>
+                    <Button Content="{x:Static localization:Resources.Cancel}" Margin="5" Click="CancelNewJob_Click"/>
+                </StackPanel>
+            </StackPanel>
         </Border>
     </Grid>
 </UserControl>
