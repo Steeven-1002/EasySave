@@ -179,9 +179,7 @@ namespace EasySave_by_ProSoft.ViewModels
                 var setting = _settings.GetSetting("LargeFileSizeThresholdKey");
                 if (setting is double d) return d;
                 if (setting is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Number && jsonElement.TryGetDouble(out double val)) return val;
-                // Ensure "DefaultLargeFileSizeThresholdKey" is the correct key if it's meant to be a fallback from AppSettings
-                // Or if it's a constant/default defined elsewhere.
-                // Assuming "DefaultLargeFileSizeThresholdKey" is a key that might exist in settings.
+
                 var defaultSetting = _settings.GetSetting("DefaultLargeFileSizeThresholdKey");
                 if (defaultSetting is double defaultD) return defaultD;
                 if (defaultSetting is JsonElement defaultJsonElement && defaultJsonElement.ValueKind == JsonValueKind.Number && defaultJsonElement.TryGetDouble(out double defaultVal)) return defaultVal;
@@ -295,9 +293,6 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             ApplicationRestartFailed?.Invoke(ex);
         }
-
-        // Ensure all dialog interactions use the IDialogService and are invoked from the ViewModel.
-        // Remove any direct UI logic or event handler dependencies.
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? name = null)
