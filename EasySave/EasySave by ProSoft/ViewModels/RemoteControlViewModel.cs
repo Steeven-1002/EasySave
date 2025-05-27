@@ -1,5 +1,4 @@
 using EasySave_by_ProSoft.Models;
-using EasySave_by_ProSoft.Network.Models;
 using EasySave_by_ProSoft.Network.Services;
 using System;
 using System.Collections.ObjectModel;
@@ -24,11 +23,11 @@ namespace EasySave_by_ProSoft.ViewModels
         private string _statusMessage = string.Empty;
         private bool _isConnected;
         private bool _isOperationInProgress;
-        private RemoteJob? _selectedJob;
+        private BackupJob? _selectedJob;
         internal Action<JobStatus> FollowJob;
         private System.Threading.Timer? _connectionCheckTimer;
 
-        public ObservableCollection<RemoteJob> RemoteJobs { get; } = new();
+        public ObservableCollection<BackupJob> RemoteJobs { get; } = new();
 
         public string ServerAddress
         {
@@ -66,7 +65,7 @@ namespace EasySave_by_ProSoft.ViewModels
             set { _isOperationInProgress = value; OnPropertyChanged(); }
         }
 
-        public RemoteJob? SelectedJob
+        public BackupJob? SelectedJob
         {
             get => _selectedJob;
             set { _selectedJob = value; OnPropertyChanged(); }
@@ -287,19 +286,19 @@ namespace EasySave_by_ProSoft.ViewModels
 
         private bool CanPauseJob()
         {
-            return SelectedJob != null && SelectedJob.State == BackupState.Running;
+            return SelectedJob != null && SelectedJob.Status.State == BackupState.Running;
         }
 
         private bool CanResumeJob()
         {
-            return SelectedJob != null && SelectedJob.State == BackupState.Paused;
+            return SelectedJob != null && SelectedJob.Status.State == BackupState.Paused;
         }
 
         private bool CanStopJob()
         {
             return SelectedJob != null &&
-                  (SelectedJob.State == BackupState.Running ||
-                   SelectedJob.State == BackupState.Paused);
+                  (SelectedJob.Status.State == BackupState.Running ||
+                   SelectedJob.Status.State == BackupState.Paused);
         }
 
         private async Task SendJobCommandAsync(string commandType)
@@ -359,16 +358,29 @@ namespace EasySave_by_ProSoft.ViewModels
 
         private void UpdateRemoteJobs(System.Collections.Generic.List<JobState> jobStates)
         {
-            if (jobStates == null || jobStates.Count == 0)
+            if (jobStates == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] UpdateRemoteJobs called with empty or null job states");
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] UpdateRemoteJobs called with null job states");
+                return;
+            }
+            
+            if (jobStates.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] UpdateRemoteJobs called with empty job states list");
                 return;
             }
             
             System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] UpdateRemoteJobs called with {jobStates.Count} job states");
             
             // Ensure UI updates on the main thread
-            App.Current?.Dispatcher.Invoke(() =>
+            var app = App.Current;
+            if (app == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] App.Current is null, cannot update UI");
+                return;
+            }
+            
+            app.Dispatcher.Invoke(() =>
             {
                 try
                 {
@@ -383,15 +395,29 @@ namespace EasySave_by_ProSoft.ViewModels
                     
                     foreach (var state in jobStates)
                     {
+                        if (state == null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Skipping null job state");
+                            continue;
+                        }
+                        
                         try
                         {
-                            if (state != null && !string.IsNullOrEmpty(state.JobName))
+                            if (!string.IsNullOrEmpty(state.JobName))
                             {
-                                var remoteJob = RemoteJob.FromJobState(state);
-                                if (remoteJob != null)
+                                var backupJob = CreateBackupJobFromJobState(state);
+                                if (backupJob != null)
                                 {
-                                    RemoteJobs.Add(remoteJob);
+                                    RemoteJobs.Add(backupJob);
                                 }
+                                else
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] CreateBackupJobFromJobState returned null for job {state.JobName}");
+                                }
+                            }
+                            else
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Skipping job state with empty name");
                             }
                         }
                         catch (Exception ex)
@@ -411,7 +437,7 @@ namespace EasySave_by_ProSoft.ViewModels
                     // Otherwise try to restore the previous selection
                     else if (!string.IsNullOrEmpty(selectedJobName))
                     {
-                        RemoteJob? matchedJob = RemoteJobs.FirstOrDefault(j => j.Name == selectedJobName);
+                        BackupJob? matchedJob = RemoteJobs.FirstOrDefault(j => j.Name == selectedJobName);
                         System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Attempting to restore selection: {(matchedJob != null ? "found" : "not found")}");
                         SelectedJob = matchedJob;
                     }
@@ -426,43 +452,93 @@ namespace EasySave_by_ProSoft.ViewModels
             });
         }
 
+        /// <summary>
+        /// Creates a BackupJob instance from a JobState
+        /// </summary>
+        private BackupJob CreateBackupJobFromJobState(JobState state)
+        {
+            // Create a minimal BackupJob that has the necessary properties for remote display
+            // Note: We use null for the BackupManager and largeFileSemaphore because these jobs are for display only
+            var job = new BackupJob(
+                state.JobName, 
+                state.SourcePath ?? string.Empty, 
+                state.TargetPath ?? string.Empty, 
+                state.Type, 
+                null, // BackupManager not needed for display-only jobs
+                null  // SemaphoreSlim not needed for display-only jobs
+            );
+
+            // Create and configure the status
+            var status = job.Status;
+            status.TotalFiles = Math.Max(0, state.TotalFiles);
+            status.TotalSize = Math.Max(0, state.TotalSize);
+            status.RemainingFiles = Math.Max(0, state.RemainingFiles);
+            status.RemainingSize = Math.Max(0, state.RemainingSize);
+            status.CurrentSourceFile = state.CurrentSourceFile ?? string.Empty;
+            status.CurrentTargetFile = state.CurrentTargetFile ?? string.Empty;
+            status.State = state.State;
+            
+            // Handle start and end times
+            if (state.StartTime != default)
+                status.GetType().GetField("StartTime", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)?.SetValue(status, state.StartTime);
+            
+            if (state.EndTime.HasValue && state.EndTime.Value != default)
+                status.GetType().GetField("EndTime", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)?.SetValue(status, state.EndTime);
+
+            return job;
+        }
+
         private void CheckConnectionStatus(object? state)
         {
             try
             {
+                if (_networkService == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("CheckConnectionStatus: _networkService is null");
+                    return;
+                }
+                
                 bool serviceConnected = _networkService.IsConnected;
                 if (IsConnected != serviceConnected)
                 {
                     System.Diagnostics.Debug.WriteLine($"Connection state mismatch detected: " +
                         $"ViewModel={IsConnected}, Service={serviceConnected}");
 
-                    App.Current?.Dispatcher.Invoke(() =>
+                    var app = App.Current;
+                    if (app != null)
                     {
-                        IsConnected = serviceConnected;
-
-                        if (!IsConnected)
+                        app.Dispatcher.Invoke(() =>
                         {
-                            RemoteJobs.Clear();
-                            ConnectionStatus = "Connection lost";
-                            StatusMessage = "Connection to server was lost";
-                        }
-                    });
+                            IsConnected = serviceConnected;
+
+                            if (!IsConnected)
+                            {
+                                RemoteJobs.Clear();
+                                ConnectionStatus = "Connection lost";
+                                StatusMessage = "Connection to server was lost";
+                            }
+                        });
+                    }
                 }
 
                 if (IsConnected && !IsOperationInProgress && DateTime.Now.Second % 30 == 0)
                 {
-                    App.Current?.Dispatcher.Invoke(async () =>
+                    var app = App.Current;
+                    if (app != null)
                     {
-                        try
+                        app.Dispatcher.Invoke(async () =>
                         {
-                            System.Diagnostics.Debug.WriteLine("Auto-refreshing job statuses");
-                            await RefreshJobsAsync();
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Auto-refresh error: {ex.Message}");
-                        }
-                    });
+                            try
+                            {
+                                System.Diagnostics.Debug.WriteLine("Auto-refreshing job statuses");
+                                await RefreshJobsAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Auto-refresh error: {ex.Message}");
+                            }
+                        });
+                    }
                 }
             }
             catch (Exception ex)

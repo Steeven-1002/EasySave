@@ -295,10 +295,17 @@ namespace EasySave_by_ProSoft.Models
         /// </summary>
         public void Update()
         {
-            // Notify observers of changes
-            if (Events != null)
+            try
             {
-                Events.NotifyListeners(this);
+                // Notify observers of changes
+                if (Events != null)
+                {
+                    Events.NotifyListeners(this);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in JobStatus.Update: {ex.Message}");
             }
         }
 
@@ -369,31 +376,46 @@ namespace EasySave_by_ProSoft.Models
         /// <returns>Job state for serialization</returns>
         public JobState CreateSnapshot()
         {
-            var snapshot = new JobState
+            try
             {
-                JobName = backupJob?.Name ?? string.Empty,
-                SourcePath = backupJob?.SourcePath ?? string.Empty,
-                TargetPath = backupJob?.TargetPath ?? string.Empty,
-                Type = backupJob?.Type ?? BackupType.Full,
-                Timestamp = DateTime.Now,
-                State = this.State,
-                TotalFiles = this.TotalFiles,
-                TotalSize = this.TotalSize,
-                RemainingFiles = this.RemainingFiles,
-                RemainingSize = this.RemainingSize,
-                CurrentSourceFile = this.CurrentSourceFile ?? string.Empty,
-                CurrentTargetFile = this.CurrentTargetFile ?? string.Empty,
-                StartTime = this.StartTime,
-                EndTime = this.EndTime,
-                TransferRate = this.TransferRate,
-                ProgressPercentage = this.ProgressPercentage,
-                ExecutionId = this.ExecutionId,
-                EncryptionTimeMs = this.EncryptionTimeMs,
-                ProcessedFiles = new List<string>(this.ProcessedFiles),
-                Details = this.Details ?? string.Empty
-            };
+                var snapshot = new JobState
+                {
+                    JobName = backupJob?.Name ?? string.Empty,
+                    SourcePath = backupJob?.SourcePath ?? string.Empty,
+                    TargetPath = backupJob?.TargetPath ?? string.Empty,
+                    Type = backupJob?.Type ?? BackupType.Full,
+                    Timestamp = DateTime.Now,
+                    State = this.State,
+                    TotalFiles = this.TotalFiles,
+                    TotalSize = this.TotalSize,
+                    RemainingFiles = this.RemainingFiles,
+                    RemainingSize = this.RemainingSize,
+                    CurrentSourceFile = this.CurrentSourceFile ?? string.Empty,
+                    CurrentTargetFile = this.CurrentTargetFile ?? string.Empty,
+                    StartTime = this.StartTime,
+                    EndTime = this.EndTime,
+                    TransferRate = this.TransferRate,
+                    ProgressPercentage = this.ProgressPercentage,
+                    ExecutionId = this.ExecutionId,
+                    EncryptionTimeMs = this.EncryptionTimeMs,
+                    ProcessedFiles = this.ProcessedFiles != null ? new List<string>(this.ProcessedFiles) : new List<string>(),
+                    Details = this.Details ?? string.Empty
+                };
 
-            return snapshot;
+                return snapshot;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating job state snapshot: {ex.Message}");
+                
+                // Return a minimal valid snapshot to avoid null reference exceptions
+                return new JobState
+                {
+                    JobName = backupJob?.Name ?? "Error",
+                    State = BackupState.Error,
+                    Timestamp = DateTime.Now
+                };
+            }
         }
 
         /// <summary>

@@ -1,4 +1,3 @@
-using EasySave_by_ProSoft.Network;
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.ViewModels;
 using System.Windows;
@@ -28,10 +27,10 @@ namespace EasySave_by_ProSoft.Views
         private void ViewModel_FollowJob(JobStatus job)
         {
             // Find the job in the ListView and scroll to it
-            if (JobsListView.ItemContainerGenerator.ContainerFromItem(job) is System.Windows.Controls.ListViewItem item)
+            if (JobsListView.ItemContainerGenerator.ContainerFromItem(job.BackupJob) is System.Windows.Controls.ListViewItem item)
             {
                 item.Focus();
-                JobsListView.ScrollIntoView(job);
+                JobsListView.ScrollIntoView(job.BackupJob);
             }
         }
         private void RemoteControlView_Unloaded(object sender, RoutedEventArgs e)

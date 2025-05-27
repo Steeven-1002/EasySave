@@ -237,28 +237,5 @@ namespace EasySave_by_ProSoft.Network.Models
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
-
-        /// <summary>
-        /// Creates a RemoteJob from a JobState
-        /// </summary>
-        public static RemoteJob FromJobState(JobState state)
-        {
-            return new RemoteJob
-            {
-                Name = state.JobName,
-                SourcePath = state.SourcePath ?? string.Empty,
-                TargetPath = state.TargetPath ?? string.Empty,
-                Type = state.Type,
-                State = state.State,
-                TotalFiles = Math.Max(0, state.TotalFiles),
-                TotalSize = Math.Max(0, state.TotalSize),
-                RemainingFiles = Math.Max(0, state.RemainingFiles),
-                RemainingSize = Math.Max(0, state.RemainingSize),
-                CurrentSourceFile = state.CurrentSourceFile ?? string.Empty,
-                CurrentTargetFile = state.CurrentTargetFile ?? string.Empty,
-                StartTime = state.StartTime,
-                EndTime = state.EndTime
-            };
-        }
     }
 }

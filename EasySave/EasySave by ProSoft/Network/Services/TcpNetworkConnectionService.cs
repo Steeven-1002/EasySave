@@ -557,16 +557,33 @@ namespace EasySave_by_ProSoft.Network.Services
                 // Log the raw JSON to examine its structure
                 Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Processing job states: {jobStatesElement.GetArrayLength()} items");
 
-                var jobStates = JsonSerializer.Deserialize<List<JobState>>(jobStatesElement.GetRawText());
-                
-                if (jobStates == null)
+                List<JobState> jobStates;
+                try
                 {
-                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Deserialized job states is null");
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    };
+                    
+                    jobStates = JsonSerializer.Deserialize<List<JobState>>(jobStatesElement.GetRawText(), options);
+                    
+                    if (jobStates == null)
+                    {
+                        Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Deserialized job states is null");
+                        return;
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error deserializing job states: {ex.Message}");
+                    Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Raw JSON: {jobStatesElement.GetRawText()}");
                     return;
                 }
 
                 // Filter out any invalid job states
-                var validJobStates = jobStates.FindAll(js => js != null && !string.IsNullOrEmpty(js.JobName));
+                var validJobStates = jobStates
+                    .Where(js => js != null && !string.IsNullOrEmpty(js.JobName))
+                    .ToList();
                 
                 Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Found {validJobStates.Count} valid job states out of {jobStates.Count} total");
                 
