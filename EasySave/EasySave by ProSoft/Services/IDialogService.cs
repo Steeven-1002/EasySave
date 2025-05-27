@@ -26,6 +26,11 @@ namespace EasySave_by_ProSoft.Services
         /// <param name="title">The title of the dialog</param>
         void ShowWarning(string message, string title = "Warning");
 
+        void ShowBusinessSoftware(string message, string title = "Sauvegarde bloquée");
+
+
+
+
         /// <summary>
         /// Shows a confirmation dialog to the user and returns their choice
         /// </summary>
