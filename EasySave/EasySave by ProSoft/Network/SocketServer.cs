@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using EasySave_by_ProSoft.Core;
@@ -207,6 +208,9 @@ namespace EasySave_by_ProSoft.Network
                             // Timeout on read, check connection and continue
                             if (!IsClientConnected(client))
                                 break;
+                                
+                            // Send a job status update periodically on timeout to keep the client updated
+                            await SendJobStatesToClientAsync(client).ConfigureAwait(false);
                             continue;
                         }
                         catch (IOException)
@@ -302,18 +306,39 @@ namespace EasySave_by_ProSoft.Network
         /// </summary>
         private async Task SendJobStatesToClientAsync(TcpClient client)
         {
+            if (client == null || !IsClientConnected(client))
+                return;
+                
             try
             {
                 // Get all jobs from the backup manager
                 var jobs = _backupManager.GetAllJobs();
                 
+                if (jobs == null || jobs.Count == 0)
+                {
+                    Debug.WriteLine("No jobs available to send to client");
+                    return;
+                }
+                
                 // Create job status snapshots
                 var jobStates = new List<JobState>();
                 foreach (var job in jobs)
                 {
-                    var snapshot = job.Status.CreateSnapshot();
-                    jobStates.Add(snapshot);
+                    if (job != null && job.Status != null)
+                    {
+                        var snapshot = job.Status.CreateSnapshot();
+                        if (snapshot != null)
+                        {
+                            // Ensure source and target paths are set properly
+                            snapshot.SourcePath = job.SourcePath;
+                            snapshot.TargetPath = job.TargetPath;
+                            snapshot.Type = job.Type;
+                            jobStates.Add(snapshot);
+                        }
+                    }
                 }
+                
+                Debug.WriteLine($"Sending {jobStates.Count} job states to client");
                 
                 // Create and send the message
                 var message = NetworkMessage.CreateJobStatusMessage(jobStates);
@@ -337,6 +362,12 @@ namespace EasySave_by_ProSoft.Network
             {
                 // Create a state snapshot of the job
                 var jobState = status.CreateSnapshot();
+                
+                // Ensure source and target paths are set properly
+                jobState.SourcePath = status.BackupJob.SourcePath;
+                jobState.TargetPath = status.BackupJob.TargetPath;
+                jobState.Type = status.BackupJob.Type;
+                
                 var message = NetworkMessage.CreateJobStatusMessage(new List<JobState> { jobState });
 
                 // Broadcast to all clients
@@ -353,21 +384,103 @@ namespace EasySave_by_ProSoft.Network
         /// </summary>
         private async Task SendMessageToClientAsync(NetworkMessage message, TcpClient client)
         {
-            if (message == null || client == null || !client.Connected)
+            if (message == null || client == null || !IsClientConnected(client))
                 return;
-
+                
             try
             {
-                var messageJson = JsonSerializer.Serialize(message);
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = false,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+                
+                // Validate message before serializing
+                if (string.IsNullOrEmpty(message.Type))
+                {
+                    Debug.WriteLine("Warning: Attempting to send message with null or empty Type");
+                    message.Type = "Unknown";
+                }
+                
+                // Serialize message
+                string messageJson;
+                try
+                {
+                    messageJson = JsonSerializer.Serialize(message, options);
+                    Debug.WriteLine($"Serialized message of type {message.Type}, length: {messageJson.Length}");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error serializing message: {ex.Message}");
+                    return;
+                }
+                
+                // Ensure the JSON is valid
+                if (!IsValidJson(messageJson))
+                {
+                    Debug.WriteLine("Error: Generated invalid JSON, cancelling send");
+                    return;
+                }
+                
                 var buffer = Encoding.UTF8.GetBytes(messageJson);
                 
-                NetworkStream stream = client.GetStream();
-                await stream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
-                await stream.FlushAsync().ConfigureAwait(false);
+                // Check buffer size and log if it's large
+                if (buffer.Length > 8192) // 8KB
+                {
+                    Debug.WriteLine($"Warning: Large message being sent ({buffer.Length} bytes)");
+                }
+                
+                // Use a timeout to prevent hanging
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                
+                try
+                {
+                    NetworkStream stream = client.GetStream();
+                    await stream.WriteAsync(buffer, 0, buffer.Length, cts.Token).ConfigureAwait(false);
+                    await stream.FlushAsync(cts.Token).ConfigureAwait(false);
+                }
+                catch (IOException ex)
+                {
+                    Debug.WriteLine($"IO error sending message to client: {ex.Message}");
+                    // Client might be disconnected, remove it
+                    var clientId = GetClientId(client);
+                    if (clientId != null)
+                    {
+                        RemoveClient(clientId);
+                    }
+                    throw; // Rethrow to be caught by outer try/catch
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.WriteLine("Send operation timed out");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error sending message to client: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Checks if a string is valid JSON
+        /// </summary>
+        private bool IsValidJson(string jsonString)
+        {
+            if (string.IsNullOrWhiteSpace(jsonString))
+                return false;
+                
+            try
+            {
+                using (JsonDocument.Parse(jsonString))
+                {
+                    return true;
+                }
+            }
+            catch (JsonException ex)
+            {
+                Debug.WriteLine($"Invalid JSON: {ex.Message}");
+                return false;
             }
         }
 
@@ -427,10 +540,24 @@ namespace EasySave_by_ProSoft.Network
             try
             {
                 var socket = client.Client;
-                return !(socket.Poll(1, SelectMode.SelectRead) && socket.Available == 0);
+                
+                if (socket == null)
+                    return false;
+                    
+                // Check if socket is connected
+                if (!socket.Connected)
+                    return false;
+                
+                // This is how you can determine whether a socket is still connected.
+                // Poll returns true if socket is closed, has errors, or has data available
+                // Available == 0 means socket is closed or has errors
+                bool socketClosed = socket.Poll(1, SelectMode.SelectRead) && socket.Available == 0;
+                
+                return !socketClosed;
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"Error checking client connection: {ex.Message}");
                 return false;
             }
         }
@@ -457,6 +584,34 @@ namespace EasySave_by_ProSoft.Network
         {
             Debug.WriteLine($"Socket Server: {status}");
             ServerStatusChanged?.Invoke(this, status);
+        }
+
+        /// <summary>
+        /// Gets the client ID for a TcpClient
+        /// </summary>
+        private string GetClientId(TcpClient client)
+        {
+            return connectedClients.FirstOrDefault(x => x.Value == client).Key;
+        }
+        
+        /// <summary>
+        /// Removes a client by ID
+        /// </summary>
+        private void RemoveClient(string clientId)
+        {
+            if (connectedClients.TryRemove(clientId, out var client))
+            {
+                try
+                {
+                    client.Close();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error closing client connection: {ex.Message}");
+                }
+                
+                RaiseServerStatusChanged($"Client disconnected: {clientId}");
+            }
         }
 
         /// <summary>

@@ -85,8 +85,8 @@ namespace EasySave_by_ProSoft
             ApplyCulture(targetCulture);
 
             // Initialize the BackupManager
-            _backupManager = new BackupManager();
-            
+            _backupManager = BackupManager.Instance;
+
             // Start the remote control server automatically
             bool serverStarted = _backupManager.StartRemoteControlServer(9000);
             if (serverStarted)

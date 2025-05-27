@@ -19,10 +19,37 @@ namespace EasySave_by_ProSoft.Models
         private readonly EventManager _eventManager = EventManager.Instance;
         private Services.RemoteControlService _remoteControlService;
 
+        // Singleton instance
+        private static BackupManager? _instance;
+
+        // Lock for thread safety
+        private static readonly object _lock = new();
+
         /// <summary>
-        /// Initializes a new instance of the BackupManager class
+        /// Singleton instance property
         /// </summary>
-        public BackupManager()
+        public static BackupManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    lock (_lock)
+                    {
+                        if (_instance == null)
+                        {
+                            _instance = new BackupManager();
+                        }
+                    }
+                }
+                return _instance;
+            }
+        }
+
+        /// <summary>
+        /// Private constructor to prevent direct instantiation
+        /// </summary>
+        private BackupManager()
         {
             backupJobs = new List<BackupJob>();
 

@@ -179,6 +179,7 @@ namespace EasySave_by_ProSoft.ViewModels
                 return State switch
                 {
                     BackupState.Initialise => "Ready",
+                    BackupState.Waiting => "Ready",
                     BackupState.Running => "Running",
                     BackupState.Paused => "Paused",
                     BackupState.Completed => "Completed",

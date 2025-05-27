@@ -18,7 +18,7 @@ namespace EasySave_by_ProSoft
         public MainWindow()
         {
             // Create the BackupManager instance to be shared between ViewModels
-            _backupManager = new BackupManager();
+            _backupManager = BackupManager.Instance;
 
             InitializeComponent();
 

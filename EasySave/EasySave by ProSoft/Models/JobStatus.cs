@@ -402,6 +402,7 @@ namespace EasySave_by_ProSoft.Models
                     Details = this.Details ?? string.Empty
                 };
 
+                System.Diagnostics.Debug.WriteLine($"Created snapshot for job: {snapshot.JobName}, State: {snapshot.State}, Progress: {snapshot.ProgressPercentage}%");
                 return snapshot;
             }
             catch (Exception ex)

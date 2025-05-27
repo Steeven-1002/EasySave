@@ -63,10 +63,9 @@
 
       <Button Grid.Column="4" 
                     Content="{Binding ConnectionButtonText}" 
-                    Command="{Binding ToggleConnectionCommand}" 
-                    Width="120"
+                    Command="{Binding ToggleConnectionCommand}"
                     Padding="10,5"
-                    Background="{Binding ConnectionButtonColor}" Margin="255,2,255,30"/>
+                    Background="{Binding ConnectionButtonColor}" Margin="29,1,500,40"/>
     </Grid>
 
     <!-- Status Bar -->
@@ -125,7 +124,7 @@
             <GridViewColumn Header="Status" Width="120">
               <GridViewColumn.CellTemplate>
                 <DataTemplate>
-                  <TextBlock Text="{Binding State}" 
+                  <TextBlock Text="{Binding StateDisplay}" 
                                                VerticalAlignment="Center"/>
                 </DataTemplate>
               </GridViewColumn.CellTemplate>

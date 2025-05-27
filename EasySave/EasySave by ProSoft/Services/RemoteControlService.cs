@@ -217,6 +217,36 @@ namespace EasySave_by_ProSoft.Services
         {
             // Handle client messages
             Debug.WriteLine($"Message received: {message.Type}");
+            
+            // Log more details about the message
+            switch (message.Type)
+            {
+                case NetworkMessage.MessageTypes.JobStatusRequest:
+                    Debug.WriteLine("Client requested job status update");
+                    break;
+                case NetworkMessage.MessageTypes.StartJob:
+                    var jobNamesStart = message.GetData<List<string>>();
+                    Debug.WriteLine($"Client requested to start jobs: {(jobNamesStart != null ? string.Join(", ", jobNamesStart) : "none")}");
+                    break;
+                case NetworkMessage.MessageTypes.PauseJob:
+                    var jobNamesPause = message.GetData<List<string>>();
+                    Debug.WriteLine($"Client requested to pause jobs: {(jobNamesPause != null ? string.Join(", ", jobNamesPause) : "none")}");
+                    break;
+                case NetworkMessage.MessageTypes.ResumeJob:
+                    var jobNamesResume = message.GetData<List<string>>();
+                    Debug.WriteLine($"Client requested to resume jobs: {(jobNamesResume != null ? string.Join(", ", jobNamesResume) : "none")}");
+                    break;
+                case NetworkMessage.MessageTypes.StopJob:
+                    var jobNamesStop = message.GetData<List<string>>();
+                    Debug.WriteLine($"Client requested to stop jobs: {(jobNamesStop != null ? string.Join(", ", jobNamesStop) : "none")}");
+                    break;
+                case NetworkMessage.MessageTypes.Ping:
+                    Debug.WriteLine("Client sent ping");
+                    break;
+                case NetworkMessage.MessageTypes.Pong:
+                    Debug.WriteLine("Client sent pong");
+                    break;
+            }
         }
 
         private string GetLocalIPv4Address()

@@ -238,11 +238,17 @@ namespace EasySave_by_ProSoft.ViewModels
 
             try
             {
+                ConnectionStatus = "Refreshing job list...";
                 await _client.RequestJobStatusesAsync();
+                ConnectionStatus = $"Connected to {ServerHost}:{ServerPort}";
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error refreshing jobs: {ex.Message}");
+                ConnectionStatus = $"Error refreshing: {ex.Message}";
+                
+                // Don't attempt to reconnect immediately as it might cause a loop
+                // Instead, let the automatic reconnect handle it if needed
             }
         }
 
@@ -348,7 +354,22 @@ namespace EasySave_by_ProSoft.ViewModels
 
         private void Client_JobStatusesReceived(object sender, List<JobState> e)
         {
-            UpdateJobList(e);
+            try
+            {
+                // Check if we actually received job states
+                if (e == null || e.Count == 0)
+                {
+                    Debug.WriteLine("Received empty job states list");
+                    return;
+                }
+                
+                UpdateJobList(e);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error processing received job states: {ex.Message}");
+                ConnectionStatus = $"Error updating jobs: {ex.Message}";
+            }
         }
 
         private void Client_ErrorOccurred(object sender, Exception e)
