@@ -1,7 +1,11 @@
 using EasySave.Services;
+using EasySave_by_ProSoft.Localization;
+using EasySave_by_ProSoft.Services;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Threading;
+using System.Xml.Linq;
 
 namespace EasySave_by_ProSoft.Models
 {
@@ -27,6 +31,8 @@ namespace EasySave_by_ProSoft.Models
         private bool _isPaused = false;
         private bool _stopRequested = false;
         private List<string> toProcessFiles = new List<string>();
+        private readonly IDialogService _dialogService;
+
 
         private readonly SemaphoreSlim _largeFileTransferSemaphore;
 
@@ -59,6 +65,9 @@ namespace EasySave_by_ProSoft.Models
             TargetPath = targetPath;
             Type = type;
             Status = new JobStatus(name);
+
+
+
 
             // Link this job to its status for proper state tracking
             Status.BackupJob = this;
@@ -123,7 +132,10 @@ namespace EasySave_by_ProSoft.Models
             _backupFileStrategy = type switch
             {
                 BackupType.Full => new FullBackupStrategy(),
+                BackupType.Complete => new FullBackupStrategy(),
+
                 BackupType.Differential => new DiffBackupStrategy(),
+                BackupType.Differentielle => new DiffBackupStrategy(),
                 _ => new FullBackupStrategy() // Default to full backup if unknown type
             };
         }
@@ -133,6 +145,18 @@ namespace EasySave_by_ProSoft.Models
         /// </summary>
         public void Start()
         {
+
+
+
+            if (_businessMonitor != null && _businessMonitor.IsRunning())
+            {
+                var dialogService = new DialogService();
+                dialogService.ShowBusinessSoftware(localization: Resources.PopUpBusinessSoftware);
+                return;
+            }
+
+
+
             lock (this)
             {
                 if (_isRunning || Status.State == BackupState.Completed)

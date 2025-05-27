@@ -628,6 +628,15 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Unable to perform backup(s), please close the business software..
+        /// </summary>
+        public static string PopUpBusinessSoftware {
+            get {
+                return ResourceManager.GetString("PopUpBusinessSoftware", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Processed Files.
         /// </summary>
         public static string ProcessedFiles {
@@ -777,6 +786,14 @@ namespace EasySave_by_ProSoft.Localization {
         public static string StateWaiting {
             get {
                 return ResourceManager.GetString("StateWaiting", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Running.
+        /// </summary>
+        public static string StatusRunning {
+            get {
+                return ResourceManager.GetString("StatusRunning", resourceCulture);
             }
         }
         

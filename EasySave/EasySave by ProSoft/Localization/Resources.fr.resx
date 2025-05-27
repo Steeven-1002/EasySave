@@ -121,7 +121,7 @@
     <value>Différentielle</value>
   </data>
   <data name="BackupTypeFull" xml:space="preserve">
-    <value>Complète</value>
+    <value>Complete</value>
   </data>
   <data name="BackupWorkManagement" xml:space="preserve">
     <value>Gestion des Travaux de Sauvegarde</value>
@@ -365,5 +365,10 @@
   </data>
   <data name="MessageConfirmDeleteJobs" xml:space="preserve">
     <value>Suppression effectué </value>
+  <data name="StatusRunning" xml:space="preserve">
+    <value>En cours</value>
+  </data>
+  <data name="PopUpBusinessSoftware" xml:space="preserve">
+    <value>Impossible d'executer la/les sauvegarde(s), veuillez fermer le logiciel metier.</value>
   </data>
 </root>

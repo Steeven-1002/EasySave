@@ -365,5 +365,7 @@
   </data>
   <data name="MessageConfirmDeleteJobs" xml:space="preserve">
     <value>Job(s) Deleted</value>
+  <data name="PopUpBusinessSoftware" xml:space="preserve">
+    <value>Unable to perform backup(s), please close the business software.</value>
   </data>
 </root>
