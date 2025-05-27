@@ -439,7 +439,7 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
-        ///   Recherche une chaîne localisée semblable à The application needs to restart the main window to apply the language change. Do you want to restart it now ?.
+        ///   Recherche une chaîne localisée semblable à The application needs to restart the main window to apply the language change. Click &apos;OK&apos; to restart now..
         /// </summary>
         public static string LanguageChangeRestartMessage {
             get {
