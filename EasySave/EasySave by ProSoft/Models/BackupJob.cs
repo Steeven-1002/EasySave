@@ -3,6 +3,7 @@ using EasySave_by_ProSoft.Localization;
 using EasySave_by_ProSoft.Services;
 using System.IO;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Threading;
 using System.Xml.Linq;
 
@@ -446,6 +447,19 @@ namespace EasySave_by_ProSoft.Models
         public IEnumerable<string> GetPendingFiles()
         {
             return toProcessFiles;
+        }
+
+        /// <summary>
+        /// Asynchronously runs the backup job.
+        /// </summary>
+        public async Task RunAsync()
+        {
+            // If you have a synchronous Run() method, you can wrap it:
+            // await Task.Run(() => Run());
+
+            // Otherwise, implement your async backup logic here.
+            // Example placeholder:
+            await Task.CompletedTask;
         }
     }
 }

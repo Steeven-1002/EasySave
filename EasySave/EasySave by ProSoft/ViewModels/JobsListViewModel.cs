@@ -1,5 +1,6 @@
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Services;
+using EasySave_by_ProSoft.Core;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -11,13 +12,15 @@ namespace EasySave_by_ProSoft.ViewModels
     /// <summary>
     /// View model for listing and managing backup jobs
     /// </summary>
-    public class JobsListViewModel : INotifyPropertyChanged, JobEventListeners
+    public class JobsListViewModel : INotifyPropertyChanged, JobEventListeners, IEventListener, IDisposable
     {
         private readonly BackupManager _backupManager;
         private readonly IDialogService _dialogService;
         private ObservableCollection<BackupJob> _jobs;
         private JobEventManager _jobEventManager = JobEventManager.Instance;
+        private EventManager _eventManager = EventManager.Instance;
         private volatile bool _isLaunchingJobs = false;
+        private bool _disposed = false;
 
         // User notification properties
         public event Action<string> ValidationError;
@@ -84,24 +87,34 @@ namespace EasySave_by_ProSoft.ViewModels
 
             // Register as a listener for job events
             _jobEventManager.AddListener(this);
+            
+            // Register as a listener for remote control events
+            _eventManager.AddListener(this);
 
-            Predicate<object?> canLaunchPredicate = _ =>
-            SelectedJobs != null &&
-            SelectedJobs.Any(job => job.Status.State == BackupState.Initialise ||
-                            job.Status.State == BackupState.Error ||
-                            job.Status.State == BackupState.Completed) &&
-            !Jobs.Any(job => job.Status.State == BackupState.Running);
-
-
-            LaunchJobCommand = new RelayCommand(async _ => await LaunchSelectedJob(), canLaunchPredicate);
-            RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(), _ => SelectedJobs != null && SelectedJobs.Count > 0);
+            LaunchJobCommand = new RelayCommand(async _ => await LaunchSelectedJob(), _ => CanLaunchJob());
+            RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(SelectedJobs), _ => SelectedJobs != null && SelectedJobs.Count > 0);
+            
             PauseJobCommand = new RelayCommand(_ => PauseSelectedJob(), _ => CanPauseSelectedJob());
             ResumeJobCommand = new RelayCommand(_ => ResumeSelectedJob(), _ => CanResumeSelectedJob());
-            StopJobCommand = new RelayCommand(_ => StopSelectedJobs(), _ => SelectedJobs != null && SelectedJobs.Any(job => job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused));
+            StopJobCommand = new RelayCommand(_ => StopSelectedJobs(), _ => CanStopSelectedJob());
             LaunchMultipleJobsCommand = new RelayCommand(_ => LaunchMultipleJobs(), _ => CanLaunchMultipleJobs());
 
             // Load jobs initially
             LoadJobs();
+        }
+
+        private bool CanLaunchJob()
+        {
+            return SelectedJobs != null &&
+                   SelectedJobs.Any(job => job.Status.State == BackupState.Initialise ||
+                                          job.Status.State == BackupState.Error ||
+                                          job.Status.State == BackupState.Completed) &&
+                   !_isLaunchingJobs;
+        }
+
+        private bool CanStopSelectedJob()
+        {
+            return SelectedJobs != null && SelectedJobs.Any(job => job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused);
         }
 
         public void Update(string jobName, BackupState newState, int totalFiles, long totalSize, int remainingFiles, long remainingSize, string currentSourceFile, string currentTargetFile, double transfertDuration, double encryptionTimeMs, string details = null)
@@ -328,7 +341,7 @@ namespace EasySave_by_ProSoft.ViewModels
         /// <summary>
         /// Removes the selected backup job
         /// </summary>
-        private void RemoveSelectedJob()
+        public void RemoveSelectedJob(List<BackupJob> SelectedJobs)
         {
             var jobsToRemove = new List<BackupJob>(SelectedJobs);
 
@@ -388,6 +401,152 @@ namespace EasySave_by_ProSoft.ViewModels
         public void NotifyJobsLaunched(int count)
         {
             JobStatusChanged?.Invoke($"{count} job(s) have been launched successfully.");
+        }
+
+        // IEventListener implementation methods
+        public void OnJobStatusChanged(JobStatus status)
+        {
+            // Update the UI when job status changes
+            if (status != null)
+            {
+                Debug.WriteLine($"JobsListViewModel.OnJobStatusChanged: Job '{status.BackupJob?.Name}' state changed to {status.State}");
+                
+                // Use the dispatcher to ensure we're on the UI thread
+                var dispatcher = System.Windows.Application.Current?.Dispatcher;
+                if (dispatcher != null && !dispatcher.CheckAccess())
+                {
+                    dispatcher.Invoke(() => RefreshJobInList(status));
+                }
+                else
+                {
+                    RefreshJobInList(status);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Refreshes a specific job in the list when its status changes
+        /// </summary>
+        private void RefreshJobInList(JobStatus status)
+        {
+            if (status?.BackupJob == null)
+                return;
+                
+            // Find the job in the list
+            var job = Jobs.FirstOrDefault(j => j.Name == status.BackupJob.Name);
+            if (job != null)
+            {
+                // The job exists in our list, refresh its properties
+                // This will trigger UI updates through property change notifications
+                CommandManager.InvalidateRequerySuggested();
+                OnPropertyChanged(nameof(Jobs));
+            }
+            else
+            {
+                // Job not found in our list, reload all jobs
+                LoadJobs();
+            }
+        }
+
+        public void OnBusinessSoftwareStateChanged(bool isRunning)
+        {
+            // Not needed for this implementation
+        }
+
+        public void OnLaunchJobsRequested(List<string> jobNames)
+        {
+            // When jobs are launched remotely, refresh the local job list to show updated status
+            Debug.WriteLine($"JobsListViewModel.OnLaunchJobsRequested: Jobs launched remotely: {string.Join(", ", jobNames)}");
+            
+            // Use the dispatcher to ensure we're on the UI thread
+            var dispatcher = System.Windows.Application.Current?.Dispatcher;
+            if (dispatcher != null && !dispatcher.CheckAccess())
+            {
+                dispatcher.Invoke(() => LoadJobs());
+            }
+            else
+            {
+                LoadJobs();
+            }
+        }
+
+        public void OnPauseJobsRequested(List<string> jobNames)
+        {
+            // When jobs are paused remotely, refresh the local job list
+            Debug.WriteLine($"JobsListViewModel.OnPauseJobsRequested: Jobs paused remotely: {string.Join(", ", jobNames)}");
+            
+            // Use the dispatcher to ensure we're on the UI thread
+            var dispatcher = System.Windows.Application.Current?.Dispatcher;
+            if (dispatcher != null && !dispatcher.CheckAccess())
+            {
+                dispatcher.Invoke(() => LoadJobs());
+            }
+            else
+            {
+                LoadJobs();
+            }
+        }
+
+        public void OnResumeJobsRequested(List<string> jobNames)
+        {
+            // When jobs are resumed remotely, refresh the local job list
+            Debug.WriteLine($"JobsListViewModel.OnResumeJobsRequested: Jobs resumed remotely: {string.Join(", ", jobNames)}");
+            
+            // Use the dispatcher to ensure we're on the UI thread
+            var dispatcher = System.Windows.Application.Current?.Dispatcher;
+            if (dispatcher != null && !dispatcher.CheckAccess())
+            {
+                dispatcher.Invoke(() => LoadJobs());
+            }
+            else
+            {
+                LoadJobs();
+            }
+        }
+
+        public void OnStopJobsRequested(List<string> jobNames)
+        {
+            // When jobs are stopped remotely, refresh the local job list
+            Debug.WriteLine($"JobsListViewModel.OnStopJobsRequested: Jobs stopped remotely: {string.Join(", ", jobNames)}");
+            
+            // Use the dispatcher to ensure we're on the UI thread
+            var dispatcher = System.Windows.Application.Current?.Dispatcher;
+            if (dispatcher != null && !dispatcher.CheckAccess())
+            {
+                dispatcher.Invoke(() => LoadJobs());
+            }
+            else
+            {
+                LoadJobs();
+            }
+        }
+
+        // IDisposable implementation
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Unregister from event managers
+                    _jobEventManager.RemoveListener(this);
+                    _eventManager.RemoveListener(this);
+                    Debug.WriteLine("JobsListViewModel: Unregistered from event managers");
+                }
+
+                _disposed = true;
+            }
+        }
+
+        ~JobsListViewModel()
+        {
+            Dispose(false);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

@@ -1,4 +1,5 @@
 using EasySave_by_ProSoft.Core;
+using EasySave_by_ProSoft.Network;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
@@ -16,11 +17,39 @@ namespace EasySave_by_ProSoft.Models
         private readonly BusinessApplicationMonitor _businessMonitor;
         private readonly object _priorityLock = new();
         private readonly EventManager _eventManager = EventManager.Instance;
+        private Services.RemoteControlService _remoteControlService;
+
+        // Singleton instance
+        private static BackupManager? _instance;
+
+        // Lock for thread safety
+        private static readonly object _lock = new();
 
         /// <summary>
-        /// Initializes a new instance of the BackupManager class
+        /// Singleton instance property
         /// </summary>
-        public BackupManager()
+        public static BackupManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    lock (_lock)
+                    {
+                        if (_instance == null)
+                        {
+                            _instance = new BackupManager();
+                        }
+                    }
+                }
+                return _instance;
+            }
+        }
+
+        /// <summary>
+        /// Private constructor to prevent direct instantiation
+        /// </summary>
+        private BackupManager()
         {
             backupJobs = new List<BackupJob>();
 
@@ -253,9 +282,7 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (Exception ex)
             {
-                // Notify user with a popup
-                System.Windows.Forms.MessageBox.Show($"Error loading jobs from file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
-
+                Debug.WriteLine($"Error loading jobs from file: {ex.Message}. Consider a more robust error notification mechanism.");
                 // Initialize with empty list if loading fails
                 backupJobs = new List<BackupJob>();
             }
@@ -295,7 +322,7 @@ namespace EasySave_by_ProSoft.Models
             }
             catch (Exception ex)
             {
-                System.Windows.Forms.MessageBox.Show($"Error saving jobs to file: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                Debug.WriteLine($"Error saving jobs to file: {ex.Message}. Consider a more robust error notification mechanism.");
             }
         }
 
@@ -315,6 +342,9 @@ namespace EasySave_by_ProSoft.Models
             _businessMonitor.StopMonitoring();
             _parallelManager.Shutdown();
             _eventManager.RemoveListener(this);
+
+            // Stop the remote control server if it's running
+            _remoteControlService?.Shutdown();
         }
 
         // IEventListener implementation
@@ -452,6 +482,7 @@ namespace EasySave_by_ProSoft.Models
             Debug.WriteLine("BackupManager: Business application stopped event received");
             _eventManager.NotifyBusinessSoftwareStateChanged(false);
         }
+
         /// <summary>
         /// Unregisters a job from the business application monitor
         /// </summary>
@@ -463,5 +494,38 @@ namespace EasySave_by_ProSoft.Models
                 _businessMonitor.UnregisterJob(job);
             }
         }
+
+        /// <summary>
+        /// Starts the remote control server to allow remote monitoring and control of backup jobs
+        /// </summary>
+        /// <param name="port">Port to listen on (default: 9000)</param>
+        /// <returns>True if server started successfully</returns>
+        public bool StartRemoteControlServer(int port = 9000)
+        {
+            // Create the remote control service if needed
+            if (_remoteControlService == null)
+            {
+                _remoteControlService = new Services.RemoteControlService(this);
+            }
+            
+            // Set the port
+            _remoteControlService.ServerPort = port;
+            
+            // Start the server
+            return _remoteControlService.StartServer();
+        }
+
+        /// <summary>
+        /// Stops the remote control server
+        /// </summary>
+        public void StopRemoteControlServer()
+        {
+            _remoteControlService?.StopServer();
+        }
+
+        /// <summary>
+        /// Gets whether the remote control server is running
+        /// </summary>
+        public bool IsRemoteControlServerRunning => _remoteControlService?.IsServerRunning ?? false;
     }
 }

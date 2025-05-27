@@ -7,16 +7,13 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-	    <UseWindowsForms>True</UseWindowsForms>
+    <UseWindowsForms>True</UseWindowsForms>
     <AssemblyName>EasySave_by_ProSoft</AssemblyName>
     <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
 
   <ItemGroup>
     <None Remove="Drapeau_Royaume_Unis.jpg" />
-    <None Remove="Views\Images\Drapeau_France.jpg" />
-    <None Remove="Views\Images\Drapeau_Royaume_Unis.jpg" />
-    <None Remove="Views\Images\EasySave_Black.png" />
   </ItemGroup>
 
   <ItemGroup>

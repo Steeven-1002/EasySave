@@ -44,14 +44,28 @@ namespace EasySave_by_ProSoft.ViewModels
                             processName = System.IO.Path.GetFileName(processName);
                             System.Diagnostics.Debug.WriteLine($"Extracted filename from path: {processName}");
                         }
-                        catch (Exception ex)
+                        catch (ArgumentException ex) // Catch specific exception for invalid path characters
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Failed to extract filename due to invalid characters: {ex.Message}");
+                            // Optionally, notify the user or clear the input
+                        }
+                        catch (Exception ex) // General exception
                         {
                             System.Diagnostics.Debug.WriteLine($"Failed to extract filename: {ex.Message}");
                         }
                     }
 
                     // If user provided a process name with extension, ensure it's saved properly
-                    if (!processName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                    // Allow process names without .exe as some system processes might not have it when queried.
+                    // However, for user input, standardizing to include .exe if not present might be intended.
+                    // The existing logic to add .exe if missing seems reasonable for user-defined business software.
+                    if (!processName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(System.IO.Path.GetExtension(processName)))
+                    {
+                        // If it has an extension but it's not .exe, this might be an issue or intended.
+                        // For now, keeping the logic that adds .exe if no extension or different.
+                        // This part could be refined based on exact requirements for process name matching.
+                    }
+                    else if (string.IsNullOrEmpty(System.IO.Path.GetExtension(processName))) // Only add .exe if no extension is present
                     {
                         processName = $"{processName}.exe";
                         System.Diagnostics.Debug.WriteLine($"Added .exe extension to process name: {processName}");
@@ -165,7 +179,10 @@ namespace EasySave_by_ProSoft.ViewModels
                 var setting = _settings.GetSetting("LargeFileSizeThresholdKey");
                 if (setting is double d) return d;
                 if (setting is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Number && jsonElement.TryGetDouble(out double val)) return val;
-                if (_settings.GetSetting("DefaultLargeFileSizeThresholdKey") is double defaultVal) return defaultVal;
+
+                var defaultSetting = _settings.GetSetting("DefaultLargeFileSizeThresholdKey");
+                if (defaultSetting is double defaultD) return defaultD;
+                if (defaultSetting is JsonElement defaultJsonElement && defaultJsonElement.ValueKind == JsonValueKind.Number && defaultJsonElement.TryGetDouble(out double defaultVal)) return defaultVal;
                 return 1000000; // Fallback value if no valid setting is found
             }
             set

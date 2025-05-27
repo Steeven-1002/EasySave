@@ -1,5 +1,4 @@
 using EasySave_by_ProSoft.Models;
-using EasySave_by_ProSoft.Network;
 using System.Diagnostics;
 using System.IO;
 
@@ -12,16 +11,12 @@ namespace EasySave_by_ProSoft.Core
     {
         private readonly List<BackupJob> _activeJobs = new();
         private readonly Dictionary<BackupJob, Task> _jobTasks = new();
-        private readonly NetworkMonitor _networkMonitor;
         private readonly object _largeLock = new();
         private readonly SemaphoreSlim _largeFileTransferSemaphore;
         private readonly CancellationTokenSource _cts = new();
 
         public ParallelExecutionManager()
         {
-            _networkMonitor = new NetworkMonitor();
-            _networkMonitor.StartMonitoring();
-
             // Initialize the semaphore for large file transfers
             int maxConcurrentLargeFileTransfers = 1; // Can be configured from settings
             _largeFileTransferSemaphore = new SemaphoreSlim(maxConcurrentLargeFileTransfers, maxConcurrentLargeFileTransfers);
@@ -102,18 +97,6 @@ namespace EasySave_by_ProSoft.Core
             return fileSize <= largeFileSizeThresholdBytes || _largeFileTransferSemaphore.CurrentCount > 0;
         }
 
-        public void ManageNetworkLoad(int thresholdKBps)
-        {
-            if (_networkMonitor.IsBandwidthExceededThreshold(thresholdKBps))
-            {
-                PauseNonPriorityJobs();
-            }
-            else
-            {
-                ResumeNonPriorityJobs();
-            }
-        }
-
         public void PauseNonPriorityJobs()
         {
             lock (_activeJobs)
@@ -149,7 +132,6 @@ namespace EasySave_by_ProSoft.Core
 
         public void Shutdown()
         {
-            _networkMonitor.StopMonitoring();
             _cts.Cancel();
         }
     }

@@ -30,11 +30,8 @@ namespace EasySave_by_ProSoft.Views
             _initialCultureName = _settingsViewModel.UserLanguage;
             UpdateLanguageRadioButtons();
 
-            // Hook up event handlers for the ViewModel's notification events
-            _settingsViewModel.RequestApplicationRestartPrompt += OnRequestApplicationRestartPrompt;
-            _settingsViewModel.LanguageChangeConfirmed += OnLanguageChangeConfirmed;
-            _settingsViewModel.LanguageChangeCancelled += OnLanguageChangeCancelled;
-            _settingsViewModel.ApplicationRestartFailed += OnApplicationRestartFailed;
+            // Remove event handler hookups for ViewModel events that can be handled via data binding and commands.
+            // If dialog interactions are needed, ensure they are invoked via the IDialogService from the ViewModel.
 
             // Load the encryption key if it exists
             string? savedKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;

@@ -10,17 +10,21 @@ namespace EasySave_by_ProSoft.Views
     /// <summary>
     /// View for managing backup jobs
     /// </summary>
-    public partial class BackupJobsView : System.Windows.Controls.UserControl
+    public partial class BackupJobsView : System.Windows.Controls.UserControl, IDisposable
     {
         private readonly BackupManager _backupManager;
         private readonly JobsListViewModel _jobsListViewModel;
         private readonly JobAddViewModel _jobAddViewModel;
         private readonly IDialogService _dialogService;
+        private bool _disposed = false;
 
         public BackupJobsView()
         {
             InitializeComponent();
             _dialogService = new DialogService();
+            
+            // Register for the Unloaded event to clean up resources
+            Unloaded += BackupJobsView_Unloaded;
         }
 
         public BackupJobsView(BackupManager backupManager) : this()
@@ -71,6 +75,41 @@ namespace EasySave_by_ProSoft.Views
 
             // Refresh jobs from JSON file
             RefreshJobsList();
+        }
+
+        private void BackupJobsView_Unloaded(object sender, RoutedEventArgs e)
+        {
+            // Clean up resources when the view is unloaded
+            Dispose();
+        }
+
+        // IDisposable implementation
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Unregister from the Unloaded event
+                    Unloaded -= BackupJobsView_Unloaded;
+
+                    // Dispose of the view models
+                    _jobsListViewModel?.Dispose();
+                }
+
+                _disposed = true;
+            }
+        }
+
+        ~BackupJobsView()
+        {
+            Dispose(false);
         }
 
         /// <summary>
@@ -302,9 +341,9 @@ namespace EasySave_by_ProSoft.Views
             if (!_jobsListViewModel.ValidateJobSelection())
                 return;
 
-            var jobsToStop = _jobsListViewModel.SelectedJobs.Where(job => 
+            var jobsToStop = _jobsListViewModel.SelectedJobs.Where(job =>
                 job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused).ToList();
-            
+
             if (jobsToStop.Count == 0)
             {
                 _dialogService.ShowWarning("No running or paused jobs selected to stop.");

@@ -232,6 +232,15 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Calculating.
+        /// </summary>
+        public static string Calculating {
+            get {
+                return ResourceManager.GetString("Calculating", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Cancel.
         /// </summary>
         public static string Cancel {
@@ -547,11 +556,29 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Job(s) Deleted.
+        /// </summary>
+        public static string MessageConfirmDeleteJobs {
+            get {
+                return ResourceManager.GetString("MessageConfirmDeleteJobs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à New backup job validated !.
         /// </summary>
         public static string MessageNewJobValidated {
             get {
                 return ResourceManager.GetString("MessageNewJobValidated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à No job in selection.
+        /// </summary>
+        public static string MessageNoJobSelected {
+            get {
+                return ResourceManager.GetString("MessageNoJobSelected", resourceCulture);
             }
         }
         
@@ -708,6 +735,59 @@ namespace EasySave_by_ProSoft.Localization {
             }
         }
         
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Completed.
+        /// </summary>
+        public static string StateCompleted {
+            get {
+                return ResourceManager.GetString("StateCompleted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Error.
+        /// </summary>
+        public static string StateError {
+            get {
+                return ResourceManager.GetString("StateError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Paused.
+        /// </summary>
+        public static string StatePaused {
+            get {
+                return ResourceManager.GetString("StatePaused", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Running.
+        /// </summary>
+        public static string StateRunning {
+            get {
+                return ResourceManager.GetString("StateRunning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Unknown.
+        /// </summary>
+        public static string StateUnknown {
+            get {
+                return ResourceManager.GetString("StateUnknown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Waiting.
+        /// </summary>
+        public static string StateWaiting {
+            get {
+                return ResourceManager.GetString("StateWaiting", resourceCulture);
+            }
+        }
         /// <summary>
         ///   Recherche une chaîne localisée semblable à Running.
         /// </summary>

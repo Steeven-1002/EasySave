@@ -1,6 +1,7 @@
 ﻿using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Views;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace EasySave_by_ProSoft
 {
@@ -17,7 +18,7 @@ namespace EasySave_by_ProSoft
         public MainWindow()
         {
             // Create the BackupManager instance to be shared between ViewModels
-            _backupManager = new BackupManager();
+            _backupManager = BackupManager.Instance;
 
             InitializeComponent();
 
@@ -42,20 +43,15 @@ namespace EasySave_by_ProSoft
             MainContentArea.Content = _settingsView;
         }
 
-        private void ShowRemoteControl_Click(object sender, RoutedEventArgs e)
-        {
-            MainContentArea.Content = _remoteControlView;
-        }
-
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
-            // Clean up resources
-            if (_remoteControlView != null)
-            {
-                _remoteControlView.Cleanup();
-            }
-            
             System.Windows.Application.Current.Shutdown();
+        }
+
+        private void ShowRemoteControl_Click(object sender, RoutedEventArgs e)
+        {
+            // Connect directly to client view, since server is always running in background
+            MainContentArea.Content = _remoteControlView;
         }
     }
 }
