@@ -155,7 +155,8 @@ namespace EasySave_by_ProSoft.Models
 
         public async Task ExecuteJobsByNameAsync(List<string> jobNames)
         {
-            if (jobNames == null || !jobNames.Any()) return;
+            if (jobNames == null || !jobNames.Any())
+                return;
 
             List<BackupJob> jobsToRun = new List<BackupJob>();
 
@@ -164,13 +165,25 @@ namespace EasySave_by_ProSoft.Models
                 BackupJob jobToRun = backupJobs.FirstOrDefault(j => j.Name == name);
                 if (jobToRun != null)
                 {
-                    jobsToRun.Add(jobToRun);
-                    // Register the job with business application monitor
-                    _businessMonitor.RegisterJob(jobToRun);
-
-                    if (jobToRun.Status.State != BackupState.Initialise)
+          
+                    if (jobToRun.Status.State == BackupState.Initialise ||
+                        jobToRun.Status.State == BackupState.Error ||
+                        jobToRun.Status.State == BackupState.Completed)
                     {
-                        Debug.WriteLine($"WARNING - Job '{jobToRun.Name}' is not in Initialize state");
+                        
+                        jobToRun.Status.ResetForRun();
+                    }
+
+              
+                    if (jobToRun.Status.State == BackupState.Initialise)
+                    {
+                        jobsToRun.Add(jobToRun);
+                       
+                        _businessMonitor.RegisterJob(jobToRun);
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"Job '{jobToRun.Name}' is not launchable (Actual State : {jobToRun.Status.State})");
                     }
                 }
                 else
@@ -179,8 +192,16 @@ namespace EasySave_by_ProSoft.Models
                 }
             }
 
-            await _parallelManager.ExecuteJobsInParallelAsync(jobsToRun);
+            if (jobsToRun.Any())
+            {
+                await _parallelManager.ExecuteJobsInParallelAsync(jobsToRun);
+            }
+            else
+            {
+                Debug.WriteLine("No Job to launch");
+            }
         }
+
 
         public bool RemoveJobByName(string jobName)
         {
