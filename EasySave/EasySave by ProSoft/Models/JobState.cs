@@ -53,7 +53,7 @@ namespace EasySave_by_ProSoft.Models
         [JsonPropertyName("TotalFilesSize")]
         public long TotalSize { get; set; }
 
-        [JsonPropertyName("NbFilesLeftToDo")]
+        [JsonPropertyName("RemainingFilesCount")]
         public int RemainingFiles { get; set; }
 
         [JsonPropertyName("Progression")]

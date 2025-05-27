@@ -59,13 +59,7 @@ namespace EasySave_by_ProSoft.ViewModels
                     // Allow process names without .exe as some system processes might not have it when queried.
                     // However, for user input, standardizing to include .exe if not present might be intended.
                     // The existing logic to add .exe if missing seems reasonable for user-defined business software.
-                    if (!processName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(System.IO.Path.GetExtension(processName)))
-                    {
-                        // If it has an extension but it's not .exe, this might be an issue or intended.
-                        // For now, keeping the logic that adds .exe if no extension or different.
-                        // This part could be refined based on exact requirements for process name matching.
-                    }
-                    else if (string.IsNullOrEmpty(System.IO.Path.GetExtension(processName))) // Only add .exe if no extension is present
+                    if (string.IsNullOrEmpty(System.IO.Path.GetExtension(processName))) // Only add .exe if no extension is present
                     {
                         processName = $"{processName}.exe";
                         System.Diagnostics.Debug.WriteLine($"Added .exe extension to process name: {processName}");

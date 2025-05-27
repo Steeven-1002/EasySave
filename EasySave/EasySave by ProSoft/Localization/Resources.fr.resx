@@ -365,6 +365,7 @@
   </data>
   <data name="MessageConfirmDeleteJobs" xml:space="preserve">
     <value>Suppression effectué </value>
+  </data>
   <data name="StatusRunning" xml:space="preserve">
     <value>En cours</value>
   </data>
