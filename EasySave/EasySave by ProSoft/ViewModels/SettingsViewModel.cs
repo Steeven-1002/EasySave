@@ -19,11 +19,11 @@ namespace EasySave_by_ProSoft.ViewModels
         private readonly IDialogService _dialogService;
         private string _selectedLogFormat;
 
-        // Notification properties
-        public event Action<string, string, bool> RequestApplicationRestartPrompt;
-        public event Action LanguageChangeConfirmed;
-        public event Action LanguageChangeCancelled;
-        public event Action<Exception> ApplicationRestartFailed;
+        // We no longer need these events since language changes are applied immediately
+        // public event Action<string, string, bool> RequestApplicationRestartPrompt;
+        // public event Action LanguageChangeConfirmed;
+        // public event Action LanguageChangeCancelled;
+        // public event Action<Exception> ApplicationRestartFailed;
 
         public string BusinessSoftwareName
         {
@@ -94,11 +94,12 @@ namespace EasySave_by_ProSoft.ViewModels
             }
             set
             {
-                var cleaned = Regex.Replace(value, @"(?<!^)\.", " .");
-
-                var list = cleaned.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                                 .Select(s => s.Trim())
-                                 .ToList();
+                // Accept commas as delimiters without additional processing
+                var list = value.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => s.Trim())
+                    .Select(s => s.StartsWith(".") ? s : "." + s) // Ensure each extension starts with a period
+                    .Distinct() // Remove duplicates
+                    .ToList();
 
                 _settings.SetSetting("EncryptionExtensions", list);
                 OnPropertyChanged();
@@ -124,12 +125,12 @@ namespace EasySave_by_ProSoft.ViewModels
             }
             set
             {
-                // Ensure proper format for extension file priority
-                var cleaned = Regex.Replace(value, @"(?<!^)\.", " .");
-
-                var list = cleaned.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                                 .Select(s => s.Trim())
-                                 .ToList();
+                // Accept commas as delimiters without additional processing
+                var list = value.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => s.Trim())
+                    .Select(s => s.StartsWith(".") ? s : "." + s) // Ensure each extension starts with a period
+                    .Distinct() // Remove duplicates
+                    .ToList();
 
                 _settings.SetSetting("ExtensionFilePriority", list);
                 OnPropertyChanged();
@@ -250,16 +251,24 @@ namespace EasySave_by_ProSoft.ViewModels
                 CultureInfo newCulture = new CultureInfo(newLanguage);
                 Thread.CurrentThread.CurrentUICulture = newCulture;
                 Thread.CurrentThread.CurrentCulture = newCulture;
-                if (Localization.Resources.Culture != null || Localization.Resources.Culture == null)
-                {
-                    Localization.Resources.Culture = newCulture;
-                }
-
-                // Trigger the restart prompt event
-                RequestApplicationRestartPrompt?.Invoke(
-                    Localization.Resources.LanguageChangeRestartMessage,
-                    Localization.Resources.ConfirmationTitle,
-                    true);
+                
+                // Apply culture to Resources
+                Localization.Resources.Culture = newCulture;
+                
+                // Notify UI to refresh
+                App.Current.Resources.MergedDictionaries.Clear();
+                ResourceDictionary resourceDict = new ResourceDictionary();
+                resourceDict.Source = new Uri($"pack://application:,,,/EasySave by ProSoft;component/Localization/StringResources.{newLanguage}.xaml", UriKind.Absolute);
+                App.Current.Resources.MergedDictionaries.Add(resourceDict);
+                
+                // Notify the application that language has changed without restart
+                _dialogService.ShowInformation(
+                    Localization.Resources.LanguageChangeAppliedMessage ?? "Language has been changed successfully.",
+                    Localization.Resources.InformationTitle ?? "Information");
+                
+                // Fire event to refresh the UI
+                OnPropertyChanged(nameof(UserLanguage));
+                App.Current.MainWindow.UpdateLayout();
             }
             catch (CultureNotFoundException ex)
             {
@@ -268,24 +277,6 @@ namespace EasySave_by_ProSoft.ViewModels
                     Localization.Resources.ErrorTitle);
                 return;
             }
-        }
-
-        public void HandleApplicationRestartResult(bool restartConfirmed)
-        {
-            if (restartConfirmed)
-            {
-                LanguageChangeConfirmed?.Invoke();
-            }
-            else
-            {
-                // Revert to original language settings
-                LanguageChangeCancelled?.Invoke();
-            }
-        }
-
-        public void NotifyRestartFailed(Exception ex)
-        {
-            ApplicationRestartFailed?.Invoke(ex);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

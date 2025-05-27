@@ -20,11 +20,14 @@
     <!-- Header -->
     <StackPanel Grid.Row="0" Margin="0,0,0,20">
       <TextBlock Text="Remote Control" 
-                       FontSize="24" 
-                       FontWeight="Bold" 
-                       Margin="0,0,0,5" Height="28"/>
+                 Style="{StaticResource HeaderTextBlockStyle}"
+                 FontSize="24" 
+                 FontWeight="Bold" 
+                 Margin="0,0,0,5" Height="28"/>
       <TextBlock Text="Connect to a remote EasySave server to monitor and control backup jobs" 
-                       TextWrapping="Wrap" Height="16" Padding="0,0,0,4"/>
+                 TextWrapping="Wrap" 
+                 Foreground="{StaticResource TextSecondaryBrush}"
+                 Height="16" Padding="0,0,0,4"/>
     </StackPanel>
 
     <!-- Connection Panel -->
@@ -39,44 +42,51 @@
       </Grid.ColumnDefinitions>
 
       <TextBlock Grid.Column="0" 
-                       Text="Server:" 
-                       VerticalAlignment="Top" 
-                       Margin="0,6,10,0"/>
+                 Text="Server:" 
+                 VerticalAlignment="Top" 
+                 Foreground="{StaticResource TextPrimaryBrush}"
+                 Margin="0,6,10,0"/>
 
       <TextBox Grid.Column="1" 
-                     x:Name="ServerHostTextBox"
-                     VerticalAlignment="Top" 
-                     Text="{Binding ServerHost, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                     Margin="0,0,10,0" Height="27" Padding="8,0,8,5"/>
+               x:Name="ServerHostTextBox"
+               VerticalAlignment="Top" 
+               Text="{Binding ServerHost, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+               Style="{StaticResource ModernTextBoxStyle}"
+               Margin="0,0,10,0" Height="27" Padding="8,0,8,5"/>
 
       <TextBlock Grid.Column="2" 
-                       Text="Port:" 
-                       VerticalAlignment="Top" 
-                       Margin="0,6,10,0"/>
+                 Text="Port:" 
+                 VerticalAlignment="Top" 
+                 Foreground="{StaticResource TextPrimaryBrush}"
+                 Margin="0,6,10,0"/>
 
       <TextBox Grid.Column="3" 
-                     x:Name="ServerPortTextBox"
-                     VerticalAlignment="Top" 
-                     Width="80"
-                     Text="{Binding ServerPort, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                     Margin="0,0,10,0" Height="27"/>
+               x:Name="ServerPortTextBox"
+               VerticalAlignment="Top" 
+               Width="80"
+               Text="{Binding ServerPort, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+               Style="{StaticResource ModernTextBoxStyle}"
+               Margin="0,0,10,0" Height="27"/>
 
       <Button Grid.Column="4" 
-                    Content="{Binding ConnectionButtonText}" 
-                    Command="{Binding ToggleConnectionCommand}"
-                    Padding="10,5"
-                    Background="{Binding ConnectionButtonColor}" Margin="29,1,500,40"/>
+              Content="{Binding ConnectionButtonText}" 
+              Command="{Binding ToggleConnectionCommand}"
+              Style="{StaticResource ActionButtonStyle}"
+              Padding="10,5"
+              Background="{Binding ConnectionButtonColor}" Margin="29,1,500,40"/>
     </Grid>
 
     <!-- Status Bar -->
     <Border Grid.Row="1" 
-                Background="{Binding ConnectionStatusBackground}" 
-                Padding="10" 
-                Margin="0,27,0,0"
-                VerticalAlignment="Top" Height="25">
+            Background="{Binding ConnectionStatusBackground}" 
+            Padding="10" 
+            Margin="0,27,0,0"
+            CornerRadius="3"
+            VerticalAlignment="Top" Height="25">
       <TextBlock Text="{Binding ConnectionStatus}" 
-                       Foreground="White" 
-                       TextWrapping="Wrap" Height="13" Margin="0,-5,0,-3"/>
+                 Foreground="White" 
+                 FontWeight="SemiBold"
+                 TextWrapping="Wrap" Height="13" Margin="0,-5,0,-3"/>
     </Border>
 
     <!-- Job List -->
@@ -96,10 +106,11 @@
                       x:Name="RemoteJobsListView"
                       ItemsSource="{Binding RemoteJobs}" 
                       SelectionMode="Extended"
+                      Style="{StaticResource ModernListView}"
                       BorderThickness="1" 
                       BorderBrush="{StaticResource BorderBrush}">
         <ListView.ItemContainerStyle>
-          <Style TargetType="ListViewItem">
+          <Style TargetType="ListViewItem" BasedOn="{StaticResource ListViewItemContainerStyle}">
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="Margin" Value="0,2"/>
             <Setter Property="Padding" Value="10,8"/>
@@ -125,6 +136,46 @@
               <GridViewColumn.CellTemplate>
                 <DataTemplate>
                   <TextBlock Text="{Binding StateDisplay}" 
+                            VerticalAlignment="Center">
+                    <TextBlock.Style>
+                      <Style TargetType="{x:Type TextBlock}">
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding State}" Value="Running">
+                            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                          </DataTrigger>
+                          <DataTrigger Binding="{Binding State}" Value="Paused">
+                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                          </DataTrigger>
+                          <DataTrigger Binding="{Binding State}" Value="Error">
+                            <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                          </DataTrigger>
+                          <DataTrigger Binding="{Binding State}" Value="Completed">
+                            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </DataTemplate>
+              </GridViewColumn.CellTemplate>
+            </GridViewColumn>
+
+            <GridViewColumn Header="Type" Width="100">
+              <GridViewColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Type}" 
+                                               VerticalAlignment="Center"/>
+                </DataTemplate>
+              </GridViewColumn.CellTemplate>
+            </GridViewColumn>
+
+            <GridViewColumn Header="Size" Width="120">
+              <GridViewColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding TotalSize, StringFormat={}{0:N0} bytes}" 
                                                VerticalAlignment="Center"/>
                 </DataTemplate>
               </GridViewColumn.CellTemplate>
@@ -135,12 +186,15 @@
                 <DataTemplate>
                   <Grid>
                     <ProgressBar Minimum="0" 
-                                                     Maximum="100" 
-                                                     Value="{Binding ProgressPercentage}" 
-                                                     Height="20"/>
+                                Maximum="100" 
+                                Value="{Binding ProgressPercentage}" 
+                                Height="20"
+                                Style="{StaticResource ModernProgressBar}"/>
                     <TextBlock Text="{Binding ProgressPercentage, StringFormat={}{0:F1}%}"
-                                                 HorizontalAlignment="Center"
-                                                 VerticalAlignment="Center"/>
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              FontSize="11"
+                              FontWeight="SemiBold"/>
                   </Grid>
                 </DataTemplate>
               </GridViewColumn.CellTemplate>
@@ -164,46 +218,49 @@
               </GridViewColumn.CellTemplate>
             </GridViewColumn>
 
-            <GridViewColumn Header="Current File" Width="200">
-              <GridViewColumn.CellTemplate>
-                <DataTemplate>
-                  <TextBlock Text="{Binding CurrentSourceFile}" 
-                                               TextTrimming="CharacterEllipsis"/>
-                </DataTemplate>
-              </GridViewColumn.CellTemplate>
-            </GridViewColumn>
-
             <GridViewColumn Header="Controls" Width="180">
               <GridViewColumn.CellTemplate>
                 <DataTemplate>
                   <StackPanel Orientation="Horizontal">
-                    <Button Content="Start" 
-                                                Width="40" 
-                                                Margin="0,0,5,0"
-                                                IsEnabled="{Binding CanStart}"
-                                                Command="{Binding DataContext.StartJobCommand, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
-                                                CommandParameter="{Binding}"/>
+                    <!-- Start Button -->
+                    <Button Width="40" Height="24" 
+                            ToolTip="Start" 
+                            Margin="2,0" 
+                            Content="▶️"
+                            Style="{StaticResource ActionButtonStyle}"
+                            IsEnabled="{Binding CanStart}"
+                            Command="{Binding DataContext.StartJobCommand, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
+                            CommandParameter="{Binding}"/>
 
-                    <Button Content="Pause" 
-                                                Width="40" 
-                                                Margin="0,0,5,0"
-                                                IsEnabled="{Binding CanPause}"
-                                                Command="{Binding DataContext.PauseJobCommand, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
-                                                CommandParameter="{Binding}"/>
+                    <!-- Pause Button -->
+                    <Button Width="40" Height="24" 
+                            ToolTip="Pause" 
+                            Margin="2,0" 
+                            Content="||"
+                            Style="{StaticResource PauseButtonStyle}"
+                            IsEnabled="{Binding CanPause}"
+                            Command="{Binding DataContext.PauseJobCommand, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
+                            CommandParameter="{Binding}"/>
 
-                    <Button Content="Resume" 
-                                                Width="50" 
-                                                Margin="0,0,5,0"
-                                                IsEnabled="{Binding CanResume}"
-                                                Command="{Binding DataContext.ResumeJobCommand, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
-                                                CommandParameter="{Binding}"/>
+                    <!-- Resume Button -->
+                    <Button Width="40" Height="24" 
+                            ToolTip="Resume" 
+                            Margin="2,0" 
+                            Content="▶️"
+                            Style="{StaticResource ActionButtonStyle}"
+                            IsEnabled="{Binding CanResume}"
+                            Command="{Binding DataContext.ResumeJobCommand, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
+                            CommandParameter="{Binding}"/>
 
-                    <Button Content="Stop" 
-                                                Width="40" 
-                                                Style="{StaticResource StopButtonStyle}"
-                                                IsEnabled="{Binding CanStop}"
-                                                Command="{Binding DataContext.StopJobCommand, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
-                                                CommandParameter="{Binding}"/>
+                    <!-- Stop Button -->
+                    <Button Width="40" Height="24" 
+                            ToolTip="Stop" 
+                            Margin="2,0" 
+                            Content="■"
+                            Style="{StaticResource StopButtonStyle}"
+                            IsEnabled="{Binding CanStop}"
+                            Command="{Binding DataContext.StopJobCommand, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
+                            CommandParameter="{Binding}"/>
                   </StackPanel>
                 </DataTemplate>
               </GridViewColumn.CellTemplate>
@@ -214,37 +271,44 @@
 
       <!-- No jobs overlay -->
       <TextBlock Grid.Row="1" 
-                       HorizontalAlignment="Center" 
-                       VerticalAlignment="Center" 
-                       Text="No remote jobs available. Connect to a server first or refresh the job list."
-                       Visibility="{Binding NoJobsVisibility}"
-                       FontSize="16" 
-                       Foreground="{StaticResource TextMutedBrush}" Height="22" Width="506"/>
+                 HorizontalAlignment="Center" 
+                 VerticalAlignment="Center" 
+                 Text="No remote jobs available. Connect to a server first or refresh the job list."
+                 Visibility="{Binding NoJobsVisibility}"
+                 FontSize="16" 
+                 Foreground="{StaticResource TextMutedBrush}" 
+                 FontStyle="Italic"
+                 TextAlignment="Center"
+                 Height="22" Width="506"/>
     </Grid>
 
     <!-- Bottom Action Buttons -->
     <StackPanel Grid.Row="3" 
-                    Orientation="Horizontal" 
-                    HorizontalAlignment="Right" 
-                    Margin="0,20,0,0" Width="580">
+                Orientation="Horizontal" 
+                HorizontalAlignment="Right" 
+                Margin="0,20,0,0">
 
       <Button Content="Refresh Jobs" 
                     Command="{Binding RefreshJobsCommand}" 
+                    Style="{StaticResource ActionButtonStyle}"
                     Padding="15,5" 
                     Margin="0,0,10,0"/>
 
       <Button Content="Start Selected" 
                     Command="{Binding StartSelectedJobsCommand}" 
+                    Style="{StaticResource ActionButtonStyle}"
                     Padding="15,5" 
                     Margin="0,0,10,0"/>
 
       <Button Content="Pause Selected" 
                     Command="{Binding PauseSelectedJobsCommand}" 
+                    Style="{StaticResource PauseButtonStyle}"
                     Padding="15,5" 
                     Margin="0,0,10,0"/>
 
       <Button Content="Resume Selected" 
                     Command="{Binding ResumeSelectedJobsCommand}" 
+                    Style="{StaticResource ActionButtonStyle}"
                     Padding="15,5" 
                     Margin="0,0,10,0"/>
 

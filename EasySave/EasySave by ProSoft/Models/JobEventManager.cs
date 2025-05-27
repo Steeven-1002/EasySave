@@ -89,7 +89,7 @@ namespace EasySave_by_ProSoft.Models
                     NotifyListenersInternal(jobStatus);
                 }
                 
-                // Also notify the EventManager to update both local and remote views
+                // Notify the EventManager to update local UI only
                 Core.EventManager.Instance.NotifyJobStatusChanged(jobStatus);
             }
             catch (Exception ex)

@@ -471,16 +471,35 @@ namespace EasySave_by_ProSoft.Network
 
             try
             {
-                // Create a state snapshot of the job
-                var jobState = status.CreateSnapshot();
+                // Get all jobs from the backup manager
+                var allJobs = _backupManager.GetAllJobs();
                 
-                // Ensure source and target paths are set properly
-                jobState.SourcePath = status.BackupJob.SourcePath;
-                jobState.TargetPath = status.BackupJob.TargetPath;
-                jobState.Type = status.BackupJob.Type;
+                if (allJobs == null || allJobs.Count == 0)
+                {
+                    Debug.WriteLine("No jobs available to send to client");
+                    return;
+                }
                 
-                // Create a message with this single job state
-                var message = NetworkMessage.CreateJobStatusMessage(new List<JobState> { jobState });
+                // Create job status snapshots for all jobs
+                var jobStates = new List<JobState>();
+                foreach (var job in allJobs)
+                {
+                    if (job != null && job.Status != null)
+                    {
+                        var snapshot = job.Status.CreateSnapshot();
+                        if (snapshot != null)
+                        {
+                            // Ensure source and target paths are set properly
+                            snapshot.SourcePath = job.SourcePath;
+                            snapshot.TargetPath = job.TargetPath;
+                            snapshot.Type = job.Type;
+                            jobStates.Add(snapshot);
+                        }
+                    }
+                }
+                
+                // Create a message with all job states
+                var message = NetworkMessage.CreateJobStatusMessage(jobStates);
 
                 // Get all connected clients
                 var clients = connectedClients.Values.ToList();
@@ -491,7 +510,7 @@ namespace EasySave_by_ProSoft.Network
                     return;
                 }
                 
-                Debug.WriteLine($"Broadcasting job status update for {jobState.JobName} to {clients.Count} clients");
+                Debug.WriteLine($"Broadcasting status update for {jobStates.Count} jobs to {clients.Count} clients");
 
                 // Broadcast to all clients
                 foreach (var client in clients)
@@ -508,9 +527,6 @@ namespace EasySave_by_ProSoft.Network
                         }
                     }
                 }
-                
-                // Also notify the EventManager to update local UI
-                _eventManager.NotifyJobStatusChanged(status);
             }
             catch (Exception ex)
             {
@@ -525,7 +541,7 @@ namespace EasySave_by_ProSoft.Network
         {
             if (message == null || client == null || !IsClientConnected(client))
                 return;
-                
+
             try
             {
                 var options = new JsonSerializerOptions
@@ -534,14 +550,14 @@ namespace EasySave_by_ProSoft.Network
                     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 };
-                
+
                 // Validate message before serializing
                 if (string.IsNullOrEmpty(message.Type))
                 {
                     Debug.WriteLine("Warning: Attempting to send message with null or empty Type");
                     message.Type = "Unknown";
                 }
-                
+
                 // Serialize message
                 string messageJson;
                 try
@@ -554,29 +570,29 @@ namespace EasySave_by_ProSoft.Network
                     Debug.WriteLine($"Error serializing message: {ex.Message}");
                     return;
                 }
-                
+
                 // Convert the message to bytes
                 var messageBytes = Encoding.UTF8.GetBytes(messageJson);
-                
+
                 // Create a buffer that includes the message length prefix (4 bytes for length) + message content
                 var lengthPrefix = BitConverter.GetBytes(messageBytes.Length);
                 var buffer = new byte[4 + messageBytes.Length];
-                
+
                 // Copy the length prefix and message bytes into the buffer
                 Buffer.BlockCopy(lengthPrefix, 0, buffer, 0, 4);
                 Buffer.BlockCopy(messageBytes, 0, buffer, 4, messageBytes.Length);
-                
+
                 // Use a timeout to prevent hanging
                 using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)); // 2-minute timeout
-                
+
                 try
                 {
                     // Double check client is still connected before sending
                     if (!IsClientConnected(client))
                         return;
-                        
+
                     NetworkStream stream = client.GetStream();
-                    
+
                     // Send in one go but don't close connection
                     await stream.WriteAsync(buffer, 0, buffer.Length, cts.Token).ConfigureAwait(false);
                     await stream.FlushAsync(cts.Token).ConfigureAwait(false);
@@ -593,74 +609,6 @@ namespace EasySave_by_ProSoft.Network
                 // Never disconnect the client due to send errors
             }
         }
-
-        /// <summary>
-        /// Checks if a string is valid JSON
-        /// </summary>
-        private bool IsValidJson(string jsonString)
-        {
-            if (string.IsNullOrWhiteSpace(jsonString))
-                return false;
-                
-            try
-            {
-                using (JsonDocument.Parse(jsonString))
-                {
-                    return true;
-                }
-            }
-            catch (JsonException ex)
-            {
-                Debug.WriteLine($"Invalid JSON: {ex.Message}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Broadcasts a message to all connected clients
-        /// </summary>
-        private async Task BroadcastMessageAsync(NetworkMessage message)
-        {
-            if (message == null || !IsRunning)
-                return;
-
-            var disconnectedClients = new List<string>();
-
-            foreach (var kvp in connectedClients)
-            {
-                TcpClient client = kvp.Value;
-                
-                if (!IsClientConnected(client))
-                {
-                    disconnectedClients.Add(kvp.Key);
-                    continue;
-                }
-
-                try
-                {
-                    await SendMessageToClientAsync(message, client).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error broadcasting to client {kvp.Key}: {ex.Message}");
-                    disconnectedClients.Add(kvp.Key);
-                }
-            }
-
-            // Clean up any disconnected clients
-            foreach (var id in disconnectedClients)
-            {
-                if (connectedClients.TryRemove(id, out var client))
-                {
-                    try
-                    {
-                        client.Close();
-                    }
-                    catch { /* Ignore errors when cleaning up */ }
-                }
-            }
-        }
-
         /// <summary>
         /// Checks if a client is still connected
         /// </summary>

@@ -4,6 +4,7 @@ using EasySave_by_ProSoft.Services;
 using EasySave_by_ProSoft.ViewModels;
 using System.Diagnostics;
 using System.Windows;
+using System.Threading;
 
 namespace EasySave_by_ProSoft.Views
 {
@@ -22,33 +23,34 @@ namespace EasySave_by_ProSoft.Views
 
         public SettingsView()
         {
-            _dialogService = new DialogService();
+            InitializeComponent();
+            _dialogService = ServiceLocator.Current.GetService<IDialogService>();
             _settingsViewModel = new SettingsViewModel(_dialogService);
             DataContext = _settingsViewModel;
+            _initialCultureName = Thread.CurrentThread.CurrentUICulture.Name;
 
-            InitializeComponent();
-            _initialCultureName = _settingsViewModel.UserLanguage;
-            UpdateLanguageRadioButtons();
-
-            // Remove event handler hookups for ViewModel events that can be handled via data binding and commands.
-            // If dialog interactions are needed, ensure they are invoked via the IDialogService from the ViewModel.
-
-            // Load the encryption key if it exists
-            string? savedKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
-            if (!string.IsNullOrEmpty(savedKey))
+            // Set the checked status of radio buttons based on current language
+            string currentLanguage = _settingsViewModel.UserLanguage;
+            if (currentLanguage == "fr-FR")
             {
-                EncryptionKeyBox.Password = savedKey;
+                FrenchRadioButton.IsChecked = true;
+            }
+            else
+            {
+                EnglishRadioButton.IsChecked = true;
             }
 
-            // Synchronize PasswordBox with ViewModel if EncryptionKey changes in ViewModel
-            _settingsViewModel.PropertyChanged += (s, e) =>
-            {
-                if (e.PropertyName == nameof(SettingsViewModel.EncryptionKey))
-                {
-                    if (EncryptionKeyBox.Password != _settingsViewModel.EncryptionKey)
-                        EncryptionKeyBox.Password = _settingsViewModel.EncryptionKey;
-                }
-            };
+            // Initialize EncryptionKeyBox with current key value
+            EncryptionKeyBox.Password = _settingsViewModel.EncryptionKey;
+
+            // Subscribe to events
+            _settingsViewModel.PropertyChanged += SettingsViewModel_PropertyChanged;
+            
+            // We no longer need these events since language changes are applied immediately
+            // _settingsViewModel.RequestApplicationRestartPrompt += OnRequestApplicationRestartPrompt;
+            // _settingsViewModel.LanguageChangeConfirmed += OnLanguageChangeConfirmed;
+            // _settingsViewModel.LanguageChangeCancelled += OnLanguageChangeCancelled;
+            // _settingsViewModel.ApplicationRestartFailed += OnApplicationRestartFailed;
 
             // Initialize the log format ComboBox
             if (LogFormatComboBox != null)
@@ -64,25 +66,6 @@ namespace EasySave_by_ProSoft.Views
             }
         }
 
-        private void UpdateLanguageRadioButtons()
-        {
-            if (FrenchRadioButton != null) FrenchRadioButton.IsChecked = false;
-            if (EnglishRadioButton != null) EnglishRadioButton.IsChecked = false;
-
-            if (_initialCultureName.StartsWith("fr") && FrenchRadioButton != null)
-            {
-                FrenchRadioButton.IsChecked = true;
-            }
-            else if (_initialCultureName.StartsWith("en") && EnglishRadioButton != null)
-            {
-                EnglishRadioButton.IsChecked = true;
-            }
-            else // Default language if current culture is neither "en" nor "fr"
-            {
-                if (EnglishRadioButton != null) EnglishRadioButton.IsChecked = true;
-            }
-        }
-
         private void LanguageRadioButton_Checked(object sender, RoutedEventArgs e)
         {
             if (sender is System.Windows.Controls.RadioButton radioButton && radioButton.IsChecked == true && radioButton.Tag != null)
@@ -92,54 +75,6 @@ namespace EasySave_by_ProSoft.Views
             }
         }
 
-        // Event handler for application restart prompt request
-        private void OnRequestApplicationRestartPrompt(string message, string title, bool isQuestion)
-        {
-            bool restartConfirmed = _dialogService.ShowYesNoDialog(message, title);
-            _settingsViewModel.HandleApplicationRestartResult(restartConfirmed);
-        }
-
-        // Event handler for application restart confirmation
-        private void OnLanguageChangeConfirmed()
-        {
-            try
-            {
-                string applicationPath = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
-                if (string.IsNullOrEmpty(applicationPath))
-                {
-                    applicationPath = System.Windows.Application.ResourceAssembly.Location;
-                }
-                Process.Start(applicationPath);
-                System.Windows.Application.Current.Shutdown();
-            }
-            catch (Exception ex)
-            {
-                _settingsViewModel.NotifyRestartFailed(ex);
-            }
-        }
-
-        // Event handler for application restart cancellation
-        private void OnLanguageChangeCancelled()
-        {
-            _dialogService.ShowInformation(
-                Localization.Resources.LanguageChangeCancelledMessage,
-                Localization.Resources.InformationTitle);
-
-            Settings.Default.UserLanguage = _initialCultureName;
-            Settings.Default.Save();
-        }
-
-        // Event handler for application restart failure
-        private void OnApplicationRestartFailed(Exception ex)
-        {
-            _dialogService.ShowError(
-                $"{Localization.Resources.ErrorRestartingApplicationMessage}\n{ex.Message}",
-                Localization.Resources.ErrorTitle);
-
-            Settings.Default.UserLanguage = _initialCultureName;
-            Settings.Default.Save();
-        }
-
         // Event handler to synchronize PasswordBox with ViewModel
         private void EncryptionKeyBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
@@ -147,6 +82,15 @@ namespace EasySave_by_ProSoft.Views
             {
                 if (EncryptionKeyBox.Password != vm.EncryptionKey)
                     vm.EncryptionKey = EncryptionKeyBox.Password;
+            }
+        }
+
+        private void SettingsViewModel_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(SettingsViewModel.EncryptionKey))
+            {
+                if (EncryptionKeyBox.Password != _settingsViewModel.EncryptionKey)
+                    EncryptionKeyBox.Password = _settingsViewModel.EncryptionKey;
             }
         }
     }

@@ -84,6 +84,8 @@ namespace EasySave_by_ProSoft.ViewModels
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _jobs = new ObservableCollection<BackupJob>();
+            Status = BackupState.Initialise;
+            SelectedJobs = new ObservableCollection<BackupJob>();
 
             // Register as a listener for job events
             _jobEventManager.AddListener(this);
@@ -91,16 +93,17 @@ namespace EasySave_by_ProSoft.ViewModels
             // Register as a listener for remote control events
             _eventManager.AddListener(this);
 
+            // Load initially and set up command
+            LoadJobs();
+
             LaunchJobCommand = new RelayCommand(async _ => await LaunchSelectedJob(), _ => CanLaunchJob());
             RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(SelectedJobs), _ => SelectedJobs != null && SelectedJobs.Count > 0);
             
-            PauseJobCommand = new RelayCommand(_ => PauseSelectedJob(), _ => CanPauseSelectedJob());
-            ResumeJobCommand = new RelayCommand(_ => ResumeSelectedJob(), _ => CanResumeSelectedJob());
-            StopJobCommand = new RelayCommand(_ => StopSelectedJobs(), _ => CanStopSelectedJob());
+            // Update commands to work with parameter (the job) if provided, otherwise use selected jobs
+            PauseJobCommand = new RelayCommand(job => PauseJob(job), _ => true);
+            ResumeJobCommand = new RelayCommand(job => ResumeJob(job), _ => true);
+            StopJobCommand = new RelayCommand(job => StopJob(job), _ => true);
             LaunchMultipleJobsCommand = new RelayCommand(_ => LaunchMultipleJobs(), _ => CanLaunchMultipleJobs());
-
-            // Load jobs initially
-            LoadJobs();
         }
 
         private bool CanLaunchJob()

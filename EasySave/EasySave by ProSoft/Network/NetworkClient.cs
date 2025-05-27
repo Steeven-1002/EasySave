@@ -1,4 +1,5 @@
 using EasySave_by_ProSoft.Models;
+using EasySave_by_ProSoft.Core;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,7 +16,7 @@ namespace EasySave_by_ProSoft.Network
     /// <summary>
     /// Client for connecting to the EasySave socket server for remote control
     /// </summary>
-    public class NetworkClient : IDisposable
+    public class NetworkClient : IDisposable, IEventListener
     {
         private TcpClient client;
         private NetworkStream stream;
@@ -26,6 +27,7 @@ namespace EasySave_by_ProSoft.Network
         private readonly SemaphoreSlim reconnectSemaphore = new SemaphoreSlim(1, 1);
         private readonly TimeSpan pingInterval = TimeSpan.FromSeconds(10);
         private System.Threading.Timer pingTimer;
+        private bool isRegisteredWithEventManager = false;
 
         public string ServerHost { get; private set; }
         public int ServerPort { get; private set; }
@@ -71,6 +73,35 @@ namespace EasySave_by_ProSoft.Network
         {
             ServerHost = host;
             ServerPort = port;
+            
+            // Register with EventManager to receive job status updates
+            RegisterWithEventManager();
+        }
+        
+        /// <summary>
+        /// Registers this client as a listener with the EventManager
+        /// </summary>
+        private void RegisterWithEventManager()
+        {
+            if (!isRegisteredWithEventManager)
+            {
+                EventManager.Instance.AddListener(this);
+                isRegisteredWithEventManager = true;
+                Debug.WriteLine("NetworkClient: Registered with EventManager");
+            }
+        }
+        
+        /// <summary>
+        /// Unregisters this client from the EventManager
+        /// </summary>
+        private void UnregisterFromEventManager()
+        {
+            if (isRegisteredWithEventManager)
+            {
+                EventManager.Instance.RemoveListener(this);
+                isRegisteredWithEventManager = false;
+                Debug.WriteLine("NetworkClient: Unregistered from EventManager");
+            }
         }
 
         /// <summary>
@@ -1126,7 +1157,88 @@ namespace EasySave_by_ProSoft.Network
         public void Dispose()
         {
             Disconnect();
+            UnregisterFromEventManager();
             reconnectSemaphore.Dispose();
         }
+
+        #region IEventListener Implementation
+
+        /// <summary>
+        /// Handles job status change notifications from the EventManager
+        /// </summary>
+        public void OnJobStatusChanged(JobStatus status)
+        {
+            if (IsConnected && status?.BackupJob != null)
+            {
+                Debug.WriteLine($"NetworkClient: Received job status update for {status.BackupJob.Name}, state: {status.State}");
+                
+                // Create a snapshot and send to clients
+                var snapshot = status.CreateSnapshot();
+                if (snapshot != null)
+                {
+                    // Ensure we have source and target paths
+                    snapshot.SourcePath = status.BackupJob.SourcePath;
+                    snapshot.TargetPath = status.BackupJob.TargetPath;
+                    snapshot.Type = status.BackupJob.Type;
+                    
+                    // Send the update to the server
+                    Task.Run(async () => 
+                    {
+                        try
+                        {
+                            var message = NetworkMessage.CreateJobStatusMessage(new List<JobState> { snapshot });
+                            await SendMessageAsync(message).ConfigureAwait(false);
+                            Debug.WriteLine($"NetworkClient: Sent job status update for {status.BackupJob.Name}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"NetworkClient: Error sending job status update: {ex.Message}");
+                        }
+                    });
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handles business software state change notifications from the EventManager
+        /// </summary>
+        public void OnBusinessSoftwareStateChanged(bool isRunning)
+        {
+            // Not needed for NetworkClient
+        }
+
+        /// <summary>
+        /// Handles job launch request notifications from the EventManager
+        /// </summary>
+        public void OnLaunchJobsRequested(List<string> jobNames)
+        {
+            // This client doesn't need to handle these events
+        }
+
+        /// <summary>
+        /// Handles job pause request notifications from the EventManager
+        /// </summary>
+        public void OnPauseJobsRequested(List<string> jobNames)
+        {
+            // This client doesn't need to handle these events
+        }
+
+        /// <summary>
+        /// Handles job resume request notifications from the EventManager
+        /// </summary>
+        public void OnResumeJobsRequested(List<string> jobNames)
+        {
+            // This client doesn't need to handle these events
+        }
+
+        /// <summary>
+        /// Handles job stop request notifications from the EventManager
+        /// </summary>
+        public void OnStopJobsRequested(List<string> jobNames)
+        {
+            // This client doesn't need to handle these events
+        }
+
+        #endregion
     }
 }

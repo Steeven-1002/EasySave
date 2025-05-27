@@ -1,7 +1,6 @@
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Network;
-using System;
-using System.Collections.Generic;
+using EasySave_by_ProSoft.Core;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -116,6 +115,9 @@ namespace EasySave_by_ProSoft.Services
             _server = new SocketServer(_backupManager, ServerPort);
             _server.ServerStatusChanged += Server_StatusChanged;
             _server.MessageReceived += Server_MessageReceived;
+            
+            // Make sure SocketServer is registered with EventManager to receive job status updates
+            EventManager.Instance.AddListener(new NetworkSocketEventAdapter(_server));
         }
 
         public bool StartServer()
@@ -283,10 +285,82 @@ namespace EasySave_by_ProSoft.Services
             return "127.0.0.1";
         }
 
+        /// <summary>
+        /// Shutdown properly cleans up the EventManager subscriptions
+        /// </summary>
         public void Shutdown()
         {
+            EventManager.Instance.RemoveListener(new NetworkSocketEventAdapter(_server));
             StopServer();
             _server = null;
+        }
+
+        /// <summary>
+        /// Gets the SocketServer instance
+        /// </summary>
+        /// <returns>The SocketServer instance or null if not initialized</returns>
+        public SocketServer GetSocketServer()
+        {
+            return _server;
+        }
+
+        /// <summary>
+        /// Adapter class to connect the SocketServer to EventManager
+        /// </summary>
+        private class NetworkSocketEventAdapter : IEventListener
+        {
+            private readonly SocketServer _socketServer;
+
+            public NetworkSocketEventAdapter(SocketServer socketServer)
+            {
+                _socketServer = socketServer;
+            }
+
+            /// <summary>
+            /// Broadcast job status changes to connected clients
+            /// </summary>
+            public void OnJobStatusChanged(JobStatus status)
+            {
+                if (status != null)
+                {
+                    Task.Run(async () => 
+                    {
+                        try
+                        {
+                            await _socketServer.BroadcastJobStatusAsync(status).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Error broadcasting job status: {ex.Message}");
+                        }
+                    });
+                }
+            }
+
+            /// <summary>
+            /// Not needed for the socket server adapter
+            /// </summary>
+            public void OnBusinessSoftwareStateChanged(bool isRunning) { }
+
+            /// <summary>
+            /// Not needed for the socket server adapter
+            /// </summary>
+            public void OnLaunchJobsRequested(List<string> jobNames) { }
+
+            /// <summary>
+            /// Not needed for the socket server adapter
+            /// </summary>
+            public void OnPauseJobsRequested(List<string> jobNames) { }
+
+            /// <summary>
+            /// Not needed for the socket server adapter
+            /// </summary>
+            public void OnResumeJobsRequested(List<string> jobNames) { }
+
+            /// <summary>
+            /// Not needed for the socket server adapter
+            /// </summary>
+            public void OnStopJobsRequested(List<string> jobNames) { }
         }
     }
 

@@ -195,6 +195,9 @@
   <data name="LanguageChangeCancelledMessage" xml:space="preserve">
     <value>Language change has been cancelled. The current language remains active.</value>
   </data>
+  <data name="LanguageChangeAppliedMessage" xml:space="preserve">
+    <value>Language has been changed successfully.</value>
+  </data>
   <data name="LanguageChangeRestartMessage" xml:space="preserve">
     <value>The application needs to restart the main window to apply the language change. Do you want to restart it now ?</value>
   </data>

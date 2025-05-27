@@ -22,6 +22,7 @@ namespace EasySave_by_ProSoft.ViewModels
         private DateTime _lastUpdateTime;
         private string _details;
         private bool _isSelected;
+        private long _totalSize;
 
         public string JobName
         {
@@ -171,6 +172,19 @@ namespace EasySave_by_ProSoft.ViewModels
             }
         }
 
+        public long TotalSize
+        {
+            get => _totalSize;
+            set
+            {
+                if (_totalSize != value)
+                {
+                    _totalSize = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         // Derived properties
         public string StateDisplay
         {
@@ -221,6 +235,7 @@ namespace EasySave_by_ProSoft.ViewModels
             CurrentTargetFile = jobState.CurrentTargetFile;
             LastUpdateTime = jobState.Timestamp;
             Details = jobState.Details;
+            TotalSize = jobState.TotalSize;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
