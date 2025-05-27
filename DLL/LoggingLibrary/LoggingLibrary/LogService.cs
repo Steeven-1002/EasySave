@@ -3,13 +3,14 @@
 namespace LoggingLibrary
 {
     /// <summary>
-    /// Provides logging services for saving log entries to a file.
+    /// Provides logging services for recording log entries to a file.
     /// </summary>
     public class LogService
     {
         private readonly LogFile _logFile;
         private readonly ILogFormatter _logFormatter;
         private readonly string _logDirectoryPath;
+        private readonly object _logWriteLock = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LogService"/> class.
@@ -31,11 +32,19 @@ namespace LoggingLibrary
         /// <param name="saveName">The name of the save operation.</param>
         /// <param name="sourcePath">The source file path in UNC format.</param>
         /// <param name="targetPath">The target file path in UNC format.</param>
-        /// <param name="fileSize">The size of the file being logged, in bytes. Optional.</param>
+        /// <param name="fileSize">The size of the logged file, in bytes. Optional.</param>
         /// <param name="durationMs">The duration of the file transfer, in milliseconds. Optional.</param>
         /// <param name="encryptionTimeMs">The duration of the encryption process, in milliseconds. Optional.</param>
         /// <param name="details">Additional details about the operation. Optional.</param>
-        public void Log(DateTime timestamp, string saveName, string sourcePath, string targetPath, long? fileSize = null, double? durationMs = null, double? encryptionTimeMs = null, string? details = null)
+        public void Log(
+            DateTime timestamp,
+            string saveName,
+            string sourcePath,
+            string targetPath,
+            long? fileSize = null,
+            double? durationMs = null,
+            double? encryptionTimeMs = null,
+            string? details = null)
         {
             var logEntry = new LogEntry
             {
@@ -50,11 +59,15 @@ namespace LoggingLibrary
             };
 
             string formattedLog = _logFormatter.FormatLog(logEntry);
-            _logFile.WriteLogEntry(formattedLog);
+
+            lock (_logWriteLock)
+            {
+                _logFile.WriteLogEntry(formattedLog);
+            }
         }
 
         /// <summary>
-        /// Gets the directory path where log files are stored.
+        /// Returns the directory path where log files are stored.
         /// </summary>
         /// <returns>The directory path as a string.</returns>
         public string GetlogDirectoryPath()
