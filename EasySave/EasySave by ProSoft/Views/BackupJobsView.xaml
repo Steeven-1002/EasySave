@@ -199,7 +199,7 @@
                         Margin="5" 
                         Command="{Binding PauseJobCommand}"/>
                 <Button x:Name="ResumeButton" 
-                        Content="Resume" 
+                        Content="{x:Static localization:Resources.Resume}"
                         Style="{StaticResource ActionButtonStyle}"
                         Margin="5" 
                         Command="{Binding ResumeJobCommand}"/>

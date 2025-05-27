@@ -118,10 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="BackupTypeDifferential" xml:space="preserve">
-    <value>Différentielle</value>
+    <value>Differentielle</value>
   </data>
   <data name="BackupTypeFull" xml:space="preserve">
-    <value>Complète</value>
+    <value>Complete</value>
   </data>
   <data name="BackupWorkManagement" xml:space="preserve">
     <value>Gestion des Travaux de Sauvegarde</value>
@@ -338,6 +338,9 @@
   </data>
   <data name="ProcessedFiles" xml:space="preserve">
     <value>Fichiers traités</value>
+  </data>
+  <data name="StatusRunning" xml:space="preserve">
+    <value>En cours</value>
   </data>
   <data name="PopUpBusinessSoftware" xml:space="preserve">
     <value>Impossible d'executer la/les sauvegarde(s), veuillez fermer le logiciel metier.</value>
