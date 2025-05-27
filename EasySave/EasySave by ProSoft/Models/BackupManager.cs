@@ -183,12 +183,12 @@ namespace EasySave_by_ProSoft.Models
                     }
                     else
                     {
-                        Debug.WriteLine($"Job '{jobToRun.Name}' n'est pas dans un état lançable (état actuel : {jobToRun.Status.State})");
+                        Debug.WriteLine($"Job '{jobToRun.Name}' is not launchable (Actual State : {jobToRun.Status.State})");
                     }
                 }
                 else
                 {
-                    Debug.WriteLine($"Job avec le nom '{name}' introuvable");
+                    Debug.WriteLine($"Job with name '{name}' not found");
                 }
             }
 
@@ -198,7 +198,7 @@ namespace EasySave_by_ProSoft.Models
             }
             else
             {
-                Debug.WriteLine("Aucun job à lancer.");
+                Debug.WriteLine("No Job to launch");
             }
         }
 
