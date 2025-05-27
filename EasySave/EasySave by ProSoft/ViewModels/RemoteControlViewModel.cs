@@ -1,565 +1,459 @@
 using EasySave_by_ProSoft.Models;
-using EasySave_by_ProSoft.Network.Services;
+using EasySave_by_ProSoft.Network;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace EasySave_by_ProSoft.ViewModels
 {
     /// <summary>
-    /// ViewModel for the Remote Control View, handling remote job monitoring and control.
+    /// ViewModel for the Remote Control Client view
     /// </summary>
-    public class RemoteControlViewModel : INotifyPropertyChanged, IDisposable
+    public class RemoteControlViewModel : INotifyPropertyChanged
     {
-        private readonly INetworkConnectionService _networkService;
+        // Implement INotifyPropertyChanged interface
+        public event PropertyChangedEventHandler PropertyChanged;
 
-        private string _serverAddress = "127.0.0.1";
-        private int _serverPort = 55555;
-        private string _connectionStatus = "Disconnected";
-        private string _statusMessage = string.Empty;
-        private bool _isConnected;
-        private bool _isOperationInProgress;
-        private BackupJob? _selectedJob;
-        internal Action<JobStatus> FollowJob;
-        private System.Threading.Timer? _connectionCheckTimer;
-
-        public ObservableCollection<BackupJob> RemoteJobs { get; } = new();
-
-        public string ServerAddress
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
-            get => _serverAddress;
-            set { _serverAddress = value; OnPropertyChanged(); }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private NetworkClient _client;
+        private string _serverHost = "localhost";
+        private int _serverPort = 9000;
+        private string _connectionStatus = "Not connected";
+        private bool _isConnected = false;
+        private ObservableCollection<RemoteJobViewModel> _remoteJobs;
+
+        // Properties
+        public string ServerHost
+        {
+            get => _serverHost;
+            set
+            {
+                if (_serverHost != value)
+                {
+                    _serverHost = value;
+                    OnPropertyChanged();
+                }
+            }
         }
 
         public int ServerPort
         {
             get => _serverPort;
-            set { _serverPort = value; OnPropertyChanged(); }
+            set
+            {
+                if (_serverPort != value)
+                {
+                    _serverPort = value;
+                    OnPropertyChanged();
+                }
+            }
         }
 
         public string ConnectionStatus
         {
             get => _connectionStatus;
-            set { _connectionStatus = value; OnPropertyChanged(); }
+            set
+            {
+                if (_connectionStatus != value)
+                {
+                    _connectionStatus = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ConnectionStatusBackground));
+                }
+            }
         }
 
-        public string StatusMessage
+        public System.Windows.Media.Brush ConnectionStatusBackground
         {
-            get => _statusMessage;
-            set { _statusMessage = value; OnPropertyChanged(); }
+            get
+            {
+                return IsConnected 
+                    ? new SolidColorBrush(Colors.Green) 
+                    : new SolidColorBrush(Colors.DarkRed);
+            }
+        }
+
+        public string ConnectionButtonText
+        {
+            get => IsConnected ? "Disconnect" : "Connect";
+        }
+
+        public System.Windows.Media.Brush ConnectionButtonColor
+        {
+            get
+            {
+                return IsConnected
+                    ? new SolidColorBrush(Colors.Red)
+                    : new SolidColorBrush(Colors.ForestGreen);
+            }
         }
 
         public bool IsConnected
         {
             get => _isConnected;
-            set { _isConnected = value; OnPropertyChanged(); }
+            private set
+            {
+                if (_isConnected != value)
+                {
+                    _isConnected = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ConnectionButtonText));
+                    OnPropertyChanged(nameof(ConnectionButtonColor));
+                    OnPropertyChanged(nameof(ConnectionStatusBackground));
+                }
+            }
         }
 
-        public bool IsOperationInProgress
+        public ObservableCollection<RemoteJobViewModel> RemoteJobs
         {
-            get => _isOperationInProgress;
-            set { _isOperationInProgress = value; OnPropertyChanged(); }
+            get => _remoteJobs;
+            set
+            {
+                _remoteJobs = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(NoJobsVisibility));
+            }
         }
 
-        public BackupJob? SelectedJob
-        {
-            get => _selectedJob;
-            set { _selectedJob = value; OnPropertyChanged(); }
-        }
+        public Visibility NoJobsVisibility => RemoteJobs?.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
 
-        public ICommand ConnectCommand { get; }
-        public ICommand DisconnectCommand { get; }
+        // Commands
+        public ICommand ToggleConnectionCommand { get; }
         public ICommand RefreshJobsCommand { get; }
         public ICommand StartJobCommand { get; }
         public ICommand PauseJobCommand { get; }
         public ICommand ResumeJobCommand { get; }
         public ICommand StopJobCommand { get; }
+        public ICommand StartSelectedJobsCommand { get; }
+        public ICommand PauseSelectedJobsCommand { get; }
+        public ICommand ResumeSelectedJobsCommand { get; }
+        public ICommand StopSelectedJobsCommand { get; }
 
         public RemoteControlViewModel()
-            : this(new TcpNetworkConnectionService())
         {
+            // Initialize collections
+            _remoteJobs = new ObservableCollection<RemoteJobViewModel>();
+
+            // Initialize commands
+            ToggleConnectionCommand = new RelayCommand(_ => ToggleConnection());
+            RefreshJobsCommand = new RelayCommand(_ => RefreshJobs(), _ => IsConnected);
+            StartJobCommand = new RelayCommand(job => StartJob(job as RemoteJobViewModel), _ => IsConnected);
+            PauseJobCommand = new RelayCommand(job => PauseJob(job as RemoteJobViewModel), _ => IsConnected);
+            ResumeJobCommand = new RelayCommand(job => ResumeJob(job as RemoteJobViewModel), _ => IsConnected);
+            StopJobCommand = new RelayCommand(job => StopJob(job as RemoteJobViewModel), _ => IsConnected);
+            StartSelectedJobsCommand = new RelayCommand(_ => StartSelectedJobs(), _ => IsConnected && HasSelectedJobs());
+            PauseSelectedJobsCommand = new RelayCommand(_ => PauseSelectedJobs(), _ => IsConnected && HasSelectedJobs());
+            ResumeSelectedJobsCommand = new RelayCommand(_ => ResumeSelectedJobs(), _ => IsConnected && HasSelectedJobs());
+            StopSelectedJobsCommand = new RelayCommand(_ => StopSelectedJobs(), _ => IsConnected && HasSelectedJobs());
         }
 
-        public RemoteControlViewModel(INetworkConnectionService networkService)
+        private async void ToggleConnection()
         {
-            _networkService = networkService ?? throw new ArgumentNullException(nameof(networkService));
-
-            ConnectCommand = new RelayCommand(async _ => await ConnectAsync(), _ => !IsConnected && !IsOperationInProgress);
-            DisconnectCommand = new RelayCommand(async _ => await DisconnectAsync(), _ => IsConnected && !IsOperationInProgress);
-            RefreshJobsCommand = new RelayCommand(async _ => await RefreshJobsAsync(), _ => IsConnected && !IsOperationInProgress);
-            StartJobCommand = new RelayCommand(async _ => await SendJobCommandAsync("LaunchJobs"), _ => CanSendJobCommand());
-            PauseJobCommand = new RelayCommand(async _ => await SendJobCommandAsync("PauseJobs"), _ => CanSendJobCommand() && CanPauseJob());
-            ResumeJobCommand = new RelayCommand(async _ => await SendJobCommandAsync("ResumeJobs"), _ => CanSendJobCommand() && CanResumeJob());
-            StopJobCommand = new RelayCommand(async _ => await SendJobCommandAsync("StopJobs"), _ => CanSendJobCommand() && CanStopJob());
-
-            _networkService.ConnectionStatusChanged += (s, msg) =>
+            if (IsConnected)
             {
-                ConnectionStatus = msg;
-                IsConnected = _networkService.IsConnected;
-            };
-
-            _networkService.StatusMessageChanged += (s, msg) => StatusMessage = msg;
-            _networkService.JobStatusesUpdated += (s, jobs) => UpdateRemoteJobs(jobs);
-
-            _connectionCheckTimer = new System.Threading.Timer(
-                CheckConnectionStatus,
-                null,
-                TimeSpan.FromSeconds(10),
-                TimeSpan.FromSeconds(10)
-            );
+                Disconnect();
+            }
+            else
+            {
+                await ConnectAsync();
+            }
         }
 
         private async Task ConnectAsync()
         {
-            IsOperationInProgress = true;
-            StatusMessage = "Connecting to server...";
-
             try
             {
-                System.Diagnostics.Debug.WriteLine($"Connecting to {ServerAddress}:{ServerPort}");
-                await _networkService.ConnectAsync(ServerAddress, ServerPort);
+                ConnectionStatus = "Connecting...";
 
-                IsConnected = _networkService.IsConnected;
-
-                if (IsConnected)
+                // Always create a new client with the current settings
+                if (_client != null)
                 {
-                    StatusMessage = "Connected successfully. Requesting job statuses...";
-                    System.Diagnostics.Debug.WriteLine("Connection successful, refreshing jobs");
-                    await RefreshJobsAsync();
+                    _client.ConnectionStatusChanged -= Client_ConnectionStatusChanged;
+                    _client.JobStatusesReceived -= Client_JobStatusesReceived;
+                    _client.ErrorOccurred -= Client_ErrorOccurred;
+                }
+                
+                _client = new NetworkClient(ServerHost, ServerPort);
+                _client.ConnectionStatusChanged += Client_ConnectionStatusChanged;
+                _client.JobStatusesReceived += Client_JobStatusesReceived;
+                _client.ErrorOccurred += Client_ErrorOccurred;
+
+                // Connect to server
+                bool connected = await _client.ConnectAsync();
+
+                if (connected)
+                {
+                    IsConnected = true;
+                    ConnectionStatus = $"Connected to {ServerHost}:{ServerPort}";
+                    RefreshJobs();
                 }
                 else
                 {
-                    StatusMessage = "Connection failed";
-                    System.Diagnostics.Debug.WriteLine("Connection failed (IsConnected is false)");
+                    ConnectionStatus = $"Failed to connect to {ServerHost}:{ServerPort}";
                 }
             }
             catch (Exception ex)
             {
-                IsConnected = false;
-                StatusMessage = $"Connection error: {ex.Message}";
-                System.Diagnostics.Debug.WriteLine($"Connection error: {ex}");
-            }
-            finally
-            {
-                IsOperationInProgress = false;
+                Debug.WriteLine($"Connection error: {ex.Message}");
+                ConnectionStatus = $"Connection error: {ex.Message}";
             }
         }
 
-        private async Task DisconnectAsync()
+        private void Disconnect()
         {
-            IsOperationInProgress = true;
             try
             {
-                await _networkService.DisconnectAsync();
+                _client?.Disconnect();
                 IsConnected = false;
+                ConnectionStatus = "Disconnected";
                 RemoteJobs.Clear();
+                CommandManager.InvalidateRequerySuggested();
             }
-            finally
+            catch (Exception ex)
             {
-                IsOperationInProgress = false;
+                Debug.WriteLine($"Disconnect error: {ex.Message}");
+                ConnectionStatus = $"Disconnect error: {ex.Message}";
             }
         }
 
-        private async Task RefreshJobsAsync()
+        private async void RefreshJobs()
         {
-            if (!IsConnected)
-            {
-                StatusMessage = "Not connected to server";
+            if (!IsConnected || _client == null)
                 return;
-            }
 
-            if (IsOperationInProgress)
-            {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Refresh jobs skipped - operation already in progress");
-                return;
-            }
-
-            IsOperationInProgress = true;
-            var operationStartTime = DateTime.Now;
             try
             {
-                StatusMessage = "Requesting job status updates...";
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Starting RefreshJobsAsync");
+                await _client.RequestJobStatusesAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error refreshing jobs: {ex.Message}");
+            }
+        }
 
-                int maxRetries = 3;
-                int currentRetry = 0;
-                bool success = false;
-                Exception? lastException = null;
+        private void UpdateJobList(List<JobState> jobStates)
+        {
+            try
+            {
+                // Create a dictionary of existing jobs for fast lookups
+                var existingJobs = RemoteJobs.ToDictionary(job => job.JobName, job => job);
+                var updatedJobs = new ObservableCollection<RemoteJobViewModel>();
 
-                while (!success && currentRetry < maxRetries)
+                foreach (var state in jobStates)
                 {
-                    try
+                    if (existingJobs.TryGetValue(state.JobName, out var existingJob))
                     {
-                        if (currentRetry > 0)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Retrying job status update (attempt {currentRetry + 1}/{maxRetries})");
-                            StatusMessage = $"Retrying job status update ({currentRetry + 1}/{maxRetries})...";
-                            await Task.Delay(500 * currentRetry);
-                        }
-
-                        if (!_networkService.IsConnected)
-                        {
-                            throw new InvalidOperationException("Connection to server lost");
-                        }
-
-                        await _networkService.RequestJobStatusUpdateAsync();
-                        success = true;
-
-                        if (currentRetry > 0)
-                        {
-                            StatusMessage = "Job status update successful after retry";
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        lastException = ex;
-                        currentRetry++;
-
-                        if (currentRetry >= maxRetries)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Max retries reached");
-                            break;
-                        }
-
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Job status update attempt {currentRetry} failed: {ex.Message}");
-
-                        if (!_networkService.IsConnected)
-                        {
-                            IsConnected = false;
-                            break;
-                        }
-                    }
-                }
-
-                if (!success && lastException != null)
-                {
-                    throw lastException;
-                }
-                else if (success)
-                {
-                    // Update status message after a successful operation
-                    if (RemoteJobs.Count > 0)
-                    {
-                        StatusMessage = $"Received status for {RemoteJobs.Count} jobs";
+                        // Update existing job
+                        existingJob.Update(state);
+                        updatedJobs.Add(existingJob);
                     }
                     else
                     {
-                        StatusMessage = "No jobs found on server";
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] No jobs found on server");
+                        // Create new job
+                        var newJob = new RemoteJobViewModel(state);
+                        updatedJobs.Add(newJob);
                     }
                 }
+
+                // Update the collection
+                RemoteJobs = updatedJobs;
+                CommandManager.InvalidateRequerySuggested();
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Error refreshing jobs: {ex.Message}";
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] RefreshJobsAsync error: {ex}");
-
-                if (!_networkService.IsConnected)
-                {
-                    IsConnected = false;
-                    ConnectionStatus = "Connection lost";
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Connection marked as lost during refresh");
-                    RemoteJobs.Clear();
-                }
-            }
-            finally
-            {
-                // Safety check - if the operation has been in progress for too long, force reset
-                if ((DateTime.Now - operationStartTime).TotalSeconds > 30)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Operation timeout detected, force resetting IsOperationInProgress flag");
-                }
-                
-                IsOperationInProgress = false;
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Finished RefreshJobsAsync");
+                Debug.WriteLine($"Error updating job list: {ex.Message}");
             }
         }
 
-        private bool CanSendJobCommand()
+        private async void StartJob(RemoteJobViewModel job)
         {
-            return IsConnected && SelectedJob != null && !IsOperationInProgress;
-        }
-
-        private bool CanPauseJob()
-        {
-            return SelectedJob != null && SelectedJob.Status.State == BackupState.Running;
-        }
-
-        private bool CanResumeJob()
-        {
-            return SelectedJob != null && SelectedJob.Status.State == BackupState.Paused;
-        }
-
-        private bool CanStopJob()
-        {
-            return SelectedJob != null &&
-                  (SelectedJob.Status.State == BackupState.Running ||
-                   SelectedJob.Status.State == BackupState.Paused);
-        }
-
-        private async Task SendJobCommandAsync(string commandType)
-        {
-            if (SelectedJob == null)
-            {
-                StatusMessage = "No job selected";
+            if (!IsConnected || job == null)
                 return;
-            }
 
-            IsOperationInProgress = true;
             try
             {
-                if (!_networkService.IsConnected)
-                {
-                    throw new InvalidOperationException("Not connected to server");
-                }
-
-                StatusMessage = $"Sending {commandType} command...";
-                var cmd = new Network.RemoteCommand(commandType)
-                {
-                    JobNames = new System.Collections.Generic.List<string> { SelectedJob.Name }
-                };
-
-                await _networkService.SendCommandAsync(cmd);
-                StatusMessage = $"{commandType} command sent successfully";
-
-                await Task.Delay(750);
-
-                if (_networkService.IsConnected)
-                {
-                    StatusMessage = "Updating job status...";
-                    await RefreshJobsAsync();
-                }
-                else
-                {
-                    StatusMessage = "Connection lost after sending command";
-                    IsConnected = false;
-                }
+                await _client.StartJobsAsync(new List<string> { job.JobName });
+                RefreshJobs(); // Refresh to get updated status
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Error sending {commandType} command: {ex.Message}";
-                System.Diagnostics.Debug.WriteLine($"Error in SendJobCommandAsync: {ex}");
-
-                if (!_networkService.IsConnected)
-                {
-                    IsConnected = false;
-                    ConnectionStatus = "Connection lost";
-                }
-            }
-            finally
-            {
-                IsOperationInProgress = false;
+                Debug.WriteLine($"Error starting job: {ex.Message}");
             }
         }
 
-        private void UpdateRemoteJobs(System.Collections.Generic.List<JobState> jobStates)
+        private async void PauseJob(RemoteJobViewModel job)
         {
-            if (jobStates == null)
-            {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] UpdateRemoteJobs called with null job states");
+            if (!IsConnected || job == null)
                 return;
-            }
-            
-            if (jobStates.Count == 0)
-            {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] UpdateRemoteJobs called with empty job states list");
-                return;
-            }
-            
-            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] UpdateRemoteJobs called with {jobStates.Count} job states");
-            
-            // Ensure UI updates on the main thread
-            var app = App.Current;
-            if (app == null)
-            {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] App.Current is null, cannot update UI");
-                return;
-            }
-            
-            app.Dispatcher.Invoke(() =>
-            {
-                try
-                {
-                    string? selectedJobName = SelectedJob?.Name;
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Current selected job: {selectedJobName ?? "none"}");
 
-                    // Store old count for debugging
-                    int oldCount = RemoteJobs.Count;
-                    
-                    // Clear and refresh the collection
-                    RemoteJobs.Clear();
-                    
-                    foreach (var state in jobStates)
-                    {
-                        if (state == null)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Skipping null job state");
-                            continue;
-                        }
-                        
-                        try
-                        {
-                            if (!string.IsNullOrEmpty(state.JobName))
-                            {
-                                var backupJob = CreateBackupJobFromJobState(state);
-                                if (backupJob != null)
-                                {
-                                    RemoteJobs.Add(backupJob);
-                                }
-                                else
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] CreateBackupJobFromJobState returned null for job {state.JobName}");
-                                }
-                            }
-                            else
-                            {
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Skipping job state with empty name");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error adding job {state?.JobName}: {ex.Message}");
-                        }
-                    }
-
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] RemoteJobs updated: {oldCount} -> {RemoteJobs.Count}");
-                    
-                    // If there are jobs in the list and nothing is selected, select the first one
-                    if (RemoteJobs.Count > 0 && SelectedJob == null)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Auto-selecting first job: {RemoteJobs[0].Name}");
-                        SelectedJob = RemoteJobs[0];
-                    }
-                    // Otherwise try to restore the previous selection
-                    else if (!string.IsNullOrEmpty(selectedJobName))
-                    {
-                        BackupJob? matchedJob = RemoteJobs.FirstOrDefault(j => j.Name == selectedJobName);
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Attempting to restore selection: {(matchedJob != null ? "found" : "not found")}");
-                        SelectedJob = matchedJob;
-                    }
-                    
-                    // Force property change notification for the collection
-                    OnPropertyChanged(nameof(RemoteJobs));
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Error in UpdateRemoteJobs: {ex}");
-                }
-            });
-        }
-
-        /// <summary>
-        /// Creates a BackupJob instance from a JobState
-        /// </summary>
-        private BackupJob CreateBackupJobFromJobState(JobState state)
-        {
-            // Create a minimal BackupJob that has the necessary properties for remote display
-            // Note: We use null for the BackupManager and largeFileSemaphore because these jobs are for display only
-            var job = new BackupJob(
-                state.JobName, 
-                state.SourcePath ?? string.Empty, 
-                state.TargetPath ?? string.Empty, 
-                state.Type, 
-                null, // BackupManager not needed for display-only jobs
-                null  // SemaphoreSlim not needed for display-only jobs
-            );
-
-            // Create and configure the status
-            var status = job.Status;
-            status.TotalFiles = Math.Max(0, state.TotalFiles);
-            status.TotalSize = Math.Max(0, state.TotalSize);
-            status.RemainingFiles = Math.Max(0, state.RemainingFiles);
-            status.RemainingSize = Math.Max(0, state.RemainingSize);
-            status.CurrentSourceFile = state.CurrentSourceFile ?? string.Empty;
-            status.CurrentTargetFile = state.CurrentTargetFile ?? string.Empty;
-            status.State = state.State;
-            
-            // Handle start and end times
-            if (state.StartTime != default)
-                status.GetType().GetField("StartTime", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)?.SetValue(status, state.StartTime);
-            
-            if (state.EndTime.HasValue && state.EndTime.Value != default)
-                status.GetType().GetField("EndTime", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)?.SetValue(status, state.EndTime);
-
-            return job;
-        }
-
-        private void CheckConnectionStatus(object? state)
-        {
             try
             {
-                if (_networkService == null)
-                {
-                    System.Diagnostics.Debug.WriteLine("CheckConnectionStatus: _networkService is null");
-                    return;
-                }
-                
-                bool serviceConnected = _networkService.IsConnected;
-                if (IsConnected != serviceConnected)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Connection state mismatch detected: " +
-                        $"ViewModel={IsConnected}, Service={serviceConnected}");
+                await _client.PauseJobsAsync(new List<string> { job.JobName });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error pausing job: {ex.Message}");
+            }
+        }
 
-                    var app = App.Current;
-                    if (app != null)
-                    {
-                        app.Dispatcher.Invoke(() =>
-                        {
-                            IsConnected = serviceConnected;
+        private async void ResumeJob(RemoteJobViewModel job)
+        {
+            if (!IsConnected || job == null)
+                return;
 
-                            if (!IsConnected)
-                            {
-                                RemoteJobs.Clear();
-                                ConnectionStatus = "Connection lost";
-                                StatusMessage = "Connection to server was lost";
-                            }
-                        });
-                    }
-                }
+            try
+            {
+                await _client.ResumeJobsAsync(new List<string> { job.JobName });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error resuming job: {ex.Message}");
+            }
+        }
 
-                if (IsConnected && !IsOperationInProgress && DateTime.Now.Second % 30 == 0)
+        private async void StopJob(RemoteJobViewModel job)
+        {
+            if (!IsConnected || job == null)
+                return;
+
+            try
+            {
+                await _client.StopJobsAsync(new List<string> { job.JobName });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error stopping job: {ex.Message}");
+            }
+        }
+
+        private void Client_ConnectionStatusChanged(object sender, string e)
+        {
+            ConnectionStatus = e;
+        }
+
+        private void Client_JobStatusesReceived(object sender, List<JobState> e)
+        {
+            UpdateJobList(e);
+        }
+
+        private void Client_ErrorOccurred(object sender, Exception e)
+        {
+            Debug.WriteLine($"Error: {e.Message}");
+            ConnectionStatus = $"Error: {e.Message}";
+        }
+
+        private bool HasSelectedJobs()
+        {
+            return RemoteJobs?.Count > 0 && RemoteJobs.Any(j => j.IsSelected);
+        }
+
+        private async void StartSelectedJobs()
+        {
+            if (!IsConnected)
+                return;
+
+            try
+            {
+                var selectedJobs = RemoteJobs.Where(j => j.IsSelected).Select(j => j.JobName).ToList();
+                if (selectedJobs.Count > 0)
                 {
-                    var app = App.Current;
-                    if (app != null)
-                    {
-                        app.Dispatcher.Invoke(async () =>
-                        {
-                            try
-                            {
-                                System.Diagnostics.Debug.WriteLine("Auto-refreshing job statuses");
-                                await RefreshJobsAsync();
-                            }
-                            catch (Exception ex)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"Auto-refresh error: {ex.Message}");
-                            }
-                        });
-                    }
+                    await _client.StartJobsAsync(selectedJobs);
+                    RefreshJobs();
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in connection check timer: {ex.Message}");
+                Debug.WriteLine($"Error starting selected jobs: {ex.Message}");
             }
         }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string? name = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-
-        internal void Disconnect()
+        private async void PauseSelectedJobs()
         {
-            _ = DisconnectAsync();
+            if (!IsConnected)
+                return;
+
+            try
+            {
+                var selectedJobs = RemoteJobs.Where(j => j.IsSelected).Select(j => j.JobName).ToList();
+                if (selectedJobs.Count > 0)
+                {
+                    await _client.PauseJobsAsync(selectedJobs);
+                    RefreshJobs();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error pausing selected jobs: {ex.Message}");
+            }
         }
 
-        public void Dispose()
+        private async void ResumeSelectedJobs()
         {
-            _connectionCheckTimer?.Dispose();
-            _connectionCheckTimer = null;
+            if (!IsConnected)
+                return;
+
+            try
+            {
+                var selectedJobs = RemoteJobs.Where(j => j.IsSelected).Select(j => j.JobName).ToList();
+                if (selectedJobs.Count > 0)
+                {
+                    await _client.ResumeJobsAsync(selectedJobs);
+                    RefreshJobs();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error resuming selected jobs: {ex.Message}");
+            }
+        }
+
+        private async void StopSelectedJobs()
+        {
+            if (!IsConnected)
+                return;
+
+            try
+            {
+                var selectedJobs = RemoteJobs.Where(j => j.IsSelected).Select(j => j.JobName).ToList();
+                if (selectedJobs.Count > 0)
+                {
+                    await _client.StopJobsAsync(selectedJobs);
+                    RefreshJobs();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error stopping selected jobs: {ex.Message}");
+            }
+        }
+        
+        public void Cleanup()
+        {
+            // Disconnect and clean up resources when the view is closed
+            if (IsConnected)
+            {
+                Disconnect();
+            }
+            
+            if (_client != null)
+            {
+                _client.ConnectionStatusChanged -= Client_ConnectionStatusChanged;
+                _client.JobStatusesReceived -= Client_JobStatusesReceived;
+                _client.ErrorOccurred -= Client_ErrorOccurred;
+                _client = null;
+            }
         }
     }
 }

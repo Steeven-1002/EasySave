@@ -1,4 +1,5 @@
 using EasySave_by_ProSoft.Core;
+using EasySave_by_ProSoft.Network;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
@@ -16,6 +17,8 @@ namespace EasySave_by_ProSoft.Models
         private readonly BusinessApplicationMonitor _businessMonitor;
         private readonly object _priorityLock = new();
         private readonly EventManager _eventManager = EventManager.Instance;
+        private SocketServer _socketServer;
+        private bool _isServerRunning = false;
 
         /// <summary>
         /// Initializes a new instance of the BackupManager class
@@ -292,6 +295,9 @@ namespace EasySave_by_ProSoft.Models
             _businessMonitor.StopMonitoring();
             _parallelManager.Shutdown();
             _eventManager.RemoveListener(this);
+
+            // Stop the remote control server if it's running
+            StopRemoteControlServer();
         }
 
         // IEventListener implementation
@@ -429,6 +435,7 @@ namespace EasySave_by_ProSoft.Models
             Debug.WriteLine("BackupManager: Business application stopped event received");
             _eventManager.NotifyBusinessSoftwareStateChanged(false);
         }
+
         /// <summary>
         /// Unregisters a job from the business application monitor
         /// </summary>
@@ -440,5 +447,52 @@ namespace EasySave_by_ProSoft.Models
                 _businessMonitor.UnregisterJob(job);
             }
         }
+
+        /// <summary>
+        /// Starts the remote control server to allow remote monitoring and control of backup jobs
+        /// </summary>
+        /// <param name="port">Port to listen on (default: 9000)</param>
+        /// <returns>True if server started successfully</returns>
+        public bool StartRemoteControlServer(int port = 9000)
+        {
+            if (_socketServer != null && _socketServer.IsRunning)
+                return true;
+
+            try
+            {
+                // Create a new socket server if needed
+                if (_socketServer == null)
+                {
+                    _socketServer = new SocketServer(this, port);
+                }
+
+                // Start the server
+                bool result = _socketServer.Start();
+                _isServerRunning = result;
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error starting remote control server: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Stops the remote control server
+        /// </summary>
+        public void StopRemoteControlServer()
+        {
+            if (_socketServer != null && _socketServer.IsRunning)
+            {
+                _socketServer.Stop();
+                _isServerRunning = false;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether the remote control server is running
+        /// </summary>
+        public bool IsRemoteControlServerRunning => _isServerRunning;
     }
 }

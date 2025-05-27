@@ -1,5 +1,4 @@
 using EasySave_by_ProSoft.Models;
-using EasySave_by_ProSoft.Network;
 using System.Diagnostics;
 
 namespace EasySave_by_ProSoft.Core
@@ -13,7 +12,6 @@ namespace EasySave_by_ProSoft.Core
         private static readonly object _lockObject = new();
 
         private readonly List<IEventListener> _listeners = new();
-        private readonly SocketServer _socketServer;
 
         public static EventManager Instance
         {
@@ -32,16 +30,7 @@ namespace EasySave_by_ProSoft.Core
 
         private EventManager()
         {
-            _socketServer = new SocketServer();
-            _socketServer.CommandReceived += SocketServer_CommandReceived;
-            _socketServer.Start();
             Debug.WriteLine("EventManager initialized - Socket server started");
-        }
-
-        private void SocketServer_CommandReceived(object sender, RemoteCommand command)
-        {
-            Debug.WriteLine($"EventManager received command: {command.CommandType}");
-            ProcessRemoteCommand(command);
         }
 
         public void AddListener(IEventListener listener)
@@ -82,9 +71,6 @@ namespace EasySave_by_ProSoft.Core
                     Debug.WriteLine($"EventManager: Error notifying listener {listener.GetType().Name} about job status change: {ex.Message}");
                 }
             }
-
-            // Also notify remote clients
-            _socketServer.BroadcastJobStatusesAsync();
         }
 
         public void NotifyBusinessSoftwareStateChanged(bool isRunning)
@@ -102,39 +88,16 @@ namespace EasySave_by_ProSoft.Core
                     Debug.WriteLine($"EventManager: Error notifying listener {listener.GetType().Name} about business software state change: {ex.Message}");
                 }
             }
-
-            // Also notify remote clients
-            _socketServer.BroadcastBusinessAppStateAsync(isRunning);
         }
 
-        private void ProcessRemoteCommand(RemoteCommand command)
+        /// <summary>
+        /// Notifies listeners about job launch requests
+        /// </summary>
+        /// <param name="jobNames">List of job names to launch</param>
+        public void NotifyLaunchJobsRequested(List<string> jobNames)
         {
-            switch (command.CommandType)
-            {
-                case "LaunchJobs":
-                    Debug.WriteLine($"EventManager: Processing LaunchJobs command for {command.JobNames?.Count ?? 0} jobs");
-                    NotifyLaunchJobs(command.JobNames);
-                    break;
-                case "PauseJobs":
-                    Debug.WriteLine($"EventManager: Processing PauseJobs command for {command.JobNames?.Count ?? 0} jobs");
-                    NotifyPauseJobs(command.JobNames);
-                    break;
-                case "ResumeJobs":
-                    Debug.WriteLine($"EventManager: Processing ResumeJobs command for {command.JobNames?.Count ?? 0} jobs");
-                    NotifyResumeJobs(command.JobNames);
-                    break;
-                case "StopJobs":
-                    Debug.WriteLine($"EventManager: Processing StopJobs command for {command.JobNames?.Count ?? 0} jobs");
-                    NotifyStopJobs(command.JobNames);
-                    break;
-                default:
-                    Debug.WriteLine($"EventManager: Unknown command type: {command.CommandType}");
-                    break;
-            }
-        }
+            Debug.WriteLine($"EventManager: Notifying about launch request for jobs: {string.Join(", ", jobNames)}");
 
-        private void NotifyLaunchJobs(List<string> jobNames)
-        {
             foreach (var listener in _listeners.ToList())
             {
                 try
@@ -148,8 +111,14 @@ namespace EasySave_by_ProSoft.Core
             }
         }
 
-        private void NotifyPauseJobs(List<string> jobNames)
+        /// <summary>
+        /// Notifies listeners about job pause requests
+        /// </summary>
+        /// <param name="jobNames">List of job names to pause</param>
+        public void NotifyPauseJobsRequested(List<string> jobNames)
         {
+            Debug.WriteLine($"EventManager: Notifying about pause request for jobs: {string.Join(", ", jobNames)}");
+
             foreach (var listener in _listeners.ToList())
             {
                 try
@@ -163,8 +132,14 @@ namespace EasySave_by_ProSoft.Core
             }
         }
 
-        private void NotifyResumeJobs(List<string> jobNames)
+        /// <summary>
+        /// Notifies listeners about job resume requests
+        /// </summary>
+        /// <param name="jobNames">List of job names to resume</param>
+        public void NotifyResumeJobsRequested(List<string> jobNames)
         {
+            Debug.WriteLine($"EventManager: Notifying about resume request for jobs: {string.Join(", ", jobNames)}");
+
             foreach (var listener in _listeners.ToList())
             {
                 try
@@ -178,8 +153,14 @@ namespace EasySave_by_ProSoft.Core
             }
         }
 
-        private void NotifyStopJobs(List<string> jobNames)
+        /// <summary>
+        /// Notifies listeners about job stop requests
+        /// </summary>
+        /// <param name="jobNames">List of job names to stop</param>
+        public void NotifyStopJobsRequested(List<string> jobNames)
         {
+            Debug.WriteLine($"EventManager: Notifying about stop request for jobs: {string.Join(", ", jobNames)}");
+
             foreach (var listener in _listeners.ToList())
             {
                 try

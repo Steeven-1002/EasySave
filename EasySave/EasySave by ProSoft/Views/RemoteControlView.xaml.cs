@@ -1,7 +1,7 @@
-using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.ViewModels;
+using System;
 using System.Windows;
-using System.Windows.Threading;
+using System.Windows.Controls;
 
 namespace EasySave_by_ProSoft.Views
 {
@@ -15,32 +15,19 @@ namespace EasySave_by_ProSoft.Views
         public RemoteControlView()
         {
             InitializeComponent();
+            
+            // Create the view model
             _viewModel = new RemoteControlViewModel();
             DataContext = _viewModel;
             
-            // Handle the follow job event
-            _viewModel.FollowJob += ViewModel_FollowJob;
-            
-            // Register for unload to perform cleanup
+            // Register for cleanup when the view is unloaded
             Unloaded += RemoteControlView_Unloaded;
         }
-        private void ViewModel_FollowJob(JobStatus job)
-        {
-            // Find the job in the ListView and scroll to it
-            if (JobsListView.ItemContainerGenerator.ContainerFromItem(job.BackupJob) is System.Windows.Controls.ListViewItem item)
-            {
-                item.Focus();
-                JobsListView.ScrollIntoView(job.BackupJob);
-            }
-        }
+
         private void RemoteControlView_Unloaded(object sender, RoutedEventArgs e)
         {
-            _viewModel.FollowJob -= ViewModel_FollowJob;
-            Cleanup();
-        }
-        public void Cleanup()
-        {
-            _viewModel.Disconnect();
+            // Disconnect and clean up when the view is unloaded
+            _viewModel.Cleanup();
         }
     }
 }
