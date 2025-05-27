@@ -8,251 +8,251 @@
              xmlns:localization="clr-namespace:EasySave_by_ProSoft.Localization"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="1000">
-    
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="Remote Control" 
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="69"/>
+      <RowDefinition Height="Auto" MinHeight="54"/>
+      <RowDefinition/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <!-- Header -->
+    <StackPanel Grid.Row="0" Margin="0,0,0,20">
+      <TextBlock Text="Remote Control" 
                        FontSize="24" 
                        FontWeight="Bold" 
-                       Margin="0,0,0,10"/>
-            <TextBlock Text="Connect to a remote EasySave server to monitor and control backup jobs" 
-                       TextWrapping="Wrap"/>
-        </StackPanel>
+                       Margin="0,0,0,5" Height="28"/>
+      <TextBlock Text="Connect to a remote EasySave server to monitor and control backup jobs" 
+                       TextWrapping="Wrap" Height="16" Padding="0,0,0,4"/>
+    </StackPanel>
 
-        <!-- Connection Panel -->
-        <Grid Grid.Row="1" Margin="0,0,0,20">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="200"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            
-            <TextBlock Grid.Column="0" 
+    <!-- Connection Panel -->
+    <Grid Margin="0,57,0,0" Grid.RowSpan="2">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="200"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+
+      <TextBlock Grid.Column="0" 
                        Text="Server:" 
-                       VerticalAlignment="Center" 
-                       Margin="0,0,10,0"/>
-            
-            <TextBox Grid.Column="1" 
+                       VerticalAlignment="Top" 
+                       Margin="0,6,10,0"/>
+
+      <TextBox Grid.Column="1" 
                      x:Name="ServerHostTextBox"
-                     VerticalAlignment="Center" 
+                     VerticalAlignment="Top" 
                      Text="{Binding ServerHost, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                     Margin="0,0,10,0"/>
-            
-            <TextBlock Grid.Column="2" 
+                     Margin="0,0,10,0" Height="27" Padding="8,0,8,5"/>
+
+      <TextBlock Grid.Column="2" 
                        Text="Port:" 
-                       VerticalAlignment="Center" 
-                       Margin="0,0,10,0"/>
-            
-            <TextBox Grid.Column="3" 
+                       VerticalAlignment="Top" 
+                       Margin="0,6,10,0"/>
+
+      <TextBox Grid.Column="3" 
                      x:Name="ServerPortTextBox"
-                     VerticalAlignment="Center" 
+                     VerticalAlignment="Top" 
                      Width="80"
                      Text="{Binding ServerPort, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                     Margin="0,0,10,0"/>
-            
-            <Button Grid.Column="5" 
+                     Margin="0,0,10,0" Height="27"/>
+
+      <Button Grid.Column="4" 
                     Content="{Binding ConnectionButtonText}" 
                     Command="{Binding ToggleConnectionCommand}" 
                     Width="120"
                     Padding="10,5"
-                    Background="{Binding ConnectionButtonColor}"/>
-        </Grid>
+                    Background="{Binding ConnectionButtonColor}" Margin="255,2,255,30"/>
+    </Grid>
 
-        <!-- Status Bar -->
-        <Border Grid.Row="1" 
+    <!-- Status Bar -->
+    <Border Grid.Row="1" 
                 Background="{Binding ConnectionStatusBackground}" 
                 Padding="10" 
-                Margin="0,0,0,10"
-                VerticalAlignment="Bottom">
-            <TextBlock Text="{Binding ConnectionStatus}" 
+                Margin="0,27,0,0"
+                VerticalAlignment="Top" Height="25">
+      <TextBlock Text="{Binding ConnectionStatus}" 
                        Foreground="White" 
-                       TextWrapping="Wrap"/>
-        </Border>
-        
-        <!-- Job List -->
-        <Grid Grid.Row="2">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-            
-            <TextBlock Grid.Row="0" 
+                       TextWrapping="Wrap" Height="13" Margin="0,-5,0,-3"/>
+    </Border>
+
+    <!-- Job List -->
+    <Grid Grid.Row="2">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" MinHeight="18.62"/>
+        <RowDefinition/>
+      </Grid.RowDefinitions>
+
+      <TextBlock Grid.Row="0" 
                        Text="Remote Backup Jobs" 
-                       FontSize="18" 
+                       FontSize="14" 
                        FontWeight="SemiBold" 
-                       Margin="0,0,0,10"/>
-            
-            <ListView Grid.Row="1" 
+                       Margin="0,-5,0,5"/>
+
+      <ListView Grid.Row="1" 
                       x:Name="RemoteJobsListView"
                       ItemsSource="{Binding RemoteJobs}" 
                       SelectionMode="Extended"
                       BorderThickness="1" 
                       BorderBrush="{StaticResource BorderBrush}">
-                <ListView.ItemContainerStyle>
-                    <Style TargetType="ListViewItem">
-                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                        <Setter Property="Margin" Value="0,2"/>
-                        <Setter Property="Padding" Value="10,8"/>
-                    </Style>
-                </ListView.ItemContainerStyle>
-                <ListView.View>
-                    <GridView>
-                        <GridViewColumn Header="Name" Width="150">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal">
-                                        <CheckBox IsChecked="{Binding IsSelected}" 
+        <ListView.ItemContainerStyle>
+          <Style TargetType="ListViewItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Padding" Value="10,8"/>
+          </Style>
+        </ListView.ItemContainerStyle>
+        <ListView.View>
+          <GridView>
+            <GridViewColumn Header="Name" Width="150">
+              <GridViewColumn.CellTemplate>
+                <DataTemplate>
+                  <StackPanel Orientation="Horizontal">
+                    <CheckBox IsChecked="{Binding IsSelected}" 
                                                   Margin="0,0,10,0" 
                                                   VerticalAlignment="Center"/>
-                                        <TextBlock Text="{Binding JobName}" 
+                    <TextBlock Text="{Binding JobName}" 
                                                    VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        
-                        <GridViewColumn Header="Status" Width="120">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding State}" 
+                  </StackPanel>
+                </DataTemplate>
+              </GridViewColumn.CellTemplate>
+            </GridViewColumn>
+
+            <GridViewColumn Header="Status" Width="120">
+              <GridViewColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding State}" 
                                                VerticalAlignment="Center"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        
-                        <GridViewColumn Header="Progress" Width="200">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Grid>
-                                        <ProgressBar Minimum="0" 
+                </DataTemplate>
+              </GridViewColumn.CellTemplate>
+            </GridViewColumn>
+
+            <GridViewColumn Header="Progress" Width="200">
+              <GridViewColumn.CellTemplate>
+                <DataTemplate>
+                  <Grid>
+                    <ProgressBar Minimum="0" 
                                                      Maximum="100" 
                                                      Value="{Binding ProgressPercentage}" 
                                                      Height="20"/>
-                                      <TextBlock Text="{Binding ProgressPercentage, StringFormat={}{0:F1}%}"
+                    <TextBlock Text="{Binding ProgressPercentage, StringFormat={}{0:F1}%}"
                                                  HorizontalAlignment="Center"
                                                  VerticalAlignment="Center"/>
-                                    </Grid>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        
-                        <GridViewColumn Header="Source" Width="150">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding SourcePath}" 
+                  </Grid>
+                </DataTemplate>
+              </GridViewColumn.CellTemplate>
+            </GridViewColumn>
+
+            <GridViewColumn Header="Source" Width="150">
+              <GridViewColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding SourcePath}" 
                                                TextTrimming="CharacterEllipsis"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        
-                        <GridViewColumn Header="Target" Width="150">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding TargetPath}" 
+                </DataTemplate>
+              </GridViewColumn.CellTemplate>
+            </GridViewColumn>
+
+            <GridViewColumn Header="Target" Width="150">
+              <GridViewColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding TargetPath}" 
                                                TextTrimming="CharacterEllipsis"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        
-                        <GridViewColumn Header="Current File" Width="200">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding CurrentSourceFile}" 
+                </DataTemplate>
+              </GridViewColumn.CellTemplate>
+            </GridViewColumn>
+
+            <GridViewColumn Header="Current File" Width="200">
+              <GridViewColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding CurrentSourceFile}" 
                                                TextTrimming="CharacterEllipsis"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        
-                        <GridViewColumn Header="Controls" Width="180">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Button Content="Start" 
+                </DataTemplate>
+              </GridViewColumn.CellTemplate>
+            </GridViewColumn>
+
+            <GridViewColumn Header="Controls" Width="180">
+              <GridViewColumn.CellTemplate>
+                <DataTemplate>
+                  <StackPanel Orientation="Horizontal">
+                    <Button Content="Start" 
                                                 Width="40" 
                                                 Margin="0,0,5,0"
                                                 IsEnabled="{Binding CanStart}"
                                                 Command="{Binding DataContext.StartJobCommand, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
                                                 CommandParameter="{Binding}"/>
-                                        
-                                        <Button Content="Pause" 
+
+                    <Button Content="Pause" 
                                                 Width="40" 
                                                 Margin="0,0,5,0"
                                                 IsEnabled="{Binding CanPause}"
                                                 Command="{Binding DataContext.PauseJobCommand, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
                                                 CommandParameter="{Binding}"/>
-                                        
-                                        <Button Content="Resume" 
+
+                    <Button Content="Resume" 
                                                 Width="50" 
                                                 Margin="0,0,5,0"
                                                 IsEnabled="{Binding CanResume}"
                                                 Command="{Binding DataContext.ResumeJobCommand, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
                                                 CommandParameter="{Binding}"/>
-                                        
-                                        <Button Content="Stop" 
+
+                    <Button Content="Stop" 
                                                 Width="40" 
                                                 Style="{StaticResource StopButtonStyle}"
                                                 IsEnabled="{Binding CanStop}"
                                                 Command="{Binding DataContext.StopJobCommand, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
                                                 CommandParameter="{Binding}"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                    </GridView>
-                </ListView.View>
-            </ListView>
-            
-            <!-- No jobs overlay -->
-            <TextBlock Grid.Row="1" 
+                  </StackPanel>
+                </DataTemplate>
+              </GridViewColumn.CellTemplate>
+            </GridViewColumn>
+          </GridView>
+        </ListView.View>
+      </ListView>
+
+      <!-- No jobs overlay -->
+      <TextBlock Grid.Row="1" 
                        HorizontalAlignment="Center" 
                        VerticalAlignment="Center" 
                        Text="No remote jobs available. Connect to a server first or refresh the job list."
                        Visibility="{Binding NoJobsVisibility}"
                        FontSize="16" 
-                       Foreground="{StaticResource TextMutedBrush}"/>
-        </Grid>
-        
-        <!-- Bottom Action Buttons -->
-        <StackPanel Grid.Row="3" 
+                       Foreground="{StaticResource TextMutedBrush}" Height="22" Width="506"/>
+    </Grid>
+
+    <!-- Bottom Action Buttons -->
+    <StackPanel Grid.Row="3" 
                     Orientation="Horizontal" 
                     HorizontalAlignment="Right" 
-                    Margin="0,20,0,0">
-            
-            <Button Content="Refresh Jobs" 
+                    Margin="0,20,0,0" Width="580">
+
+      <Button Content="Refresh Jobs" 
                     Command="{Binding RefreshJobsCommand}" 
                     Padding="15,5" 
                     Margin="0,0,10,0"/>
-            
-            <Button Content="Start Selected" 
+
+      <Button Content="Start Selected" 
                     Command="{Binding StartSelectedJobsCommand}" 
                     Padding="15,5" 
                     Margin="0,0,10,0"/>
-            
-            <Button Content="Pause Selected" 
+
+      <Button Content="Pause Selected" 
                     Command="{Binding PauseSelectedJobsCommand}" 
                     Padding="15,5" 
                     Margin="0,0,10,0"/>
-            
-            <Button Content="Resume Selected" 
+
+      <Button Content="Resume Selected" 
                     Command="{Binding ResumeSelectedJobsCommand}" 
                     Padding="15,5" 
                     Margin="0,0,10,0"/>
-            
-            <Button Content="Stop Selected" 
+
+      <Button Content="Stop Selected" 
                     Command="{Binding StopSelectedJobsCommand}" 
                     Style="{StaticResource StopButtonStyle}"
                     Padding="15,5"/>
-        </StackPanel>
-    </Grid>
+    </StackPanel>
+  </Grid>
 </UserControl>

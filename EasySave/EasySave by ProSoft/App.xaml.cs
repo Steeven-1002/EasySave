@@ -1,7 +1,11 @@
 ﻿using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Properties; // For Settings.Default
+using EasySave_by_ProSoft.Services;
 using EasySave_by_ProSoft.Views;
+using System;
+using System.Diagnostics;
 using System.Globalization;
+using System.Threading;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -13,6 +17,7 @@ namespace EasySave_by_ProSoft
         private const string DefaultCultureName = "en-US"; // Default language if nothing is saved or if error
         private static Mutex? _mutex;
         private const string MutexName = "EasySave_by_ProSoft_SingleInstanceMutex";
+        private BackupManager _backupManager;
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -79,6 +84,20 @@ namespace EasySave_by_ProSoft
 
             ApplyCulture(targetCulture);
 
+            // Initialize the BackupManager
+            _backupManager = new BackupManager();
+            
+            // Start the remote control server automatically
+            bool serverStarted = _backupManager.StartRemoteControlServer(9000);
+            if (serverStarted)
+            {
+                Debug.WriteLine("Remote control server started automatically on application startup");
+            }
+            else
+            {
+                Debug.WriteLine("Failed to start remote control server on application startup");
+            }
+
             base.OnStartup(e);
         }
 
@@ -101,6 +120,10 @@ namespace EasySave_by_ProSoft
         {
             _mutex?.ReleaseMutex();
             _mutex?.Dispose();
+
+            // Clean up resources
+            _backupManager?.Shutdown();
+
             base.OnExit(e);
         }
     }

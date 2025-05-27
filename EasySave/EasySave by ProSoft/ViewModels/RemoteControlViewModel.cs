@@ -177,7 +177,7 @@ namespace EasySave_by_ProSoft.ViewModels
             {
                 ConnectionStatus = "Connecting...";
 
-                // Always create a new client with the current settings
+                // Clean up previous client if needed
                 if (_client != null)
                 {
                     _client.ConnectionStatusChanged -= Client_ConnectionStatusChanged;
@@ -185,7 +185,10 @@ namespace EasySave_by_ProSoft.ViewModels
                     _client.ErrorOccurred -= Client_ErrorOccurred;
                 }
                 
-                _client = new NetworkClient(ServerHost, ServerPort);
+                // Default to localhost if no server is specified
+                var host = string.IsNullOrWhiteSpace(ServerHost) ? "localhost" : ServerHost;
+                
+                _client = new NetworkClient(host, ServerPort);
                 _client.ConnectionStatusChanged += Client_ConnectionStatusChanged;
                 _client.JobStatusesReceived += Client_JobStatusesReceived;
                 _client.ErrorOccurred += Client_ErrorOccurred;
@@ -196,12 +199,12 @@ namespace EasySave_by_ProSoft.ViewModels
                 if (connected)
                 {
                     IsConnected = true;
-                    ConnectionStatus = $"Connected to {ServerHost}:{ServerPort}";
+                    ConnectionStatus = $"Connected to {host}:{ServerPort}";
                     RefreshJobs();
                 }
                 else
                 {
-                    ConnectionStatus = $"Failed to connect to {ServerHost}:{ServerPort}";
+                    ConnectionStatus = $"Failed to connect to {host}:{ServerPort}";
                 }
             }
             catch (Exception ex)
