@@ -1,0 +1,74 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=mscorlib">
+    <!-- Application Strings -->
+    <system:String x:Key="AppName">EasySave</system:String>
+    <system:String x:Key="AppDescription">Backup Management Software</system:String>
+    
+    <!-- Navigation -->
+    <system:String x:Key="Home">Home</system:String>
+    <system:String x:Key="Jobs">Backup Jobs</system:String>
+    <system:String x:Key="Settings">Settings</system:String>
+    <system:String x:Key="RemoteControl">Remote Control</system:String>
+    
+    <!-- Job Management -->
+    <system:String x:Key="CreateJob">Create Job</system:String>
+    <system:String x:Key="EditJob">Edit Job</system:String>
+    <system:String x:Key="DeleteJob">Delete Job</system:String>
+    <system:String x:Key="RunJob">Run Job</system:String>
+    <system:String x:Key="RunAllJobs">Run All Jobs</system:String>
+    <system:String x:Key="JobName">Job Name</system:String>
+    <system:String x:Key="SourceDirectory">Source Directory</system:String>
+    <system:String x:Key="TargetDirectory">Target Directory</system:String>
+    <system:String x:Key="BackupType">Backup Type</system:String>
+    <system:String x:Key="Complete">Complete</system:String>
+    <system:String x:Key="Differential">Differential</system:String>
+    
+    <!-- Settings -->
+    <system:String x:Key="GeneralSettings">General Settings</system:String>
+    <system:String x:Key="Language">Language</system:String>
+    <system:String x:Key="LogFormat">Log Format</system:String>
+    <system:String x:Key="EncryptionSettings">Encryption Settings</system:String>
+    <system:String x:Key="EncryptionKey">Encryption Key</system:String>
+    <system:String x:Key="EncryptExtensions">Extensions to Encrypt</system:String>
+    <system:String x:Key="PriorityExtensions">Priority Extensions</system:String>
+    <system:String x:Key="BusinessSoftware">Business Software</system:String>
+    <system:String x:Key="LargeFileSize">Large File Size (KB)</system:String>
+    <system:String x:Key="SaveSettings">Save Settings</system:String>
+    
+    <!-- Notifications -->
+    <system:String x:Key="SettingsSaved">Settings saved successfully!</system:String>
+    <system:String x:Key="InformationTitle">Information</system:String>
+    <system:String x:Key="ErrorTitle">Error</system:String>
+    <system:String x:Key="WarningTitle">Warning</system:String>
+    <system:String x:Key="JobSaved">Backup job saved successfully!</system:String>
+    <system:String x:Key="JobDeleted">Backup job deleted successfully!</system:String>
+    <system:String x:Key="ConfirmDelete">Are you sure you want to delete this job?</system:String>
+    
+    <!-- Status Messages -->
+    <system:String x:Key="Running">Running</system:String>
+    <system:String x:Key="Completed">Completed</system:String>
+    <system:String x:Key="Failed">Failed</system:String>
+    <system:String x:Key="NotStarted">Not Started</system:String>
+    
+    <!-- Remote Control -->
+    <system:String x:Key="StartServer">Start Server</system:String>
+    <system:String x:Key="StopServer">Stop Server</system:String>
+    <system:String x:Key="ServerStatus">Server Status</system:String>
+    <system:String x:Key="ServerRunning">Server is running</system:String>
+    <system:String x:Key="ServerStopped">Server is stopped</system:String>
+    <system:String x:Key="ServerPort">Server Port</system:String>
+    
+    <!-- Misc -->
+    <system:String x:Key="Browse">Browse</system:String>
+    <system:String x:Key="Cancel">Cancel</system:String>
+    <system:String x:Key="Save">Save</system:String>
+    <system:String x:Key="Select">Select</system:String>
+    <system:String x:Key="Close">Close</system:String>
+    <system:String x:Key="ApplicationAlreadyRunning">Application is already running</system:String>
+    <system:String x:Key="SingleInstanceTitle">Single Instance</system:String>
+    <system:String x:Key="CultureNotFoundMessage">Culture {0} not found. Falling back to {1}</system:String>
+    <system:String x:Key="InvalidCultureTitle">Invalid Culture</system:String>
+    <system:String x:Key="NoLanguageSavedMessage">No language preference saved. Using {0}</system:String>
+    <system:String x:Key="NoLanguageSavedTitle">No Language Saved</system:String>
+</ResourceDictionary> 

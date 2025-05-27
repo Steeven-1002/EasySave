@@ -111,6 +111,34 @@ namespace EasySave_by_ProSoft
             {
                 Localization.Resources.Culture = culture;
             }
+            
+            // Load the appropriate XAML language resource dictionary
+            try
+            {
+                App.Current.Resources.MergedDictionaries.Clear();
+                ResourceDictionary resourceDict = new ResourceDictionary();
+                resourceDict.Source = new Uri($"/Localization/Strings.{culture.Name}.xaml", UriKind.Relative);
+                App.Current.Resources.MergedDictionaries.Add(resourceDict);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error loading language resources: {ex.Message}");
+                // If there's an error with the specific culture, try to load the default en-US resources
+                if (culture.Name != DefaultCultureName)
+                {
+                    try 
+                    {
+                        App.Current.Resources.MergedDictionaries.Clear();
+                        ResourceDictionary resourceDict = new ResourceDictionary();
+                        resourceDict.Source = new Uri($"/Localization/Strings.{DefaultCultureName}.xaml", UriKind.Relative);
+                        App.Current.Resources.MergedDictionaries.Add(resourceDict);
+                    }
+                    catch (Exception innerEx)
+                    {
+                        Debug.WriteLine($"Error loading default language resources: {innerEx.Message}");
+                    }
+                }
+            }
         }
 
         /// <summary>

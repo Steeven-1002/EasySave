@@ -24,7 +24,7 @@ namespace EasySave_by_ProSoft.Views
         public SettingsView()
         {
             InitializeComponent();
-            _dialogService = ServiceLocator.Current.GetService<IDialogService>();
+            _dialogService = new DialogService(); // Initialize the dialog service
             _settingsViewModel = new SettingsViewModel(_dialogService);
             DataContext = _settingsViewModel;
             _initialCultureName = Thread.CurrentThread.CurrentUICulture.Name;
@@ -45,12 +45,7 @@ namespace EasySave_by_ProSoft.Views
 
             // Subscribe to events
             _settingsViewModel.PropertyChanged += SettingsViewModel_PropertyChanged;
-            
-            // We no longer need these events since language changes are applied immediately
-            // _settingsViewModel.RequestApplicationRestartPrompt += OnRequestApplicationRestartPrompt;
-            // _settingsViewModel.LanguageChangeConfirmed += OnLanguageChangeConfirmed;
-            // _settingsViewModel.LanguageChangeCancelled += OnLanguageChangeCancelled;
-            // _settingsViewModel.ApplicationRestartFailed += OnApplicationRestartFailed;
+      
 
             // Initialize the log format ComboBox
             if (LogFormatComboBox != null)

@@ -85,8 +85,7 @@ namespace EasySave_by_ProSoft.ViewModels
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _jobs = new ObservableCollection<BackupJob>();
             Status = BackupState.Initialise;
-            SelectedJobs = new ObservableCollection<BackupJob>();
-
+            SelectedJobs = new ObservableCollection<BackupJob>().ToList();
             // Register as a listener for job events
             _jobEventManager.AddListener(this);
             

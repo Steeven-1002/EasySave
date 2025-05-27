@@ -1,11 +1,15 @@
+using EasySave_by_ProSoft.Localization;
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Properties;
 using EasySave_by_ProSoft.Services;
+using Microsoft.VisualBasic.ApplicationServices;
+using System;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Windows;
 using System.Windows.Input;
 
 namespace EasySave_by_ProSoft.ViewModels
@@ -18,12 +22,6 @@ namespace EasySave_by_ProSoft.ViewModels
         private readonly AppSettings _settings = AppSettings.Instance;
         private readonly IDialogService _dialogService;
         private string _selectedLogFormat;
-
-        // We no longer need these events since language changes are applied immediately
-        // public event Action<string, string, bool> RequestApplicationRestartPrompt;
-        // public event Action LanguageChangeConfirmed;
-        // public event Action LanguageChangeCancelled;
-        // public event Action<Exception> ApplicationRestartFailed;
 
         public string BusinessSoftwareName
         {
@@ -251,24 +249,48 @@ namespace EasySave_by_ProSoft.ViewModels
                 CultureInfo newCulture = new CultureInfo(newLanguage);
                 Thread.CurrentThread.CurrentUICulture = newCulture;
                 Thread.CurrentThread.CurrentCulture = newCulture;
-                
+
                 // Apply culture to Resources
                 Localization.Resources.Culture = newCulture;
-                
-                // Notify UI to refresh
-                App.Current.Resources.MergedDictionaries.Clear();
-                ResourceDictionary resourceDict = new ResourceDictionary();
-                resourceDict.Source = new Uri($"pack://application:,,,/EasySave by ProSoft;component/Localization/StringResources.{newLanguage}.xaml", UriKind.Absolute);
-                App.Current.Resources.MergedDictionaries.Add(resourceDict);
-                
-                // Notify the application that language has changed without restart
-                _dialogService.ShowInformation(
-                    Localization.Resources.LanguageChangeAppliedMessage ?? "Language has been changed successfully.",
-                    Localization.Resources.InformationTitle ?? "Information");
-                
+
+                // Update the application resources to reflect the new culture
+                System.Windows.Application.Current.Resources.MergedDictionaries.Clear();
+                System.Windows.Application.Current.Resources.MergedDictionaries.Add(
+                    new System.Windows.ResourceDictionary
+                    {
+                        Source = new Uri($"/Localization/Strings.{newCulture}.xaml", UriKind.Relative)
+                    });
+
                 // Fire event to refresh the UI
                 OnPropertyChanged(nameof(UserLanguage));
                 App.Current.MainWindow.UpdateLayout();
+
+                // Removed the reference to RequestApplicationRestartPrompt as it does not exist
+                _dialogService.ShowInformation(
+                    Localization.Resources.LanguageChangeRestartMessage ?? "Please restart the application to apply the language change.",
+                    Localization.Resources.InformationTitle ?? "Information");
+
+                // Restart the application to apply the new language
+                try
+                {
+                    // Prepare to restart the application
+                    string appPath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+                    System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = appPath,
+                        UseShellExecute = true
+                    };
+                    
+                    // Launch new instance before closing current one
+                    System.Diagnostics.Process.Start(startInfo);
+                    
+                    // Close current instance
+                    System.Windows.Application.Current.Shutdown();
+                }
+                catch (Exception ex)
+                {
+                    _dialogService.ShowError(Localization.Resources.ErrorTitle ?? "Error");
+                }
             }
             catch (CultureNotFoundException ex)
             {
