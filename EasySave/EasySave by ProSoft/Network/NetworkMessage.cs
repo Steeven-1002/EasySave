@@ -40,7 +40,35 @@ namespace EasySave_by_ProSoft.Network
         public NetworkMessage(string type, object data = null)
         {
             Type = type;
-            SetData(data);
+            
+            if (data != null)
+            {
+                SetData(data);
+                
+                // Verify data was set properly
+                if (string.IsNullOrEmpty(Data))
+                {
+                    System.Diagnostics.Debug.WriteLine($"WARNING: Data is null after SetData in constructor for message type {type}");
+                    
+                    // Try direct serialization as fallback
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            WriteIndented = false,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                        };
+                        
+                        Data = JsonSerializer.Serialize(data, options);
+                        System.Diagnostics.Debug.WriteLine($"Direct serialization in constructor successful, length: {Data?.Length ?? 0}");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Direct serialization in constructor failed: {ex.Message}");
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -105,7 +133,10 @@ namespace EasySave_by_ProSoft.Network
         public T GetData<T>()
         {
             if (string.IsNullOrEmpty(Data))
+            {
+                System.Diagnostics.Debug.WriteLine($"Cannot deserialize data: Data property is null or empty");
                 return default;
+            }
 
             try
             {
@@ -121,6 +152,9 @@ namespace EasySave_by_ProSoft.Network
                 // Trim any potential leading/trailing characters that could cause parsing errors
                 string jsonData = Data.Trim();
                 
+                System.Diagnostics.Debug.WriteLine($"Attempting to deserialize data of length {jsonData.Length} to type {typeof(T).Name}");
+                System.Diagnostics.Debug.WriteLine($"Data preview: {jsonData.Substring(0, Math.Min(100, jsonData.Length))}...");
+                
                 // Ensure the JSON is properly formatted
                 if ((jsonData.StartsWith("{") && jsonData.EndsWith("}")) || 
                     (jsonData.StartsWith("[") && jsonData.EndsWith("]")))
@@ -128,8 +162,15 @@ namespace EasySave_by_ProSoft.Network
                     try
                     {
                         T result = JsonSerializer.Deserialize<T>(jsonData, options);
-                        System.Diagnostics.Debug.WriteLine($"Successfully deserialized data to type {typeof(T).Name}");
-                        return result;
+                        if (result != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Successfully deserialized data to type {typeof(T).Name}");
+                            return result;
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Deserialization returned null for type {typeof(T).Name}");
+                        }
                     }
                     catch (JsonException ex)
                     {
@@ -190,6 +231,8 @@ namespace EasySave_by_ProSoft.Network
                 System.Diagnostics.Debug.WriteLine($"Unexpected error deserializing data: {ex.Message}");
                 return default;
             }
+            
+            return default;
         }
 
         // Common message types as constants for consistency
@@ -222,16 +265,16 @@ namespace EasySave_by_ProSoft.Network
                     jobStates = new List<JobState>();
                 }
                 
-                // Create a minimal representation with only essential properties to reduce message size
-                var simplifiedStates = jobStates.Select(js => new
+                // Create a complete representation with all properties
+                var completeStates = jobStates.Select(js => new
                 {
                     js.JobName,
                     js.SourcePath,
                     js.TargetPath,
                     Type = js.Type.ToString(),
                     State = js.StateAsString,
-                    Progress = Math.Round(js.ProgressPercentage, 2),
-                    CurrentFile = Path.GetFileName(js.CurrentSourceFile ?? string.Empty),
+                    Progress = js.ProgressPercentage,
+                    CurrentFile = js.CurrentSourceFile,
                     TotalFiles = js.TotalFiles,
                     RemainingFiles = js.RemainingFiles,
                     TotalSize = js.TotalSize,
@@ -240,7 +283,40 @@ namespace EasySave_by_ProSoft.Network
                 }).ToList();
                 
                 System.Diagnostics.Debug.WriteLine($"Creating job status message with {jobStates.Count} job states");
-                return new NetworkMessage(MessageTypes.JobStatus, simplifiedStates);
+                
+                // Create message and explicitly set the data
+                var message = new NetworkMessage(MessageTypes.JobStatus);
+                message.SetData(completeStates);
+                
+                // Verify data was set properly
+                if (string.IsNullOrEmpty(message.Data))
+                {
+                    System.Diagnostics.Debug.WriteLine("ERROR: Data is null after serialization!");
+                    
+                    // Try direct serialization as fallback
+                    try
+                    {
+                        var options = new JsonSerializerOptions
+                        {
+                            WriteIndented = false,
+                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                        };
+                        
+                        message.Data = JsonSerializer.Serialize(completeStates, options);
+                        System.Diagnostics.Debug.WriteLine($"Direct serialization successful, length: {message.Data?.Length ?? 0}");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Direct serialization failed: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"Data successfully set, length: {message.Data.Length}");
+                }
+                
+                return message;
             }
             catch (Exception ex)
             {

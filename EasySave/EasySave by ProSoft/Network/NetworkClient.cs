@@ -29,7 +29,31 @@ namespace EasySave_by_ProSoft.Network
 
         public string ServerHost { get; private set; }
         public int ServerPort { get; private set; }
-        public bool IsConnected => client?.Connected == true && isRunning;
+        public bool IsConnected 
+        { 
+            get
+            {
+                if (client == null || stream == null || !isRunning)
+                    return false;
+                
+                try
+                {
+                    // Check if the socket is still connected
+                    if (!client.Connected)
+                        return false;
+                    
+                    // This is a more reliable way to check if a socket is connected
+                    // Poll returns true if socket is closed, has errors, or has data available
+                    // Available == 0 means socket is closed or has errors
+                    bool socketClosed = client.Client.Poll(1, SelectMode.SelectRead) && client.Client.Available == 0;
+                    return !socketClosed;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
         public bool AutoReconnect { get; set; } = true;
 
         // Events
@@ -61,7 +85,10 @@ namespace EasySave_by_ProSoft.Network
             {
                 // If already connected, return true
                 if (IsConnected)
+                {
+                    Debug.WriteLine("Already connected to server, skipping connection attempt");
                     return true;
+                }
 
                 // Clean up any existing connection
                 Disconnect();
@@ -73,9 +100,33 @@ namespace EasySave_by_ProSoft.Network
                     // Create new cancellation token source
                     cancellationTokenSource = new CancellationTokenSource();
                     
-                    // Create and connect the client
+                    // Create and connect the client with timeout
                     client = new TcpClient();
-                    await client.ConnectAsync(ServerHost, ServerPort).ConfigureAwait(false);
+                    
+                    // Use a timeout for the connection attempt
+                    using var connectTimeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    var connectTask = client.ConnectAsync(ServerHost, ServerPort);
+                    
+                    try
+                    {
+                        await connectTask.WaitAsync(connectTimeoutCts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw new TimeoutException($"Connection attempt to {ServerHost}:{ServerPort} timed out after 5 seconds");
+                    }
+                    
+                    if (!client.Connected)
+                    {
+                        throw new IOException($"Failed to connect to {ServerHost}:{ServerPort}");
+                    }
+                    
+                    // Configure TCP settings for better reliability
+                    client.NoDelay = true; // Disable Nagle's algorithm
+                    client.ReceiveTimeout = 30000; // 30 seconds
+                    client.SendTimeout = 30000; // 30 seconds
+                    client.ReceiveBufferSize = 65536; // 64KB
+                    client.SendBufferSize = 65536; // 64KB
                     
                     // Get the network stream
                     stream = client.GetStream();
@@ -90,7 +141,15 @@ namespace EasySave_by_ProSoft.Network
                     OnConnectionStatusChanged($"Connected to {ServerHost}:{ServerPort}");
                     
                     // Request initial job statuses
-                    await SendMessageAsync(NetworkMessage.CreateJobStatusRequestMessage()).ConfigureAwait(false);
+                    try
+                    {
+                        await GetJobStatusesAsync().ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Failed to request initial job statuses: {ex.Message}");
+                        // Continue anyway as this is not critical
+                    }
                     
                     return true;
                 }
@@ -107,6 +166,68 @@ namespace EasySave_by_ProSoft.Network
             finally
             {
                 reconnectSemaphore.Release();
+            }
+        }
+
+        /// <summary>
+        /// Gets current job statuses from the server - simplified method for both initial and refresh requests
+        /// </summary>
+        public async Task GetJobStatusesAsync()
+        {
+            if (!IsConnected)
+            {
+                Debug.WriteLine("Cannot request job statuses: not connected");
+                throw new InvalidOperationException("Not connected to server");
+            }
+
+            try
+            {
+                Debug.WriteLine("Requesting job statuses from server");
+                
+                // Create a simple request message
+                var message = new NetworkMessage
+                {
+                    MessageId = Guid.NewGuid(),
+                    Type = "JobStatusRequest",
+                    Timestamp = DateTime.Now
+                };
+                
+                // Serialize the message
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = false,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+                
+                var messageJson = JsonSerializer.Serialize(message, options);
+                var messageBytes = Encoding.UTF8.GetBytes(messageJson);
+                
+                // Add length prefix
+                var lengthPrefix = BitConverter.GetBytes(messageBytes.Length);
+                var buffer = new byte[4 + messageBytes.Length];
+                
+                Buffer.BlockCopy(lengthPrefix, 0, buffer, 0, 4);
+                Buffer.BlockCopy(messageBytes, 0, buffer, 4, messageBytes.Length);
+                
+                // Send with timeout
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                
+                if (stream == null)
+                {
+                    throw new InvalidOperationException("Network stream is null");
+                }
+                
+                await stream.WriteAsync(buffer, 0, buffer.Length, cts.Token).ConfigureAwait(false);
+                await stream.FlushAsync(cts.Token).ConfigureAwait(false);
+                
+                Debug.WriteLine("Job status request sent successfully");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error requesting job statuses: {ex.Message}");
+                OnErrorOccurred(ex);
+                throw;
             }
         }
 
@@ -213,32 +334,127 @@ namespace EasySave_by_ProSoft.Network
             {
                 // Ensure only one reconnection attempt at a time
                 if (!await reconnectSemaphore.WaitAsync(0))
+                {
+                    Debug.WriteLine("Reconnection already in progress, skipping this attempt");
                     return; // Another reconnection attempt is already in progress
+                }
                 
                 try
                 {
-                    if (IsConnected) // Double-check after acquiring semaphore
-                        return;
+                    // Force disconnect first to ensure clean state
+                    Disconnect();
+                    
+                    // Double check we're actually disconnected
+                    if (client != null || stream != null || isRunning)
+                    {
+                        Debug.WriteLine("Warning: Connection resources still exist after disconnect, forcing cleanup");
+                        // Force cleanup
+                        try { stream?.Close(); } catch { }
+                        try { stream?.Dispose(); } catch { }
+                        stream = null;
+                        
+                        try { client?.Close(); } catch { }
+                        try { client?.Dispose(); } catch { }
+                        client = null;
+                        
+                        isRunning = false;
+                    }
 
                     OnConnectionStatusChanged("Connection lost. Attempting to reconnect...");
                     
-                    // Clean up old connection
-                    Disconnect();
-                    
                     // Wait before reconnecting with exponential backoff
-                    for (int attempt = 1; attempt <= 5; attempt++)
+                    for (int attempt = 1; attempt <= 10; attempt++) // Increase max attempts to 10
                     {
-                        // Wait with exponential backoff (1s, 2s, 4s, 8s, 16s)
-                        int delayMs = 1000 * (int)Math.Pow(2, attempt - 1);
+                        if (cancellationTokenSource?.IsCancellationRequested == true)
+                        {
+                            Debug.WriteLine("Reconnection attempts canceled");
+                            return;
+                        }
+                        
+                        // Wait with exponential backoff (1s, 2s, 4s, 8s, 16s, etc.)
+                        int delayMs = 1000 * (int)Math.Min(Math.Pow(2, attempt - 1), 30); // Cap at 30 seconds
+                        Debug.WriteLine($"Reconnection attempt {attempt}/10, waiting {delayMs/1000} seconds...");
                         await Task.Delay(delayMs).ConfigureAwait(false);
                         
-                        // Try to connect
-                        bool connected = await ConnectAsync().ConfigureAwait(false);
-                        if (connected)
+                        try
+                        {
+                            // Create new cancellation token source
+                            cancellationTokenSource = new CancellationTokenSource();
+                            
+                            // Create and connect the client with timeout
+                            client = new TcpClient();
+                            
+                            // Use a timeout for the connection attempt
+                            using var connectTimeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                            var connectTask = client.ConnectAsync(ServerHost, ServerPort);
+                            
+                            try
+                            {
+                                await connectTask.WaitAsync(connectTimeoutCts.Token).ConfigureAwait(false);
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                Debug.WriteLine("Connection attempt timed out");
+                                continue; // Try again
+                            }
+                            
+                            if (!client.Connected)
+                            {
+                                Debug.WriteLine("Failed to connect to server");
+                                continue; // Try again
+                            }
+                            
+                            // Configure TCP settings for better reliability
+                            client.NoDelay = true; // Disable Nagle's algorithm
+                            client.ReceiveTimeout = 30000; // 30 seconds
+                            client.SendTimeout = 30000; // 30 seconds
+                            client.ReceiveBufferSize = 65536; // 64KB
+                            client.SendBufferSize = 65536; // 64KB
+                            
+                            // Get the network stream
+                            stream = client.GetStream();
+                            isRunning = true;
+
+                            // Start the receive task
+                            receiveTask = Task.Run(ReceiveMessagesAsync, cancellationTokenSource.Token);
+                            
+                            // Start ping timer
+                            StartPingTimer();
+                            
+                            OnConnectionStatusChanged($"Reconnected to {ServerHost}:{ServerPort}");
+                            
+                            // Request initial job statuses
+                            try
+                            {
+                                await GetJobStatusesAsync().ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine($"Failed to request initial job statuses: {ex.Message}");
+                                // Continue anyway as this is not critical
+                            }
+                            
+                            Debug.WriteLine("Reconnection successful!");
                             return;
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Error during reconnection attempt {attempt}: {ex.Message}");
+                            
+                            // Clean up failed connection attempt
+                            try { stream?.Close(); } catch { }
+                            try { stream?.Dispose(); } catch { }
+                            stream = null;
+                            
+                            try { client?.Close(); } catch { }
+                            try { client?.Dispose(); } catch { }
+                            client = null;
+                            
+                            isRunning = false;
+                        }
                     }
                     
-                    OnConnectionStatusChanged("Disconnected");
+                    OnConnectionStatusChanged("Failed to reconnect after multiple attempts. Connection lost.");
                 }
                 finally
                 {
@@ -249,7 +465,15 @@ namespace EasySave_by_ProSoft.Network
             {
                 Debug.WriteLine($"Error during reconnect: {ex.Message}");
                 OnErrorOccurred(ex);
-                reconnectSemaphore.Release();
+                
+                try
+                {
+                    reconnectSemaphore.Release();
+                }
+                catch
+                {
+                    // Ignore if we can't release the semaphore
+                }
             }
         }
 
@@ -258,66 +482,153 @@ namespace EasySave_by_ProSoft.Network
         /// </summary>
         private async Task ReceiveMessagesAsync()
         {
-            byte[] buffer = new byte[16384]; // 16KB buffer
+            byte[] lengthBuffer = new byte[4]; // Buffer for the message length prefix
+            byte[] messageBuffer = new byte[1024 * 1024]; // Buffer for the message content (1MB)
             
-            try
+            while (cancellationTokenSource != null && !cancellationTokenSource.Token.IsCancellationRequested && isRunning)
             {
-                while (isRunning && !cancellationTokenSource.Token.IsCancellationRequested)
+                try
                 {
-                    if (client == null || stream == null)
+                    // Check if we're actually connected
+                    if (client == null || stream == null || !IsConnected)
                     {
                         await Task.Delay(100).ConfigureAwait(false);
                         continue;
                     }
 
-                    int bytesRead;
-
                     try
                     {
-                        bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationTokenSource.Token)
-                            .ConfigureAwait(false);
+                        if (cancellationTokenSource == null)
+                        {
+                            break;
+                        }
+                        
+                        using var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokenSource.Token);
+                        readCts.CancelAfter(TimeSpan.FromSeconds(60)); // 60-second timeout for idle connections
+                        
+                        int bytesRead = await stream.ReadAsync(lengthBuffer, 0, 4, readCts.Token).ConfigureAwait(false);
+                        
+                        // Check if connection was closed
+                        if (bytesRead == 0)
+                        {
+                            // Only break if we're definitely disconnected
+                            if (!IsConnected)
+                            {
+                                Debug.WriteLine("Server closed connection");
+                                break;
+                            }
+                            
+                            // Otherwise, just continue waiting
+                            continue;
+                        }
+                        
+                        // If we didn't read all 4 bytes, try to read the rest
+                        int totalRead = bytesRead;
+                        while (totalRead < 4)
+                        {
+                            bytesRead = await stream.ReadAsync(lengthBuffer, totalRead, 4 - totalRead, readCts.Token).ConfigureAwait(false);
+                            
+                            if (bytesRead == 0)
+                            {
+                                // Only break if we're definitely disconnected
+                                if (!IsConnected)
+                                {
+                                    Debug.WriteLine("Server closed connection while reading length prefix");
+                                    break;
+                                }
+                                
+                                // Otherwise, just continue waiting
+                                break;
+                            }
+                            
+                            totalRead += bytesRead;
+                        }
+                        
+                        // If we didn't read a complete length prefix, continue waiting
+                        if (totalRead < 4)
+                            continue;
+                        
+                        // Convert the 4 bytes to an integer (message length)
+                        int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
+                        
+                        // Sanity check on message length
+                        if (messageLength <= 0 || messageLength > 5 * 1024 * 1024) // Max 5MB
+                        {
+                            Debug.WriteLine($"Invalid message length: {messageLength}");
+                            continue;
+                        }
+                        
+                        // Resize buffer if needed
+                        if (messageLength > messageBuffer.Length)
+                        {
+                            messageBuffer = new byte[messageLength];
+                        }
+                        
+                        // Read the message content with a longer timeout
+                        using var msgReadCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokenSource.Token);
+                        msgReadCts.CancelAfter(TimeSpan.FromMinutes(2)); // 2-minute timeout for message body
+                        
+                        // Read the message content
+                        totalRead = 0;
+                        while (totalRead < messageLength)
+                        {
+                            bytesRead = await stream.ReadAsync(messageBuffer, totalRead, 
+                                messageLength - totalRead, msgReadCts.Token).ConfigureAwait(false);
+                                
+                            if (bytesRead == 0)
+                            {
+                                // Only break if we're definitely disconnected
+                                if (!IsConnected)
+                                {
+                                    Debug.WriteLine("Server closed connection while reading message body");
+                                    break;
+                                }
+                                
+                                // Otherwise, break out of the read loop but don't disconnect
+                                break;
+                            }
+                            
+                            totalRead += bytesRead;
+                        }
+                        
+                        // If we didn't read the entire message, continue waiting for new messages
+                        if (totalRead < messageLength)
+                            continue;
+                        
+                        // Process the message - don't let exceptions disconnect the client
+                        try
+                        {
+                            string messageJson = Encoding.UTF8.GetString(messageBuffer, 0, messageLength);
+                            await ProcessMessageAsync(messageJson).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Error processing message: {ex.Message}");
+                            // Continue without disconnecting
+                        }
                     }
                     catch (OperationCanceledException)
                     {
-                        break;
+                        // Timeout reading from server, just continue waiting
+                        // Don't disconnect - server might be busy
+                        continue;
                     }
-                    catch (IOException)
-                    {
-                        // Socket closed or other IO error
-                        if (AutoReconnect)
-                            _ = AttemptReconnectAsync();
-                        break;
-                    }
-                    catch (Exception ex)
-                    {
-                        OnErrorOccurred(ex);
-                        
-                        if (AutoReconnect)
-                            _ = AttemptReconnectAsync();
-                        
-                        break;
-                    }
-
-                    // If we read 0 bytes, the connection has been closed
-                    if (bytesRead == 0)
-                    {
-                        if (AutoReconnect)
-                            _ = AttemptReconnectAsync();
-                        
-                        break;
-                    }
-
-                    // Process the received message
-                    string messageJson = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                    await ProcessMessageAsync(messageJson).ConfigureAwait(false);
                 }
-            }
-            catch (Exception ex) when (!cancellationTokenSource.Token.IsCancellationRequested)
-            {
-                OnErrorOccurred(ex);
-                
-                if (AutoReconnect)
-                    _ = AttemptReconnectAsync();
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error in receive loop: {ex.Message}");
+                    
+                    // Wait a bit before retrying, but don't disconnect
+                    await Task.Delay(1000).ConfigureAwait(false);
+                    
+                    // Only attempt reconnect if we've definitely lost connection
+                    if (!IsConnected && AutoReconnect && isRunning)
+                    {
+                        Debug.WriteLine("Connection lost. Attempting to reconnect...");
+                        _ = AttemptReconnectAsync();
+                        // Don't break - let the reconnect happen in the background
+                    }
+                }
             }
         }
 
@@ -563,8 +874,22 @@ namespace EasySave_by_ProSoft.Network
         /// </summary>
         public async Task SendMessageAsync(NetworkMessage message)
         {
-            if (!IsConnected || message == null)
+            if (message == null)
                 return;
+                
+            // If not connected, queue the message for when we reconnect
+            if (!IsConnected)
+            {
+                Debug.WriteLine("Not connected, cannot send message now");
+                
+                if (AutoReconnect)
+                {
+                    Debug.WriteLine("Attempting to reconnect before sending message");
+                    _ = AttemptReconnectAsync();
+                }
+                
+                return;
+            }
 
             try
             {
@@ -577,64 +902,40 @@ namespace EasySave_by_ProSoft.Network
                 };
                 
                 var messageJson = JsonSerializer.Serialize(message, options);
-                var buffer = Encoding.UTF8.GetBytes(messageJson);
-                
-                // Check buffer size and log if it's large
-                if (buffer.Length > 8192) // 8KB
-                {
-                    Debug.WriteLine($"Warning: Large message being sent ({buffer.Length} bytes)");
-                    
-                    // If it's a job status message and too large, try to reduce the size
-                    if (message.Type == NetworkMessage.MessageTypes.JobStatus && buffer.Length > 16384) // 16KB
-                    {
-                        Debug.WriteLine("Job status message too large, attempting to reduce size");
-                        // This will cause the message to be recreated with less data in NetworkMessage.CreateJobStatusMessage
-                        return;
-                    }
-                }
+                var messageBytes = Encoding.UTF8.GetBytes(messageJson);
 
                 // Check if stream is still available
                 if (stream == null || !client.Connected)
                 {
-                    throw new InvalidOperationException("Connection lost before sending message");
+                    Debug.WriteLine("Stream or client no longer available");
+                    return;
                 }
 
-                // Use cancellation token to avoid hanging indefinitely
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                // Create a buffer with length prefix (4 bytes) + message content
+                var lengthPrefix = BitConverter.GetBytes(messageBytes.Length);
+                var buffer = new byte[4 + messageBytes.Length];
                 
+                // Copy the length prefix and message bytes into the buffer
+                Buffer.BlockCopy(lengthPrefix, 0, buffer, 0, 4);
+                Buffer.BlockCopy(messageBytes, 0, buffer, 4, messageBytes.Length);
+
+                // Use cancellation token to avoid hanging indefinitely
+                using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)); // 2-minute timeout
+                
+                // Send in one go
                 await stream.WriteAsync(buffer, 0, buffer.Length, cts.Token).ConfigureAwait(false);
                 await stream.FlushAsync(cts.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
-            {
-                OnErrorOccurred(new Exception("Send operation timed out"));
-                
-                // Disconnect and try to reconnect
-                Disconnect();
-                
-                if (AutoReconnect)
-                    _ = AttemptReconnectAsync();
-            }
-            catch (IOException ex)
-            {
-                // Socket error or connection closed
-                OnErrorOccurred(new Exception($"Connection error: {ex.Message}", ex));
-                
-                // Disconnect and try to reconnect
-                Disconnect();
-                
-                if (AutoReconnect)
-                    _ = AttemptReconnectAsync();
-            }
             catch (Exception ex)
             {
-                OnErrorOccurred(ex);
+                Debug.WriteLine($"Error sending message: {ex.Message}");
                 
-                // Disconnect and try to reconnect
-                Disconnect();
-                
-                if (AutoReconnect)
+                // Don't disconnect - just let the reconnection happen naturally if needed
+                if (!IsConnected && AutoReconnect)
+                {
+                    Debug.WriteLine("Connection appears to be lost, attempting to reconnect");
                     _ = AttemptReconnectAsync();
+                }
             }
         }
 
@@ -645,31 +946,120 @@ namespace EasySave_by_ProSoft.Network
         {
             try
             {
-                // Use a timeout to prevent hanging indefinitely
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                
-                // Create a task that sends the request
-                var sendTask = SendMessageAsync(NetworkMessage.CreateJobStatusRequestMessage());
-                
-                // Wait for the task to complete with timeout
-                await sendTask.WaitAsync(cts.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                OnErrorOccurred(new Exception("Request for job statuses timed out"));
-                
-                // If timed out and we're still connected, try to reconnect
-                if (AutoReconnect && client?.Connected == true)
-                    _ = AttemptReconnectAsync();
-                
-                throw;
+                await GetJobStatusesAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
+                Debug.WriteLine($"Error requesting job statuses: {ex.Message}");
+                
+                // If we're still connected, try to reconnect
+                if (AutoReconnect && !IsConnected)
+                {
+                    _ = AttemptReconnectAsync();
+                }
+                
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Sends a job control command to the server
+        /// </summary>
+        private async Task SendJobControlCommandAsync(string commandType, List<string> jobNames)
+        {
+            if (jobNames == null || jobNames.Count == 0)
+            {
+                Debug.WriteLine($"Cannot send {commandType} command: no job names provided");
+                return;
+            }
+
+            if (!IsConnected)
+            {
+                Debug.WriteLine($"Cannot send {commandType} command: not connected");
+                throw new InvalidOperationException("Not connected to server");
+            }
+
+            try
+            {
+                Debug.WriteLine($"Sending {commandType} command for {jobNames.Count} jobs: {string.Join(", ", jobNames)}");
+                
+                // Create a command message with the correct message type constants
+                var messageType = "";
+                switch (commandType)
+                {
+                    case "StartJob":
+                        messageType = NetworkMessage.MessageTypes.StartJob;
+                        break;
+                    case "PauseJob":
+                        messageType = NetworkMessage.MessageTypes.PauseJob;
+                        break;
+                    case "ResumeJob":
+                        messageType = NetworkMessage.MessageTypes.ResumeJob;
+                        break;
+                    case "StopJob":
+                        messageType = NetworkMessage.MessageTypes.StopJob;
+                        break;
+                    default:
+                        messageType = commandType;
+                        break;
+                }
+                
+                var message = new NetworkMessage
+                {
+                    MessageId = Guid.NewGuid(),
+                    Type = messageType,
+                    Timestamp = DateTime.Now
+                };
+                
+                // Set the job names as data
+                message.SetData(jobNames);
+                
+                // Log the message details for debugging
+                Debug.WriteLine($"Job control message details: Type={message.Type}, JobNames={string.Join(", ", jobNames)}");
+                
+                // Serialize the message
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = false,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+                
+                var messageJson = JsonSerializer.Serialize(message, options);
+                Debug.WriteLine($"Serialized message: {messageJson.Substring(0, Math.Min(100, messageJson.Length))}...");
+                
+                var messageBytes = Encoding.UTF8.GetBytes(messageJson);
+                
+                // Add length prefix
+                var lengthPrefix = BitConverter.GetBytes(messageBytes.Length);
+                var buffer = new byte[4 + messageBytes.Length];
+                
+                Buffer.BlockCopy(lengthPrefix, 0, buffer, 0, 4);
+                Buffer.BlockCopy(messageBytes, 0, buffer, 4, messageBytes.Length);
+                
+                // Send with timeout
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                
+                if (stream == null)
+                {
+                    throw new InvalidOperationException("Network stream is null");
+                }
+                
+                await stream.WriteAsync(buffer, 0, buffer.Length, cts.Token).ConfigureAwait(false);
+                await stream.FlushAsync(cts.Token).ConfigureAwait(false);
+                
+                Debug.WriteLine($"{commandType} command sent successfully");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error sending {commandType} command: {ex.Message}");
                 OnErrorOccurred(ex);
                 
-                if (AutoReconnect)
+                // Check if we need to reconnect
+                if (!IsConnected && AutoReconnect)
+                {
                     _ = AttemptReconnectAsync();
+                }
                 
                 throw;
             }
@@ -680,10 +1070,7 @@ namespace EasySave_by_ProSoft.Network
         /// </summary>
         public async Task StartJobsAsync(List<string> jobNames)
         {
-            if (jobNames == null || jobNames.Count == 0)
-                return;
-                
-            await SendMessageAsync(NetworkMessage.CreateStartJobMessage(jobNames)).ConfigureAwait(false);
+            await SendJobControlCommandAsync("StartJob", jobNames);
         }
 
         /// <summary>
@@ -691,10 +1078,7 @@ namespace EasySave_by_ProSoft.Network
         /// </summary>
         public async Task PauseJobsAsync(List<string> jobNames)
         {
-            if (jobNames == null || jobNames.Count == 0)
-                return;
-                
-            await SendMessageAsync(NetworkMessage.CreatePauseJobMessage(jobNames)).ConfigureAwait(false);
+            await SendJobControlCommandAsync("PauseJob", jobNames);
         }
 
         /// <summary>
@@ -702,10 +1086,7 @@ namespace EasySave_by_ProSoft.Network
         /// </summary>
         public async Task ResumeJobsAsync(List<string> jobNames)
         {
-            if (jobNames == null || jobNames.Count == 0)
-                return;
-                
-            await SendMessageAsync(NetworkMessage.CreateResumeJobMessage(jobNames)).ConfigureAwait(false);
+            await SendJobControlCommandAsync("ResumeJob", jobNames);
         }
 
         /// <summary>
@@ -713,10 +1094,7 @@ namespace EasySave_by_ProSoft.Network
         /// </summary>
         public async Task StopJobsAsync(List<string> jobNames)
         {
-            if (jobNames == null || jobNames.Count == 0)
-                return;
-                
-            await SendMessageAsync(NetworkMessage.CreateStopJobMessage(jobNames)).ConfigureAwait(false);
+            await SendJobControlCommandAsync("StopJob", jobNames);
         }
 
         // Event invokers

@@ -181,8 +181,8 @@ namespace EasySave_by_ProSoft.Network
                     using var _ = new ClientCleanupScope(this, clientId);
                     
                     NetworkStream stream = client.GetStream();
-                    byte[] buffer = new byte[16384]; // 16KB buffer
-                    int bytesRead;
+                    byte[] lengthBuffer = new byte[4]; // Buffer for the message length prefix
+                    byte[] messageBuffer = new byte[1024 * 1024]; // Buffer for the message content (1MB)
 
                     // Send current job list to the client when they first connect
                     await SendJobStatesToClientAsync(client).ConfigureAwait(false);
@@ -190,47 +190,121 @@ namespace EasySave_by_ProSoft.Network
                     // Continue reading from client until they disconnect or we're cancelled
                     while (!cancellationTokenSource.Token.IsCancellationRequested && client.Connected)
                     {
-                        // Use ReadAsync with a cancellation token
-                        using var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokenSource.Token);
-                        readCts.CancelAfter(TimeSpan.FromSeconds(1)); // 1-second timeout
-
                         try
                         {
-                            bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, readCts.Token).ConfigureAwait(false);
-                        }
-                        catch (OperationCanceledException) when (cancellationTokenSource.Token.IsCancellationRequested)
-                        {
-                            // Normal cancellation
-                            break;
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            // Timeout on read, check connection and continue
-                            if (!IsClientConnected(client))
-                                break;
+                            // First read the 4-byte length prefix with a timeout
+                            using var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokenSource.Token);
+                            readCts.CancelAfter(TimeSpan.FromSeconds(60)); // 60-second timeout for idle connections
+                            
+                            int bytesRead = 0;
+                            int totalBytesRead = 0;
+                            
+                            try
+                            {
+                                // Read the length prefix (4 bytes)
+                                totalBytesRead = 0;
+                                while (totalBytesRead < 4)
+                                {
+                                    bytesRead = await stream.ReadAsync(lengthBuffer, totalBytesRead, 4 - totalBytesRead, 
+                                        readCts.Token).ConfigureAwait(false);
+                                        
+                                    if (bytesRead == 0)
+                                    {
+                                        // Connection closed by client - only exit if confirmed disconnected
+                                        if (!IsClientConnected(client))
+                                            return;
+                                        
+                                        // Otherwise, just continue waiting
+                                        break;
+                                    }
+                                    
+                                    totalBytesRead += bytesRead;
+                                }
                                 
-                            // Send a job status update periodically on timeout to keep the client updated
-                            await SendJobStatesToClientAsync(client).ConfigureAwait(false);
-                            continue;
-                        }
-                        catch (IOException)
-                        {
-                            // Socket closed or connection error
-                            break;
+                                // If we didn't read a complete length prefix, continue waiting
+                                if (totalBytesRead < 4)
+                                    continue;
+                                
+                                // Convert the 4 bytes to an integer (message length)
+                                int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
+                                
+                                // Simple validation of message length
+                                if (messageLength <= 0 || messageLength > 5 * 1024 * 1024) // Max 5MB
+                                {
+                                    Debug.WriteLine($"Invalid message length: {messageLength}");
+                                    continue;
+                                }
+                                
+                                // Resize buffer if needed
+                                if (messageLength > messageBuffer.Length)
+                                {
+                                    messageBuffer = new byte[messageLength];
+                                }
+                                
+                                // Read the message content with a longer timeout
+                                using var msgReadCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokenSource.Token);
+                                msgReadCts.CancelAfter(TimeSpan.FromMinutes(2)); // 2-minute timeout for message body
+                                
+                                totalBytesRead = 0;
+                                while (totalBytesRead < messageLength)
+                                {
+                                    bytesRead = await stream.ReadAsync(messageBuffer, totalBytesRead, 
+                                        messageLength - totalBytesRead, msgReadCts.Token).ConfigureAwait(false);
+                                        
+                                    if (bytesRead == 0)
+                                    {
+                                        // Connection closed by client - only exit if confirmed disconnected
+                                        if (!IsClientConnected(client))
+                                            return;
+                                        
+                                        // Otherwise, break out of the read loop but don't disconnect
+                                        break;
+                                    }
+                                    
+                                    totalBytesRead += bytesRead;
+                                }
+                                
+                                // If we didn't read the entire message, continue waiting for new messages
+                                if (totalBytesRead < messageLength)
+                                    continue;
+                                
+                                // Convert bytes to string
+                                string messageJson = Encoding.UTF8.GetString(messageBuffer, 0, messageLength);
+                                
+                                // Process the message - don't let exceptions disconnect the client
+                                try
+                                {
+                                    await ProcessMessageAsync(messageJson, client).ConfigureAwait(false);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Debug.WriteLine($"Error processing message: {ex.Message}");
+                                    // Continue without disconnecting
+                                }
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                // Timeout on read, send periodic update if client is still connected
+                                if (IsClientConnected(client))
+                                {
+                                    await SendJobStatesToClientAsync(client).ConfigureAwait(false);
+                                }
+                                // Continue without disconnecting
+                            }
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine($"Error reading from client {clientId}: {ex.Message}");
-                            break;
+                            Debug.WriteLine($"Error handling client message: {ex.Message}");
+                            // Continue without disconnecting as long as client is connected
+                            if (!IsClientConnected(client))
+                            {
+                                // Only exit if client is definitely disconnected
+                                return;
+                            }
+                            
+                            // Add a small delay to avoid tight loop if there are persistent errors
+                            await Task.Delay(1000).ConfigureAwait(false);
                         }
-
-                        // If we read 0 bytes, client has disconnected
-                        if (bytesRead == 0)
-                            break;
-
-                        // Process the message
-                        string messageJson = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                        await ProcessMessageAsync(messageJson, client).ConfigureAwait(false);
                     }
                 }
             }
@@ -240,7 +314,8 @@ namespace EasySave_by_ProSoft.Network
             }
             finally
             {
-                RaiseServerStatusChanged($"Client disconnected: {clientId}");
+                Debug.WriteLine($"Socket Server: Client disconnected: {clientId}");
+                RemoveClient(clientId);
             }
         }
 
@@ -251,10 +326,25 @@ namespace EasySave_by_ProSoft.Network
         {
             try
             {
-                var message = JsonSerializer.Deserialize<NetworkMessage>(messageJson);
+                Debug.WriteLine($"Processing message: {messageJson.Substring(0, Math.Min(100, messageJson.Length))}...");
+                
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    AllowTrailingCommas = true,
+                    ReadCommentHandling = JsonCommentHandling.Skip,
+                    NumberHandling = JsonNumberHandling.AllowReadingFromString
+                };
+                
+                var message = JsonSerializer.Deserialize<NetworkMessage>(messageJson, options);
                 
                 if (message == null)
+                {
+                    Debug.WriteLine("Deserialized message is null");
                     return;
+                }
+                
+                Debug.WriteLine($"Received message of type: {message.Type}, Data: {(string.IsNullOrEmpty(message.Data) ? "null" : message.Data.Substring(0, Math.Min(50, message.Data.Length)))}...");
 
                 // Raise the message received event
                 MessageReceived?.Invoke(this, message);
@@ -268,21 +358,41 @@ namespace EasySave_by_ProSoft.Network
                     
                     case NetworkMessage.MessageTypes.StartJob:
                         var jobNamesStart = message.GetData<List<string>>();
+                        if (jobNamesStart == null || jobNamesStart.Count == 0)
+                        {
+                            Debug.WriteLine("Received StartJob command with null or empty job names");
+                            break;
+                        }
                         _eventManager.NotifyLaunchJobsRequested(jobNamesStart);
                         break;
                     
                     case NetworkMessage.MessageTypes.PauseJob:
                         var jobNamesPause = message.GetData<List<string>>();
+                        if (jobNamesPause == null || jobNamesPause.Count == 0)
+                        {
+                            Debug.WriteLine("Received PauseJob command with null or empty job names");
+                            break;
+                        }
                         _eventManager.NotifyPauseJobsRequested(jobNamesPause);
                         break;
                     
                     case NetworkMessage.MessageTypes.ResumeJob:
                         var jobNamesResume = message.GetData<List<string>>();
+                        if (jobNamesResume == null || jobNamesResume.Count == 0)
+                        {
+                            Debug.WriteLine("Received ResumeJob command with null or empty job names");
+                            break;
+                        }
                         _eventManager.NotifyResumeJobsRequested(jobNamesResume);
                         break;
                     
                     case NetworkMessage.MessageTypes.StopJob:
                         var jobNamesStop = message.GetData<List<string>>();
+                        if (jobNamesStop == null || jobNamesStop.Count == 0)
+                        {
+                            Debug.WriteLine("Received StopJob command with null or empty job names");
+                            break;
+                        }
                         _eventManager.NotifyStopJobsRequested(jobNamesStop);
                         break;
                     
@@ -294,6 +404,7 @@ namespace EasySave_by_ProSoft.Network
             catch (JsonException ex)
             {
                 Debug.WriteLine($"Error deserializing message: {ex.Message}");
+                Debug.WriteLine($"JSON: {messageJson.Substring(0, Math.Min(200, messageJson.Length))}...");
             }
             catch (Exception ex)
             {
@@ -368,10 +479,36 @@ namespace EasySave_by_ProSoft.Network
                 jobState.TargetPath = status.BackupJob.TargetPath;
                 jobState.Type = status.BackupJob.Type;
                 
+                // Create a message with this single job state
                 var message = NetworkMessage.CreateJobStatusMessage(new List<JobState> { jobState });
 
+                // Get all connected clients
+                var clients = connectedClients.Values.ToList();
+                
+                if (clients.Count == 0)
+                {
+                    Debug.WriteLine("No clients connected, skipping job status broadcast");
+                    return;
+                }
+                
+                Debug.WriteLine($"Broadcasting job status update for {jobState.JobName} to {clients.Count} clients");
+
                 // Broadcast to all clients
-                await BroadcastMessageAsync(message).ConfigureAwait(false);
+                foreach (var client in clients)
+                {
+                    if (IsClientConnected(client))
+                    {
+                        try
+                        {
+                            await SendMessageToClientAsync(message, client).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Error sending job status to client: {ex.Message}");
+                            // Continue with other clients
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -416,49 +553,42 @@ namespace EasySave_by_ProSoft.Network
                     return;
                 }
                 
-                // Ensure the JSON is valid
-                if (!IsValidJson(messageJson))
-                {
-                    Debug.WriteLine("Error: Generated invalid JSON, cancelling send");
-                    return;
-                }
+                // Convert the message to bytes
+                var messageBytes = Encoding.UTF8.GetBytes(messageJson);
                 
-                var buffer = Encoding.UTF8.GetBytes(messageJson);
+                // Create a buffer that includes the message length prefix (4 bytes for length) + message content
+                var lengthPrefix = BitConverter.GetBytes(messageBytes.Length);
+                var buffer = new byte[4 + messageBytes.Length];
                 
-                // Check buffer size and log if it's large
-                if (buffer.Length > 8192) // 8KB
-                {
-                    Debug.WriteLine($"Warning: Large message being sent ({buffer.Length} bytes)");
-                }
+                // Copy the length prefix and message bytes into the buffer
+                Buffer.BlockCopy(lengthPrefix, 0, buffer, 0, 4);
+                Buffer.BlockCopy(messageBytes, 0, buffer, 4, messageBytes.Length);
                 
                 // Use a timeout to prevent hanging
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)); // 2-minute timeout
                 
                 try
                 {
+                    // Double check client is still connected before sending
+                    if (!IsClientConnected(client))
+                        return;
+                        
                     NetworkStream stream = client.GetStream();
+                    
+                    // Send in one go but don't close connection
                     await stream.WriteAsync(buffer, 0, buffer.Length, cts.Token).ConfigureAwait(false);
                     await stream.FlushAsync(cts.Token).ConfigureAwait(false);
                 }
-                catch (IOException ex)
+                catch (Exception ex)
                 {
-                    Debug.WriteLine($"IO error sending message to client: {ex.Message}");
-                    // Client might be disconnected, remove it
-                    var clientId = GetClientId(client);
-                    if (clientId != null)
-                    {
-                        RemoveClient(clientId);
-                    }
-                    throw; // Rethrow to be caught by outer try/catch
+                    Debug.WriteLine($"Error sending message to client: {ex.Message}");
+                    // Don't remove client on error - it might still be valid
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                Debug.WriteLine("Send operation timed out");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error sending message to client: {ex.Message}");
+                Debug.WriteLine($"Error in SendMessageToClientAsync: {ex.Message}");
+                // Never disconnect the client due to send errors
             }
         }
 
