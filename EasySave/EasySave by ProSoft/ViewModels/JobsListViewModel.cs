@@ -288,11 +288,24 @@ namespace EasySave_by_ProSoft.ViewModels
         }
 
         /// <summary>
-        /// Pauses the selected backup job
+        /// Pauses a job or selected jobs if no specific job is provided
         /// </summary>
-        private void PauseSelectedJob()
+        private void PauseJob(object jobParameter)
         {
-            if (SelectedJobs != null)
+            // If a specific job is provided, pause it
+            if (jobParameter is BackupJob specificJob)
+            {
+                if (specificJob.Status.State == BackupState.Running)
+                {
+                    specificJob.Pause();
+                    JobStatusChanged?.Invoke($"Job '{specificJob.Name}' has been paused.");
+                }
+                return;
+            }
+            
+            // Otherwise, pause all selected jobs
+            if (SelectedJobs != null && SelectedJobs.Count > 0)
+            {
                 foreach (var job in SelectedJobs)
                 {
                     if (job.Status.State == BackupState.Running)
@@ -301,6 +314,12 @@ namespace EasySave_by_ProSoft.ViewModels
                         JobStatusChanged?.Invoke($"Job '{job.Name}' has been paused.");
                     }
                 }
+            }
+            else
+            {
+                // If no job is selected, show a message
+                _dialogService.ShowInformation("Please select a job to pause or click directly on a job's pause button.", "Information");
+            }
         }
 
         /// <summary>
@@ -315,11 +334,24 @@ namespace EasySave_by_ProSoft.ViewModels
         }
 
         /// <summary>
-        /// Resumes the selected backup job
+        /// Resumes a job or selected jobs if no specific job is provided
         /// </summary>
-        private void ResumeSelectedJob()
+        private void ResumeJob(object jobParameter)
         {
-            if (SelectedJobs != null)
+            // If a specific job is provided, resume it
+            if (jobParameter is BackupJob specificJob)
+            {
+                if (specificJob.Status.State == BackupState.Paused)
+                {
+                    specificJob.Resume();
+                    JobStatusChanged?.Invoke($"Job '{specificJob.Name}' has been resumed.");
+                }
+                return;
+            }
+            
+            // Otherwise, resume all selected jobs
+            if (SelectedJobs != null && SelectedJobs.Count > 0)
+            {
                 foreach (var job in SelectedJobs)
                 {
                     if (job.Status.State == BackupState.Paused)
@@ -328,6 +360,12 @@ namespace EasySave_by_ProSoft.ViewModels
                         JobStatusChanged?.Invoke($"Job '{job.Name}' has been resumed.");
                     }
                 }
+            }
+            else
+            {
+                // If no job is selected, show a message
+                _dialogService.ShowInformation("Please select a job to resume or click directly on a job's resume button.", "Information");
+            }
         }
 
         /// <summary>
@@ -360,21 +398,38 @@ namespace EasySave_by_ProSoft.ViewModels
         }
 
         /// <summary>
-        /// Stops the selected backup jobs
+        /// Stops a job or selected jobs if no specific job is provided
         /// </summary>
-        private void StopSelectedJobs()
+        private void StopJob(object jobParameter)
         {
-            if (SelectedJobs == null) return;
-            Debug.WriteLine($"JobsListViewModel.StopSelectedJobs called for: {string.Join(", ", SelectedJobs.Where(j => j.Status.State == BackupState.Running || j.Status.State == BackupState.Paused).Select(j => j.Name))}");
-            foreach (var job in SelectedJobs)
+            // If a specific job is provided, stop it
+            if (jobParameter is BackupJob specificJob)
             {
-                if (job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused)
+                if (specificJob.Status.State == BackupState.Running || specificJob.Status.State == BackupState.Paused)
                 {
-                    job.Stop();
-                    JobStatusChanged?.Invoke($"Job '{job.Name}' has been stopped.");
+                    specificJob.Stop();
+                    JobStatusChanged?.Invoke($"Job '{specificJob.Name}' has been stopped.");
+                }
+                return;
+            }
+            
+            // Otherwise, stop all selected jobs
+            if (SelectedJobs != null && SelectedJobs.Count > 0)
+            {
+                foreach (var job in SelectedJobs)
+                {
+                    if (job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused)
+                    {
+                        job.Stop();
+                        JobStatusChanged?.Invoke($"Job '{job.Name}' has been stopped.");
+                    }
                 }
             }
-            CommandManager.InvalidateRequerySuggested();
+            else
+            {
+                // If no job is selected, show a message
+                _dialogService.ShowInformation("Please select a job to stop or click directly on a job's stop button.", "Information");
+            }
         }
 
         /// <summary>
