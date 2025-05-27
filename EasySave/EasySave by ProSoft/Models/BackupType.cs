@@ -4,7 +4,7 @@ namespace EasySave_by_ProSoft.Models
     {
         Full,
         Differential,
-        Complète,
-        Différentielle
+        Complete,
+        Differentielle
     }
 }

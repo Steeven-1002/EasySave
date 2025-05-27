@@ -341,7 +341,6 @@ namespace EasySave_by_ProSoft.ViewModels
                 if (_backupManager.RemoveJobByName(job.Name))
                 {
                     Jobs.Remove(job);
-                    JobStatusChanged?.Invoke($"Job '{job.Name}' has been removed.");
                 }
             }
             UpdateSelectionFromCheckboxes();
