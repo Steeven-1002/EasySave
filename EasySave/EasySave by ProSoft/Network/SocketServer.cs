@@ -505,10 +505,12 @@ namespace EasySave_by_ProSoft.Network
                         catch (Exception ex)
                         {
                             Debug.WriteLine($"Error sending job status to client: {ex.Message}");
-                            // Continue with other clients
                         }
                     }
                 }
+                
+                // Also notify the EventManager to update local UI
+                _eventManager.NotifyJobStatusChanged(status);
             }
             catch (Exception ex)
             {

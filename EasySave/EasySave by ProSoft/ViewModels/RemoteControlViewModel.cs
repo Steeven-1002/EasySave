@@ -1,5 +1,6 @@
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Network;
+using EasySave_by_ProSoft.Core;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -17,7 +18,7 @@ namespace EasySave_by_ProSoft.ViewModels
     /// <summary>
     /// ViewModel for the Remote Control Client view
     /// </summary>
-    public class RemoteControlViewModel : INotifyPropertyChanged
+    public class RemoteControlViewModel : INotifyPropertyChanged, IEventListener, IDisposable
     {
         // Implement INotifyPropertyChanged interface
         public event PropertyChangedEventHandler PropertyChanged;
@@ -33,6 +34,8 @@ namespace EasySave_by_ProSoft.ViewModels
         private string _connectionStatus = "Not connected";
         private bool _isConnected = false;
         private ObservableCollection<RemoteJobViewModel> _remoteJobs;
+        private Core.EventManager _eventManager = Core.EventManager.Instance;
+        private bool _disposed = false;
 
         // Properties
         public string ServerHost
@@ -145,6 +148,9 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             // Initialize collections
             _remoteJobs = new ObservableCollection<RemoteJobViewModel>();
+
+            // Register with EventManager to receive job status updates
+            _eventManager.AddListener(this);
 
             // Initialize commands
             ToggleConnectionCommand = new RelayCommand(_ => ToggleConnection());
@@ -463,21 +469,98 @@ namespace EasySave_by_ProSoft.ViewModels
             }
         }
         
-        public void Cleanup()
+        // IEventListener implementation
+        public void OnJobStatusChanged(JobStatus status)
         {
-            // Disconnect and clean up resources when the view is closed
+            if (status != null && IsConnected)
+            {
+                Debug.WriteLine($"RemoteControlViewModel.OnJobStatusChanged: Job '{status.BackupJob?.Name}' state changed to {status.State}");
+                
+                // Use the dispatcher to ensure we're on the UI thread
+                var dispatcher = System.Windows.Application.Current?.Dispatcher;
+                if (dispatcher != null && !dispatcher.CheckAccess())
+                {
+                    dispatcher.Invoke(() => RefreshJobs());
+                }
+                else
+                {
+                    RefreshJobs();
+                }
+            }
+        }
+
+        public void OnBusinessSoftwareStateChanged(bool isRunning)
+        {
+            // Not needed for this implementation
+        }
+
+        public void OnLaunchJobsRequested(List<string> jobNames)
+        {
             if (IsConnected)
             {
-                Disconnect();
+                RefreshJobs();
             }
-            
-            if (_client != null)
+        }
+
+        public void OnPauseJobsRequested(List<string> jobNames)
+        {
+            if (IsConnected)
             {
-                _client.ConnectionStatusChanged -= Client_ConnectionStatusChanged;
-                _client.JobStatusesReceived -= Client_JobStatusesReceived;
-                _client.ErrorOccurred -= Client_ErrorOccurred;
-                _client = null;
+                RefreshJobs();
             }
+        }
+
+        public void OnResumeJobsRequested(List<string> jobNames)
+        {
+            if (IsConnected)
+            {
+                RefreshJobs();
+            }
+        }
+
+        public void OnStopJobsRequested(List<string> jobNames)
+        {
+            if (IsConnected)
+            {
+                RefreshJobs();
+            }
+        }
+
+        // IDisposable implementation
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Unregister from EventManager
+                    _eventManager.RemoveListener(this);
+                    
+                    // Disconnect from server
+                    _client?.Disconnect();
+                }
+
+                _disposed = true;
+            }
+        }
+
+        ~RemoteControlViewModel()
+        {
+            Dispose(false);
+        }
+
+        /// <summary>
+        /// Cleans up resources used by this view model
+        /// </summary>
+        public void Cleanup()
+        {
+            Dispose();
         }
     }
 }
