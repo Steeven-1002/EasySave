@@ -86,11 +86,12 @@ namespace EasySave_by_ProSoft.ViewModels
             _jobEventManager.AddListener(this);
 
             Predicate<object?> canLaunchPredicate = _ =>
-               SelectedJobs != null &&
-               SelectedJobs.Any(job => job.Status.State == BackupState.Initialise ||
-                                       job.Status.State == BackupState.Error ||
-                                       job.Status.State == BackupState.Completed) &&
-               !_isLaunchingJobs;
+            SelectedJobs != null &&
+            SelectedJobs.Any(job => job.Status.State == BackupState.Initialise ||
+                            job.Status.State == BackupState.Error ||
+                            job.Status.State == BackupState.Completed) &&
+            !Jobs.Any(job => job.Status.State == BackupState.Running);
+
 
             LaunchJobCommand = new RelayCommand(async _ => await LaunchSelectedJob(), canLaunchPredicate);
             RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(), _ => SelectedJobs != null && SelectedJobs.Count > 0);
@@ -191,12 +192,7 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private async Task LaunchSelectedJob()
         {
-            // Checks if a launch is already in progress.
-            if (_isLaunchingJobs)
-            {
-                Debug.WriteLine("LaunchSelectedJob: A launch is already in progress. Cancelling the new launch request.");
-                return;
-            }
+            
 
             // Check if any jobs are selected.
             if (SelectedJobs == null || !SelectedJobs.Any())
@@ -352,7 +348,7 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private void StopSelectedJobs()
         {
-            if (SelectedJobs == null || _isLaunchingJobs) return;
+            if (SelectedJobs == null) return;
             Debug.WriteLine($"JobsListViewModel.StopSelectedJobs called for: {string.Join(", ", SelectedJobs.Where(j => j.Status.State == BackupState.Running || j.Status.State == BackupState.Paused).Select(j => j.Name))}");
             foreach (var job in SelectedJobs)
             {

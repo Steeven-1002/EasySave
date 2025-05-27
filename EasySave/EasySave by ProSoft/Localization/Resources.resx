@@ -342,4 +342,7 @@
   <data name="StatusRunning" xml:space="preserve">
     <value>Running</value>
   </data>
+  <data name="PopUpBusinessSoftware" xml:space="preserve">
+    <value>Unable to perform backup(s), please close the business software.</value>
+  </data>
 </root>

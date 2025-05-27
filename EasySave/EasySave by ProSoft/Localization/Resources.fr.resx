@@ -342,4 +342,7 @@
   <data name="StatusRunning" xml:space="preserve">
     <value>En cours</value>
   </data>
+  <data name="PopUpBusinessSoftware" xml:space="preserve">
+    <value>Impossible d'executer la/les sauvegarde(s), veuillez fermer le logiciel metier.</value>
+  </data>
 </root>
