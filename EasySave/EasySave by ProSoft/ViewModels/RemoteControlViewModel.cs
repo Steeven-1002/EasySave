@@ -317,6 +317,7 @@ namespace EasySave_by_ProSoft.ViewModels
             try
             {
                 await _client.PauseJobsAsync(new List<string> { job.JobName });
+                RefreshJobs(); // Refresh to get updated status
             }
             catch (Exception ex)
             {
@@ -332,6 +333,7 @@ namespace EasySave_by_ProSoft.ViewModels
             try
             {
                 await _client.ResumeJobsAsync(new List<string> { job.JobName });
+                RefreshJobs(); // Refresh to get updated status
             }
             catch (Exception ex)
             {
@@ -347,6 +349,7 @@ namespace EasySave_by_ProSoft.ViewModels
             try
             {
                 await _client.StopJobsAsync(new List<string> { job.JobName });
+                RefreshJobs(); // Refresh to get updated status
             }
             catch (Exception ex)
             {

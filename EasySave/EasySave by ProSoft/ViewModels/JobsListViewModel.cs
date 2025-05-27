@@ -345,6 +345,13 @@ namespace EasySave_by_ProSoft.ViewModels
                     specificJob.Resume();
                     JobStatusChanged?.Invoke($"Job '{specificJob.Name}' has been resumed.");
                 }
+                // Add ability to start jobs in Initialise, Error, or Completed states
+                else if (specificJob.Status.State == BackupState.Initialise || 
+                         specificJob.Status.State == BackupState.Error ||
+                         specificJob.Status.State == BackupState.Completed)
+                {
+                    LaunchJob(specificJob);
+                }
                 return;
             }
             
@@ -358,6 +365,13 @@ namespace EasySave_by_ProSoft.ViewModels
                         job.Resume();
                         JobStatusChanged?.Invoke($"Job '{job.Name}' has been resumed.");
                     }
+                    // Add ability to start jobs in Initialise, Error, or Completed states
+                    else if (job.Status.State == BackupState.Initialise || 
+                             job.Status.State == BackupState.Error ||
+                             job.Status.State == BackupState.Completed)
+                    {
+                        LaunchJob(job);
+                    }
                 }
             }
             else
@@ -368,14 +382,42 @@ namespace EasySave_by_ProSoft.ViewModels
         }
 
         /// <summary>
-        /// Determines if the selected job can be resumed
+        /// Launches a specific job
+        /// </summary>
+        private async void LaunchJob(BackupJob job)
+        {
+            if (job != null)
+            {
+                job.Status.ResetForRun();
+                List<string> jobNames = new List<string> { job.Name };
+                _isLaunchingJobs = true;
+                CommandManager.InvalidateRequerySuggested();
+                
+                try
+                {
+                    await _backupManager.ExecuteJobsByNameAsync(jobNames);
+                    JobStatusChanged?.Invoke($"Job '{job.Name}' has been started.");
+                }
+                finally
+                {
+                    _isLaunchingJobs = false;
+                    CommandManager.InvalidateRequerySuggested();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Determines if the selected job can be resumed or started
         /// </summary>
         public bool CanResumeSelectedJob()
         {
             if (SelectedJobs == null || SelectedJobs.Count == 0)
                 return false;
 
-            return SelectedJobs.Any(job => job.Status.State == BackupState.Paused);
+            return SelectedJobs.Any(job => job.Status.State == BackupState.Paused ||
+                                          job.Status.State == BackupState.Initialise ||
+                                          job.Status.State == BackupState.Error ||
+                                          job.Status.State == BackupState.Completed);
         }
 
         /// <summary>

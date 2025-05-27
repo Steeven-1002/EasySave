@@ -75,13 +75,13 @@
 
                             <StackPanel Grid.Column="0" Grid.Row="0" Margin="0,0,10,15">
                                 <TextBlock Text="{x:Static localization:Resources.ExtensionFileCryptSetting}" Margin="0,0,0,5"/>
-                                <TextBox x:Name="DefaultEncryptExtensionsTextBox" ToolTip="Ex: .txt,.doc,.jpg" 
+                                <TextBox x:Name="DefaultEncryptExtensionsTextBox" ToolTip="Ex: .txt, .exe, .doc, .jpg (comma separated)" 
                                      Text="{Binding EncryptionExtensions, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Grid.Row="0" Margin="10,0,0,15">
                                 <TextBlock Text="{x:Static localization:Resources.ExtensionFilePriority}" Margin="0,0,0,5"/>
-                                <TextBox x:Name="ExtensionFilePriorityTextBox" ToolTip="Ex: .txt,.doc,.jpg" 
+                                <TextBox x:Name="ExtensionFilePriorityTextBox" ToolTip="Ex: .txt, .exe, .doc, .jpg (comma separated)" 
                                      Text="{Binding ExtensionFilePriority, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
 

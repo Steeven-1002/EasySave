@@ -133,16 +133,16 @@
                                                         <DataTrigger Binding="{Binding Status.State}" Value="Paused">
                                                             <Setter Property="IsEnabled" Value="True"/>
                                                         </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Running">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Completed">
-                                                            <Setter Property="IsEnabled" Value="False"/>
+                                                        <DataTrigger Binding="{Binding Status.State}" Value="Initialise">
+                                                            <Setter Property="IsEnabled" Value="True"/>
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding Status.State}" Value="Error">
-                                                            <Setter Property="IsEnabled" Value="False"/>
+                                                            <Setter Property="IsEnabled" Value="True"/>
                                                         </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status.State}" Value="Initialise">
+                                                        <DataTrigger Binding="{Binding Status.State}" Value="Completed">
+                                                            <Setter Property="IsEnabled" Value="True"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Status.State}" Value="Running">
                                                             <Setter Property="IsEnabled" Value="False"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
@@ -191,31 +191,80 @@
         <Border Grid.Row="2" Padding="0,15,0,0" BorderThickness="0,1,0,0" BorderBrush="{StaticResource BorderBrush}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Content="{x:Static localization:Resources.BackupWorkManagementStartBackupSelected}" 
-                        Style="{StaticResource ActionButtonStyle}" 
-                        Command="{Binding LaunchJobCommand}"/>
+                        Command="{Binding LaunchJobCommand}">
+                    <Button.Style>
+                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource ActionButtonStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SelectedJobs.Count}" Value="0">
+                                    <Setter Property="IsEnabled" Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
                 <Button x:Name="PauseButton" 
                         Content="Pause" 
-                        Style="{StaticResource PauseButtonStyle}"
                         Margin="5" 
                         Command="{Binding PauseJobCommand}"
-                        CommandParameter="{x:Null}"/>
+                        CommandParameter="{x:Null}">
+                    <Button.Style>
+                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource PauseButtonStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SelectedJobs.Count}" Value="0">
+                                    <Setter Property="IsEnabled" Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
                 <Button x:Name="ResumeButton" 
                         Content="{x:Static localization:Resources.Resume}"
-                        Style="{StaticResource ActionButtonStyle}"
                         Margin="5" 
                         Command="{Binding ResumeJobCommand}"
-                        CommandParameter="{x:Null}"/>
+                        CommandParameter="{x:Null}">
+                    <Button.Style>
+                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource ActionButtonStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SelectedJobs.Count}" Value="0">
+                                    <Setter Property="IsEnabled" Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
                 <Button x:Name="StopButton" 
                         Content="Stop" 
-                        Style="{StaticResource StopButtonStyle}"
                         Margin="5" 
                         Command="{Binding StopJobCommand}"
-                        CommandParameter="{x:Null}"/>
+                        CommandParameter="{x:Null}">
+                    <Button.Style>
+                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource StopButtonStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SelectedJobs.Count}" Value="0">
+                                    <Setter Property="IsEnabled" Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
                 <Button Content="{x:Static localization:Resources.BackupWorkManagementDeleteBackupSelected}" 
-                        Style="{StaticResource StopButtonStyle}"
                         Margin="5" 
                         Command="{Binding RemoveJobCommand}"
-                        Click="DeleteSelectedJob_Click"/>
+                        Click="DeleteSelectedJob_Click">
+                    <Button.Style>
+                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource StopButtonStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SelectedJobs.Count}" Value="0">
+                                    <Setter Property="IsEnabled" Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="Individuals"
+                        Style="{StaticResource ActionButtonStyle}"
+                        Margin="5" 
+                        Click="BackupJob_CheckChanged"/>
                 <Button Content="{x:Static localization:Resources.BackupWorkManagementNewBackup}" 
                         Style="{StaticResource ActionButtonStyle}"
                         Margin="100,5,5,5" 
