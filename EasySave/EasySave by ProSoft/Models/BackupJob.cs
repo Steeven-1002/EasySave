@@ -31,10 +31,6 @@ namespace EasySave_by_ProSoft.Models
         private bool _stopRequested = false;
         private ConcurrentQueue<string> toProcessFiles = new ConcurrentQueue<string>();
 
-
-
-
-
     private readonly SemaphoreSlim _largeFileTransferSemaphore;
 
         private bool _isSelected;
@@ -66,9 +62,6 @@ namespace EasySave_by_ProSoft.Models
             TargetPath = targetPath;
             Type = type;
             Status = new JobStatus(name);
-
-
-
 
             // Link this job to its status for proper state tracking
             Status.BackupJob = this;
@@ -299,8 +292,6 @@ namespace EasySave_by_ProSoft.Models
                 }
             }
         }
-
-
 
         /// <summary>
         /// Processes a single file for backup

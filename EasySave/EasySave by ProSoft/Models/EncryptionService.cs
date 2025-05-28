@@ -1,3 +1,4 @@
+using Microsoft.Win32;
 using System.Diagnostics;
 using System.IO;
 
@@ -17,7 +18,9 @@ namespace EasySave_by_ProSoft.Models
         public EncryptionService()
         {
             // Path to the external encryption executable
-            cryptoSoftPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\ASSETS\CryptoSoft.exe");
+            // Try to get from environment variable first, then use default path
+            cryptoSoftPath = Registry.GetValue(@"HKEY_LOCAL_MACHINE\Software\ProSoft\EasySave", "CryptoSoftPath", null) as string ??
+                                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\ASSETS\CryptoSoft.exe");
             cryptoSoftPath = Path.GetFullPath(cryptoSoftPath);
         }
 
