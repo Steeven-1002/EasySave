@@ -95,8 +95,13 @@ namespace EasySave_by_ProSoft.Views
         // Event handler for application restart prompt request
         private void OnRequestApplicationRestartPrompt(string message, string title, bool isQuestion)
         {
-            bool restartConfirmed = _dialogService.ShowYesNoDialog(message, title);
-            _settingsViewModel.HandleApplicationRestartResult(restartConfirmed);
+            System.Windows.Forms.MessageBox.Show(
+            EasySave_by_ProSoft.Localization.Resources.LanguageChangeRestartMessage,
+            "Restart",
+            System.Windows.Forms.MessageBoxButtons.OK,
+            System.Windows.Forms.MessageBoxIcon.Information
+            );
+            _settingsViewModel.HandleApplicationRestartResult(true);
         }
 
         // Event handler for application restart confirmation
