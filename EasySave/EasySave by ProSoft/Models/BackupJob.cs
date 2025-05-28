@@ -226,7 +226,7 @@ namespace EasySave_by_ProSoft.Models
 
             var ignoredNonPriority = new List<string>();
 
-            // Premier passage : traiter d'abord les fichiers prioritaires
+            // First pass: process priority files first
             while (toProcessFiles.TryDequeue(out string sourceFile))
             {
                 if (_stopRequested) break;
@@ -248,14 +248,14 @@ namespace EasySave_by_ProSoft.Models
                 await ProcessLargeFileWithSemaphore(sourceFile, largeFileSizeThresholdBytes);
             }
 
-            // Attendre la fin des fichiers prioritaires
+            // Wait for any priority files to finish processing
             while (_backupManager != null && _backupManager.HasAnyPendingPriorityFiles())
             {
                 if (_stopRequested) break;
                 await Task.Delay(500);
             }
 
-            // Second passage : traiter les fichiers non prioritaires
+            // Second pass : treat non-priority files
             foreach (string sourceFile in ignoredNonPriority)
             {
                 if (_stopRequested) break;
@@ -268,7 +268,7 @@ namespace EasySave_by_ProSoft.Models
                 await ProcessLargeFileWithSemaphore(sourceFile, largeFileSizeThresholdBytes);
             }
 
-            // Nettoyage : suppression des fichiers/dossiers cibles qui n'existent plus dans la source
+            // Clean up target directory by removing files and directories that no longer exist in source
             List<string> sourceDirectories = _fileSystemService.GetDirectoriesInDirectory(SourcePath);
             List<string> targetDirectories = _fileSystemService.GetDirectoriesInDirectory(TargetPath);
             foreach (string targetDirectory in targetDirectories)
