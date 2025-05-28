@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows.Input;
 
 namespace EasySave_by_ProSoft.ViewModels
@@ -87,12 +88,13 @@ namespace EasySave_by_ProSoft.ViewModels
             }
             set
             {
-                // Accept commas as delimiters without additional processing
-                var list = value.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(s => s.Trim())
-                    .Select(s => s.StartsWith(".") ? s : "." + s) // Ensure each extension starts with a period
-                    .Distinct() // Remove duplicates
-                    .ToList();
+                // Replace commas with periods and ensure proper formatting
+                var formatted = Regex.Replace(value, @"(?<!\, )\.", ", .");
+
+                var cleaned = Regex.Replace(formatted, @"(?<!^)\.", " .");
+                var list = cleaned.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                                 .Select(s => s.Trim())
+                                 .ToList();
 
                 _settings.SetSetting("EncryptionExtensions", list);
                 OnPropertyChanged();
@@ -118,12 +120,13 @@ namespace EasySave_by_ProSoft.ViewModels
             }
             set
             {
-                // Accept commas as delimiters without additional processing
-                var list = value.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(s => s.Trim())
-                    .Select(s => s.StartsWith(".") ? s : "." + s) // Ensure each extension starts with a period
-                    .Distinct() // Remove duplicates
-                    .ToList();
+                // Remplace commas with periods and ensure proper formatting
+                var formatted = Regex.Replace(value, @"(?<!\, )\.", ", .");
+
+                var cleaned = Regex.Replace(formatted, @"(?<!^)\.", " .");
+                var list = cleaned.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                                 .Select(s => s.Trim())
+                                 .ToList();
 
                 _settings.SetSetting("ExtensionFilePriority", list);
                 OnPropertyChanged();
