@@ -1,14 +1,9 @@
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Network;
-using EasySave_by_ProSoft.Core;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -81,8 +76,8 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             get
             {
-                return IsConnected 
-                    ? new SolidColorBrush(Colors.Green) 
+                return IsConnected
+                    ? new SolidColorBrush(Colors.Green)
                     : new SolidColorBrush(Colors.DarkRed);
             }
         }
@@ -186,10 +181,10 @@ namespace EasySave_by_ProSoft.ViewModels
                     _client.JobStatusesReceived -= Client_JobStatusesReceived;
                     _client.ErrorOccurred -= Client_ErrorOccurred;
                 }
-                
+
                 // Default to localhost if no server is specified
                 var host = string.IsNullOrWhiteSpace(ServerHost) ? "localhost" : ServerHost;
-                
+
                 _client = new NetworkClient(host, ServerPort);
                 _client.ConnectionStatusChanged += Client_ConnectionStatusChanged;
                 _client.JobStatusesReceived += Client_JobStatusesReceived;
@@ -248,7 +243,7 @@ namespace EasySave_by_ProSoft.ViewModels
             {
                 Debug.WriteLine($"Error refreshing jobs: {ex.Message}");
                 ConnectionStatus = $"Error refreshing: {ex.Message}";
-                
+
                 // Don't attempt to reconnect immediately as it might cause a loop
                 // Instead, let the automatic reconnect handle it if needed
             }
@@ -261,14 +256,14 @@ namespace EasySave_by_ProSoft.ViewModels
                 // Create a dictionary of existing jobs for fast lookups
                 var existingJobs = RemoteJobs.ToDictionary(job => job.JobName, job => job);
                 var updatedJobs = new ObservableCollection<RemoteJobViewModel>();
-                
+
                 // Track job names to detect jobs that no longer exist on the server
                 var receivedJobNames = new HashSet<string>();
 
                 foreach (var state in jobStates)
                 {
                     receivedJobNames.Add(state.JobName);
-                    
+
                     if (existingJobs.TryGetValue(state.JobName, out var existingJob))
                     {
                         // Update existing job
@@ -282,7 +277,7 @@ namespace EasySave_by_ProSoft.ViewModels
                         updatedJobs.Add(newJob);
                     }
                 }
-                
+
                 // Update the collection
                 RemoteJobs = updatedJobs;
                 CommandManager.InvalidateRequerySuggested();
@@ -372,7 +367,7 @@ namespace EasySave_by_ProSoft.ViewModels
                     Debug.WriteLine("Received empty job states list");
                     return;
                 }
-                
+
                 UpdateJobList(e);
             }
             catch (Exception ex)

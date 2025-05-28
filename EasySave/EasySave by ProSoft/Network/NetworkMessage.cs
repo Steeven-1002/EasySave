@@ -1,10 +1,6 @@
 using EasySave_by_ProSoft.Models;
-using System;
-using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Linq;
-using System.IO;
 
 namespace EasySave_by_ProSoft.Network
 {
@@ -40,16 +36,16 @@ namespace EasySave_by_ProSoft.Network
         public NetworkMessage(string type, object data = null)
         {
             Type = type;
-            
+
             if (data != null)
             {
                 SetData(data);
-                
+
                 // Verify data was set properly
                 if (string.IsNullOrEmpty(Data))
                 {
                     System.Diagnostics.Debug.WriteLine($"WARNING: Data is null after SetData in constructor for message type {type}");
-                    
+
                     // Try direct serialization as fallback
                     try
                     {
@@ -59,7 +55,7 @@ namespace EasySave_by_ProSoft.Network
                             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
                             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                         };
-                        
+
                         Data = JsonSerializer.Serialize(data, options);
                         System.Diagnostics.Debug.WriteLine($"Direct serialization in constructor successful, length: {Data?.Length ?? 0}");
                     }
@@ -97,14 +93,14 @@ namespace EasySave_by_ProSoft.Network
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                     Converters = { new JsonStringEnumConverter() }
                 };
-                
+
                 Data = JsonSerializer.Serialize(data, options);
                 System.Diagnostics.Debug.WriteLine($"Serialized {typeof(T).Name} data successfully, length: {Data?.Length ?? 0}");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error serializing message data of type {typeof(T).Name}: {ex.Message}");
-                
+
                 // Try with different options as fallback
                 try
                 {
@@ -115,7 +111,7 @@ namespace EasySave_by_ProSoft.Network
                         PropertyNameCaseInsensitive = true,
                         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
                     };
-                    
+
                     Data = JsonSerializer.Serialize(data, fallbackOptions);
                     System.Diagnostics.Debug.WriteLine($"Fallback serialization successful, length: {Data?.Length ?? 0}");
                 }
@@ -148,15 +144,15 @@ namespace EasySave_by_ProSoft.Network
                     ReadCommentHandling = JsonCommentHandling.Skip,
                     NumberHandling = JsonNumberHandling.AllowReadingFromString
                 };
-                
+
                 // Trim any potential leading/trailing characters that could cause parsing errors
                 string jsonData = Data.Trim();
-                
+
                 System.Diagnostics.Debug.WriteLine($"Attempting to deserialize data of length {jsonData.Length} to type {typeof(T).Name}");
                 System.Diagnostics.Debug.WriteLine($"Data preview: {jsonData.Substring(0, Math.Min(100, jsonData.Length))}...");
-                
+
                 // Ensure the JSON is properly formatted
-                if ((jsonData.StartsWith("{") && jsonData.EndsWith("}")) || 
+                if ((jsonData.StartsWith("{") && jsonData.EndsWith("}")) ||
                     (jsonData.StartsWith("[") && jsonData.EndsWith("]")))
                 {
                     try
@@ -175,7 +171,7 @@ namespace EasySave_by_ProSoft.Network
                     catch (JsonException ex)
                     {
                         System.Diagnostics.Debug.WriteLine($"Error deserializing message: {ex.Message}");
-                        
+
                         // Try to fix common JSON issues
                         if (typeof(T) == typeof(List<string>) || typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(List<>))
                         {
@@ -195,7 +191,7 @@ namespace EasySave_by_ProSoft.Network
                                 }
                             }
                         }
-                        
+
                         // Try with different options as a last resort
                         try
                         {
@@ -203,7 +199,7 @@ namespace EasySave_by_ProSoft.Network
                             {
                                 PropertyNameCaseInsensitive = true
                             };
-                            
+
                             T result = JsonSerializer.Deserialize<T>(jsonData, fallbackOptions);
                             System.Diagnostics.Debug.WriteLine($"Successfully deserialized with fallback options");
                             return result;
@@ -231,7 +227,7 @@ namespace EasySave_by_ProSoft.Network
                 System.Diagnostics.Debug.WriteLine($"Unexpected error deserializing data: {ex.Message}");
                 return default;
             }
-            
+
             return default;
         }
 
@@ -264,7 +260,7 @@ namespace EasySave_by_ProSoft.Network
                     System.Diagnostics.Debug.WriteLine("Warning: Creating job status message with null job states");
                     jobStates = new List<JobState>();
                 }
-                
+
                 // Create a complete representation with all properties
                 var completeStates = jobStates.Select(js => new
                 {
@@ -281,18 +277,18 @@ namespace EasySave_by_ProSoft.Network
                     RemainingSize = js.RemainingSize,
                     Timestamp = DateTime.Now.ToString("o")
                 }).ToList();
-                
+
                 System.Diagnostics.Debug.WriteLine($"Creating job status message with {jobStates.Count} job states");
-                
+
                 // Create message and explicitly set the data
                 var message = new NetworkMessage(MessageTypes.JobStatus);
                 message.SetData(completeStates);
-                
+
                 // Verify data was set properly
                 if (string.IsNullOrEmpty(message.Data))
                 {
                     System.Diagnostics.Debug.WriteLine("ERROR: Data is null after serialization!");
-                    
+
                     // Try direct serialization as fallback
                     try
                     {
@@ -302,7 +298,7 @@ namespace EasySave_by_ProSoft.Network
                             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
                             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                         };
-                        
+
                         message.Data = JsonSerializer.Serialize(completeStates, options);
                         System.Diagnostics.Debug.WriteLine($"Direct serialization successful, length: {message.Data?.Length ?? 0}");
                     }
@@ -315,7 +311,7 @@ namespace EasySave_by_ProSoft.Network
                 {
                     System.Diagnostics.Debug.WriteLine($"Data successfully set, length: {message.Data.Length}");
                 }
-                
+
                 return message;
             }
             catch (Exception ex)

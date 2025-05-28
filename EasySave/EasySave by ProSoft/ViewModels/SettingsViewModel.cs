@@ -1,15 +1,10 @@
-using EasySave_by_ProSoft.Localization;
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Properties;
 using EasySave_by_ProSoft.Services;
-using Microsoft.VisualBasic.ApplicationServices;
-using System;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Text.RegularExpressions;
-using System.Windows;
 using System.Windows.Input;
 
 namespace EasySave_by_ProSoft.ViewModels
@@ -280,10 +275,10 @@ namespace EasySave_by_ProSoft.ViewModels
                         FileName = appPath,
                         UseShellExecute = true
                     };
-                    
+
                     // Launch new instance before closing current one
                     System.Diagnostics.Process.Start(startInfo);
-                    
+
                     // Close current instance
                     System.Windows.Application.Current.Shutdown();
                 }

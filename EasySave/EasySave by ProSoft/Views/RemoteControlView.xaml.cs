@@ -1,7 +1,5 @@
 using EasySave_by_ProSoft.ViewModels;
-using System;
 using System.Windows;
-using System.Windows.Controls;
 
 namespace EasySave_by_ProSoft.Views
 {
@@ -16,11 +14,11 @@ namespace EasySave_by_ProSoft.Views
         public RemoteControlView()
         {
             InitializeComponent();
-            
+
             // Create the view model
             _viewModel = new RemoteControlViewModel();
             DataContext = _viewModel;
-            
+
             // Register for cleanup when the view is unloaded
             Unloaded += RemoteControlView_Unloaded;
         }
@@ -46,7 +44,7 @@ namespace EasySave_by_ProSoft.Views
                 {
                     // Unregister from events
                     Unloaded -= RemoteControlView_Unloaded;
-                    
+
                     // Dispose the view model
                     _viewModel?.Dispose();
                 }

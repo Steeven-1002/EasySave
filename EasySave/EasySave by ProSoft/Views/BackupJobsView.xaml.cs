@@ -22,7 +22,7 @@ namespace EasySave_by_ProSoft.Views
         {
             InitializeComponent();
             _dialogService = new DialogService();
-            
+
             // Register for the Unloaded event to clean up resources
             Unloaded += BackupJobsView_Unloaded;
         }
@@ -309,10 +309,10 @@ namespace EasySave_by_ProSoft.Views
                         jjob.IsSelected = !jjob.IsSelected;
                     }
                 }
-                
+
                 // Update selection in the view model
                 UpdateSelectedJobsFromCheckboxes();
-                
+
                 // Show confirmation message
                 _dialogService.ShowInformation("Job selection updated", "Information");
             }

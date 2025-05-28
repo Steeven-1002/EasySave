@@ -1,10 +1,6 @@
-﻿using EasySave_by_ProSoft.Models;
-using EasySave_by_ProSoft.Properties;
-using EasySave_by_ProSoft.Services;
+﻿using EasySave_by_ProSoft.Services;
 using EasySave_by_ProSoft.ViewModels;
-using System.Diagnostics;
 using System.Windows;
-using System.Threading;
 
 namespace EasySave_by_ProSoft.Views
 {
@@ -45,7 +41,7 @@ namespace EasySave_by_ProSoft.Views
 
             // Subscribe to events
             _settingsViewModel.PropertyChanged += SettingsViewModel_PropertyChanged;
-      
+
 
             // Initialize the log format ComboBox
             if (LogFormatComboBox != null)

@@ -408,7 +408,7 @@ namespace EasySave_by_ProSoft.Models
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error creating job state snapshot: {ex.Message}");
-                
+
                 // Return a minimal valid snapshot to avoid null reference exceptions
                 return new JobState
                 {

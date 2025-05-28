@@ -88,7 +88,7 @@ namespace EasySave_by_ProSoft.Models
                 {
                     NotifyListenersInternal(jobStatus);
                 }
-                
+
                 // Notify the EventManager to update local UI only
                 Core.EventManager.Instance.NotifyJobStatusChanged(jobStatus);
             }

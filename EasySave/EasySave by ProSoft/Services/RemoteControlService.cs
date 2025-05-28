@@ -1,6 +1,6 @@
+using EasySave_by_ProSoft.Core;
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Network;
-using EasySave_by_ProSoft.Core;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -25,7 +25,7 @@ namespace EasySave_by_ProSoft.Services
         private string _localIpAddress;
 
         public event PropertyChangedEventHandler? PropertyChanged;
-        
+
         // Event for notifying about client connections
         public event EventHandler<ClientConnectionInfo> ClientConnected;
         public event EventHandler<string> ClientDisconnected;
@@ -43,7 +43,7 @@ namespace EasySave_by_ProSoft.Services
                 {
                     _serverPort = value;
                     OnPropertyChanged();
-                    
+
                     // If server is already running, restart it with new port
                     if (IsServerRunning)
                     {
@@ -99,10 +99,10 @@ namespace EasySave_by_ProSoft.Services
         {
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
             _connectedClients = new ObservableCollection<ClientConnectionInfo>();
-            
+
             // Initialize the IP address
             _localIpAddress = GetLocalIPv4Address();
-            
+
             // Initialize the socket server
             InitializeSocketServer();
         }
@@ -115,7 +115,7 @@ namespace EasySave_by_ProSoft.Services
             _server = new SocketServer(_backupManager, ServerPort);
             _server.ServerStatusChanged += Server_StatusChanged;
             _server.MessageReceived += Server_MessageReceived;
-            
+
             // Make sure SocketServer is registered with EventManager to receive job status updates
             EventManager.Instance.AddListener(new NetworkSocketEventAdapter(_server));
         }
@@ -202,7 +202,7 @@ namespace EasySave_by_ProSoft.Services
             else if (status.StartsWith("Client disconnected:"))
             {
                 var clientId = status.Replace("Client disconnected:", "").Trim();
-                
+
                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
                 {
                     // Find and remove the client (in a real implementation, match by ID)
@@ -219,7 +219,7 @@ namespace EasySave_by_ProSoft.Services
         {
             // Handle client messages
             Debug.WriteLine($"Message received: {message.Type}");
-            
+
             // Log more details about the message
             switch (message.Type)
             {
@@ -258,7 +258,7 @@ namespace EasySave_by_ProSoft.Services
             {
                 // Get all network interfaces
                 NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces();
-                
+
                 // Find active interfaces that are not loopbacks
                 foreach (NetworkInterface adapter in interfaces)
                 {
@@ -280,7 +280,7 @@ namespace EasySave_by_ProSoft.Services
             {
                 Debug.WriteLine($"Error getting local IP: {ex.Message}");
             }
-            
+
             // Fallback to loopback
             return "127.0.0.1";
         }
@@ -323,7 +323,7 @@ namespace EasySave_by_ProSoft.Services
             {
                 if (status != null)
                 {
-                    Task.Run(async () => 
+                    Task.Run(async () =>
                     {
                         try
                         {
