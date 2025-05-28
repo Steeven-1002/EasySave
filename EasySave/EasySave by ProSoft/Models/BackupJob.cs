@@ -3,6 +3,8 @@ using EasySave_by_ProSoft.Localization;
 using EasySave_by_ProSoft.Services;
 using System.IO;
 using System.Text.Json;
+using System.Collections.Concurrent;
+
 
 namespace EasySave_by_ProSoft.Models
 {
@@ -27,10 +29,13 @@ namespace EasySave_by_ProSoft.Models
         private bool _isRunning = false;
         private bool _isPaused = false;
         private bool _stopRequested = false;
-        private List<string> toProcessFiles = new List<string>();
+        private ConcurrentQueue<string> toProcessFiles = new ConcurrentQueue<string>();
 
 
-        private readonly SemaphoreSlim _largeFileTransferSemaphore;
+
+
+
+    private readonly SemaphoreSlim _largeFileTransferSemaphore;
 
         private bool _isSelected;
         public bool IsSelected
@@ -176,11 +181,13 @@ namespace EasySave_by_ProSoft.Models
                 Status.Start();
 
                 // Get files using the selected strategy
-                if (toProcessFiles.Count == 0)
+                if (toProcessFiles.IsEmpty)
                 {
                     BackupJob jobRef = this;
-                    toProcessFiles = _backupFileStrategy.GetFiles(ref jobRef);
+                    var files = _backupFileStrategy.GetFiles(ref jobRef);
+                    toProcessFiles = new ConcurrentQueue<string>(files);
                 }
+
 
                 // Process files if we have a valid status
                 if (Status.State == BackupState.Running)
@@ -208,20 +215,19 @@ namespace EasySave_by_ProSoft.Models
         /// <summary>
         /// Processes all files that need to be backed up
         /// </summary>
-        private async Task ProcessFiles(List<string> toProcessFiles)
+        private async Task ProcessFiles(ConcurrentQueue<string> toProcessFiles)
         {
             if (!Directory.Exists(TargetPath))
                 Directory.CreateDirectory(TargetPath);
-
-            var filesToHandle = toProcessFiles.ToList();
-            var ignoredNonPriority = new List<string>();
 
             double thresholdKBSetting = (double)(AppSettings.Instance.GetSetting("LargeFileSizeThresholdKey") as double?
                                         ?? AppSettings.Instance.GetSetting("DefaultLargeFileSizeThresholdKey"));
             long largeFileSizeThresholdBytes = (long)(thresholdKBSetting * 1024);
 
+            var ignoredNonPriority = new List<string>();
+
             // First pass: process priority files first
-            foreach (string sourceFile in filesToHandle)
+            while (toProcessFiles.TryDequeue(out string sourceFile))
             {
                 if (_stopRequested) break;
                 while (_isPaused && !_stopRequested)
@@ -240,21 +246,16 @@ namespace EasySave_by_ProSoft.Models
                 }
 
                 await ProcessLargeFileWithSemaphore(sourceFile, largeFileSizeThresholdBytes);
-                this.toProcessFiles.Remove(sourceFile);
             }
 
-            if (ignoredNonPriority.Count > 0)
-            {
-            }
-
-            // Barrier to wait for all priority files to finish processing
+            // Wait for any priority files to finish processing
             while (_backupManager != null && _backupManager.HasAnyPendingPriorityFiles())
             {
                 if (_stopRequested) break;
                 await Task.Delay(500);
             }
 
-            // Second pass: process non-priority files after the barrier
+            // Second pass : treat non-priority files
             foreach (string sourceFile in ignoredNonPriority)
             {
                 if (_stopRequested) break;
@@ -265,10 +266,9 @@ namespace EasySave_by_ProSoft.Models
                 if (_stopRequested) break;
 
                 await ProcessLargeFileWithSemaphore(sourceFile, largeFileSizeThresholdBytes);
-                this.toProcessFiles.Remove(sourceFile);
             }
 
-            // Clean up: delete files and directories in the target that no longer exist in the source
+            // Clean up target directory by removing files and directories that no longer exist in source
             List<string> sourceDirectories = _fileSystemService.GetDirectoriesInDirectory(SourcePath);
             List<string> targetDirectories = _fileSystemService.GetDirectoriesInDirectory(TargetPath);
             foreach (string targetDirectory in targetDirectories)
@@ -299,6 +299,8 @@ namespace EasySave_by_ProSoft.Models
                 }
             }
         }
+
+
 
         /// <summary>
         /// Processes a single file for backup
