@@ -199,7 +199,7 @@
     <value>La langue a été changée avec succès.</value>
   </data>
   <data name="LanguageChangeRestartMessage" xml:space="preserve">
-    <value>L'application doit redémarrer la fenêtre principale pour appliquer le changement de langue. Voulez-vous la redémarrer maintenant ?</value>
+    <value>L'application doit redémarrer la fenêtre principale pour appliquer le changement de langue. Cliquez sur 'OK' pour redémarrer maintenant.</value>
   </data>
   <data name="LogFileFormatSetting" xml:space="preserve">
     <value>Format du fichier Log :</value>

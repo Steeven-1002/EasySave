@@ -199,7 +199,7 @@
     <value>Language has been changed successfully.</value>
   </data>
   <data name="LanguageChangeRestartMessage" xml:space="preserve">
-    <value>The application needs to restart the main window to apply the language change. Do you want to restart it now ?</value>
+    <value>The application needs to restart the main window to apply the language change. Click 'OK' to restart now.</value>
   </data>
   <data name="LogFileFormatSetting" xml:space="preserve">
     <value>Log file format :</value>

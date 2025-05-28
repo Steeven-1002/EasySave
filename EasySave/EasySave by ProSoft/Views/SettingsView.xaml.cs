@@ -65,7 +65,6 @@ namespace EasySave_by_ProSoft.Views
                 _settingsViewModel.LanguageChanged(selectedCultureName);
             }
         }
-
         // Event handler to synchronize PasswordBox with ViewModel
         private void EncryptionKeyBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
