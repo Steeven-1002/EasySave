@@ -157,7 +157,7 @@
     <value>Backup type</value>
   </data>
   <data name="ConfigNewJobEncryptExtensions" xml:space="preserve">
-    <value>Extensions to encrypt (comma separated) :</value>
+    <value>Extensions to encrypt :</value>
   </data>
   <data name="ConfigNewJobName" xml:space="preserve">
     <value>Name</value>
@@ -181,7 +181,7 @@
     <value>Error</value>
   </data>
   <data name="ExtensionFileCryptSetting" xml:space="preserve">
-    <value>File extensions to encrypt by default (comma separated) :</value>
+    <value>File extensions to encrypt by default :</value>
   </data>
   <data name="GeneralSettings" xml:space="preserve">
     <value>General settings</value>
