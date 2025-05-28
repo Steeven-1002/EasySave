@@ -268,7 +268,7 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
-        ///   Recherche une chaîne localisée semblable à Extensions to encrypt (comma separated) :.
+        ///   Recherche une chaîne localisée semblable à Extensions to encrypt :.
         /// </summary>
         public static string ConfigNewJobEncryptExtensions {
             get {
@@ -385,7 +385,7 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
-        ///   Recherche une chaîne localisée semblable à File extensions to encrypt by default (comma separated) :.
+        ///   Recherche une chaîne localisée semblable à File extensions to encrypt by default :.
         /// </summary>
         public static string ExtensionFileCryptSetting {
             get {
