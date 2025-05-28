@@ -375,4 +375,7 @@
   <data name="StatusRunning" xml:space="preserve">
     <value>Running</value>
   </data>
+  <data name="BackupJobsSettingsChangeConfirmation" xml:space="preserve">
+    <value>Current backup jobs will not be affected by the changes. Do you want to continue?</value>
+  </data>
 </root>

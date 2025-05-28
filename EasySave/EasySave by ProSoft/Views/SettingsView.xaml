@@ -22,13 +22,8 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
-                            <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Margin="5,0,10,0" Padding="10">
+                            <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Margin="5,0,434,0" Padding="10" Grid.ColumnSpan="2">
                                 <StackPanel HorizontalAlignment="Center">
-                                    <Image Source="Images/Drapeau_France.jpg" Height="70" Stretch="UniformToFill" Margin="0,0,0,10">
-                                        <Image.Effect>
-                                            <DropShadowEffect BlurRadius="5" ShadowDepth="1" Opacity="0.3" />
-                                        </Image.Effect>
-                                    </Image>
                                     <RadioButton x:Name="FrenchRadioButton" 
                                          Content="Français" 
                                          GroupName="Language"
@@ -41,11 +36,6 @@
 
                             <Border Grid.Column="1" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Margin="10,0,5,0" Padding="10">
                                 <StackPanel HorizontalAlignment="Center">
-                                    <Image Source="Images/Drapeau_Royaume_Unis.jpg" Height="70" Stretch="UniformToFill" Margin="0,0,0,10">
-                                        <Image.Effect>
-                                            <DropShadowEffect BlurRadius="5" ShadowDepth="1" Opacity="0.3" />
-                                        </Image.Effect>
-                                    </Image>
                                     <RadioButton x:Name="EnglishRadioButton" 
                                          Content="English" 
                                          GroupName="Language"

@@ -1,6 +1,8 @@
 ﻿using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Views;
 using System.Windows;
+using EasySave_by_ProSoft.Services;
+
 
 namespace EasySave_by_ProSoft
 {
@@ -14,6 +16,8 @@ namespace EasySave_by_ProSoft
         private SettingsView _settingsView;
         private RemoteControlView _remoteControlView;
         private UIElement _currentView;
+        private readonly IDialogService _dialogService = new DialogService();
+
 
         public MainWindow()
         {
@@ -45,8 +49,10 @@ namespace EasySave_by_ProSoft
 
         private void ShowSettings_Click(object sender, RoutedEventArgs e)
         {
-            MainContentArea.Content = _settingsView;
-            _currentView = _settingsView;
+            if (_dialogService.ShowYesNoDialog(Localization.Resources.BackupJobsSettingsChangeConfirmation))
+            {
+                MainContentArea.Content = _settingsView;
+            }
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)

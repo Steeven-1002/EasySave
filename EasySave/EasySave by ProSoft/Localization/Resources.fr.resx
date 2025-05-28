@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!-- 
+	<!-- 
     Microsoft ResX Schema 
     
     Version 2.0
@@ -59,320 +59,323 @@
             : using a System.ComponentModel.TypeConverter
             : and then encoded with base64 encoding.
     -->
-  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
-    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
-    <xsd:element name="root" msdata:IsDataSet="true">
-      <xsd:complexType>
-        <xsd:choice maxOccurs="unbounded">
-          <xsd:element name="metadata">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" />
-              </xsd:sequence>
-              <xsd:attribute name="name" use="required" type="xsd:string" />
-              <xsd:attribute name="type" type="xsd:string" />
-              <xsd:attribute name="mimetype" type="xsd:string" />
-              <xsd:attribute ref="xml:space" />
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="assembly">
-            <xsd:complexType>
-              <xsd:attribute name="alias" type="xsd:string" />
-              <xsd:attribute name="name" type="xsd:string" />
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="data">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
-                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
-              </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
-              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
-              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
-              <xsd:attribute ref="xml:space" />
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="resheader">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
-              </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required" />
-            </xsd:complexType>
-          </xsd:element>
-        </xsd:choice>
-      </xsd:complexType>
-    </xsd:element>
-  </xsd:schema>
-  <resheader name="resmimetype">
-    <value>text/microsoft-resx</value>
-  </resheader>
-  <resheader name="version">
-    <value>2.0</value>
-  </resheader>
-  <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </resheader>
-  <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </resheader>
-  <data name="BackupTypeDifferential" xml:space="preserve">
+	<xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+		<xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+		<xsd:element name="root" msdata:IsDataSet="true">
+			<xsd:complexType>
+				<xsd:choice maxOccurs="unbounded">
+					<xsd:element name="metadata">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="value" type="xsd:string" minOccurs="0" />
+							</xsd:sequence>
+							<xsd:attribute name="name" use="required" type="xsd:string" />
+							<xsd:attribute name="type" type="xsd:string" />
+							<xsd:attribute name="mimetype" type="xsd:string" />
+							<xsd:attribute ref="xml:space" />
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element name="assembly">
+						<xsd:complexType>
+							<xsd:attribute name="alias" type="xsd:string" />
+							<xsd:attribute name="name" type="xsd:string" />
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element name="data">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+								<xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+							</xsd:sequence>
+							<xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+							<xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+							<xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+							<xsd:attribute ref="xml:space" />
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element name="resheader">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+							</xsd:sequence>
+							<xsd:attribute name="name" type="xsd:string" use="required" />
+						</xsd:complexType>
+					</xsd:element>
+				</xsd:choice>
+			</xsd:complexType>
+		</xsd:element>
+	</xsd:schema>
+	<resheader name="resmimetype">
+		<value>text/microsoft-resx</value>
+	</resheader>
+	<resheader name="version">
+		<value>2.0</value>
+	</resheader>
+	<resheader name="reader">
+		<value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+	</resheader>
+	<resheader name="writer">
+		<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+	</resheader>
+	<data name="BackupTypeDifferential" xml:space="preserve">
     <value>Différentielle</value>
   </data>
-  <data name="BackupTypeFull" xml:space="preserve">
+	<data name="BackupTypeFull" xml:space="preserve">
     <value>Complete</value>
   </data>
-  <data name="BackupWorkManagement" xml:space="preserve">
+	<data name="BackupWorkManagement" xml:space="preserve">
     <value>Gestion des Travaux de Sauvegarde</value>
   </data>
-  <data name="BackupWorkManagementName" xml:space="preserve">
+	<data name="BackupWorkManagementName" xml:space="preserve">
     <value>Nom</value>
   </data>
-  <data name="BackupWorkManagementNewBackup" xml:space="preserve">
+	<data name="BackupWorkManagementNewBackup" xml:space="preserve">
     <value>Créer un nouveau travail de sauvegarde</value>
   </data>
-  <data name="BackupWorkManagementSource" xml:space="preserve">
+	<data name="BackupWorkManagementSource" xml:space="preserve">
     <value>Source</value>
   </data>
-  <data name="BackupWorkManagementStartBackupSelected" xml:space="preserve">
+	<data name="BackupWorkManagementStartBackupSelected" xml:space="preserve">
     <value>Lancer</value>
   </data>
-  <data name="BackupWorkManagementTarget" xml:space="preserve">
+	<data name="BackupWorkManagementTarget" xml:space="preserve">
     <value>Cible</value>
   </data>
-  <data name="BackupWorkManagementType" xml:space="preserve">
+	<data name="BackupWorkManagementType" xml:space="preserve">
     <value>Type</value>
   </data>
-  <data name="Browse" xml:space="preserve">
+	<data name="Browse" xml:space="preserve">
     <value>Parcourir...</value>
   </data>
-  <data name="BusinessSoftwareCheckSetting" xml:space="preserve">
+	<data name="BusinessSoftwareCheckSetting" xml:space="preserve">
     <value>Nom du processus du logiciel métier à surveiller :</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
+	<data name="Cancel" xml:space="preserve">
     <value>Annuler</value>
   </data>
-  <data name="ConfigNewJobBackupType" xml:space="preserve">
+	<data name="ConfigNewJobBackupType" xml:space="preserve">
     <value>Type de sauvegarde</value>
   </data>
-  <data name="ConfigNewJobEncryptExtensions" xml:space="preserve">
+	<data name="ConfigNewJobEncryptExtensions" xml:space="preserve">
     <value>Extensions à crypter (séparées par des virgules) :</value>
   </data>
-  <data name="ConfigNewJobName" xml:space="preserve">
+	<data name="ConfigNewJobName" xml:space="preserve">
     <value>Nom</value>
   </data>
-  <data name="ConfigNewJobSourceDirectory" xml:space="preserve">
+	<data name="ConfigNewJobSourceDirectory" xml:space="preserve">
     <value>Répertoire source</value>
   </data>
-  <data name="ConfigNewJobTargetDirectory" xml:space="preserve">
+	<data name="ConfigNewJobTargetDirectory" xml:space="preserve">
     <value>Répertoire cible</value>
   </data>
-  <data name="ConfigNewJobValidate" xml:space="preserve">
+	<data name="ConfigNewJobValidate" xml:space="preserve">
     <value>Valider la création</value>
   </data>
-  <data name="ConfirmationTitle" xml:space="preserve">
+	<data name="ConfirmationTitle" xml:space="preserve">
     <value>Confirmation.</value>
   </data>
-  <data name="ErrorRestartingApplicationMessage" xml:space="preserve">
+	<data name="ErrorRestartingApplicationMessage" xml:space="preserve">
     <value>Une erreur est survenue lors de la tentative de redémarrage de l'application. Veuillez la redémarrer manuellement.</value>
   </data>
-  <data name="ErrorTitle" xml:space="preserve">
+	<data name="ErrorTitle" xml:space="preserve">
     <value>Erreur</value>
   </data>
-  <data name="ExtensionFileCryptSetting" xml:space="preserve">
+	<data name="ExtensionFileCryptSetting" xml:space="preserve">
     <value>Extensions de fichiers à crypter par défaut (séparées par des virgules) :</value>
   </data>
-  <data name="GeneralSettings" xml:space="preserve">
+	<data name="GeneralSettings" xml:space="preserve">
     <value>Paramètres généraux</value>
   </data>
-  <data name="InformationTitle" xml:space="preserve">
+	<data name="InformationTitle" xml:space="preserve">
     <value>Information</value>
   </data>
-  <data name="Language" xml:space="preserve">
+	<data name="Language" xml:space="preserve">
     <value>Langue</value>
   </data>
-  <data name="LanguageChangeCancelledMessage" xml:space="preserve">
+	<data name="LanguageChangeCancelledMessage" xml:space="preserve">
     <value>Le changement de langue a été annulé. La langue actuelle reste active.</value>
   </data>
-  <data name="LanguageChangeAppliedMessage" xml:space="preserve">
+	<data name="LanguageChangeAppliedMessage" xml:space="preserve">
     <value>La langue a été changée avec succès.</value>
   </data>
-  <data name="LanguageChangeRestartMessage" xml:space="preserve">
+	<data name="LanguageChangeRestartMessage" xml:space="preserve">
     <value>L'application doit redémarrer la fenêtre principale pour appliquer le changement de langue. Cliquez sur 'OK' pour redémarrer maintenant.</value>
   </data>
-  <data name="LogFileFormatSetting" xml:space="preserve">
+	<data name="LogFileFormatSetting" xml:space="preserve">
     <value>Format du fichier Log :</value>
   </data>
-  <data name="MainBackupManagement" xml:space="preserve">
+	<data name="MainBackupManagement" xml:space="preserve">
     <value>Gestion des sauvegardes</value>
   </data>
-  <data name="MainQuit" xml:space="preserve">
+	<data name="MainQuit" xml:space="preserve">
     <value>Quitter</value>
   </data>
-  <data name="MainSettings" xml:space="preserve">
+	<data name="MainSettings" xml:space="preserve">
     <value>Paramètres</value>
   </data>
-  <data name="MessageBoxLaunchJob" xml:space="preserve">
+	<data name="MessageBoxLaunchJob" xml:space="preserve">
     <value>Travail sélectionné terminé.</value>
   </data>
-  <data name="MessageNewJobValidated" xml:space="preserve">
+	<data name="MessageNewJobValidated" xml:space="preserve">
     <value>Nouveau travail de sauvegarde validé !</value>
   </data>
-  <data name="MessageSelectSourceFolder" xml:space="preserve">
+	<data name="MessageSelectSourceFolder" xml:space="preserve">
     <value>Sélectionner le dossier source</value>
   </data>
-  <data name="MessageSelectTargetFolder" xml:space="preserve">
+	<data name="MessageSelectTargetFolder" xml:space="preserve">
     <value>Sélectionner le dossier cible</value>
   </data>
-  <data name="SettingsValidatedMessage" xml:space="preserve">
+	<data name="SettingsValidatedMessage" xml:space="preserve">
     <value>Paramètres validés.</value>
   </data>
-  <data name="SettingsSaved" xml:space="preserve">
+	<data name="SettingsSaved" xml:space="preserve">
     <value>Paramètres sauvegardés avec succès</value>
   </data>
-  <data name="Settings" xml:space="preserve">
+	<data name="Settings" xml:space="preserve">
     <value>Paramètres</value>
   </data>
-  <data name="ValidateSettings" xml:space="preserve">
+	<data name="ValidateSettings" xml:space="preserve">
     <value>Valider les paramètres</value>
   </data>
-  <data name="BackupWorkManagementStatus" xml:space="preserve">
+	<data name="BackupWorkManagementStatus" xml:space="preserve">
     <value>Statut</value>
   </data>
-  <data name="BackupWorkManagementProgressPercentage" xml:space="preserve">
+	<data name="BackupWorkManagementProgressPercentage" xml:space="preserve">
     <value>Progrès (%)</value>
   </data>
-  <data name="BusinessApplicationError" xml:space="preserve">
+	<data name="BusinessApplicationError" xml:space="preserve">
     <value>Le logiciel de gestion est en cours d'exécution. Le travail de sauvegarde sera mis en pause après le traitement du fichier </value>
   </data>
-  <data name="Warning" xml:space="preserve">
+	<data name="Warning" xml:space="preserve">
     <value>Avertissement !</value>
   </data>
-  <data name="MessageBoxDeleteJob" xml:space="preserve">
+	<data name="MessageBoxDeleteJob" xml:space="preserve">
     <value>Travail de sauvegarde supprimé.</value>
   </data>
-  <data name="BackupWorkManagementDeleteBackupSelected" xml:space="preserve">
+	<data name="BackupWorkManagementDeleteBackupSelected" xml:space="preserve">
     <value>Supprimer travail</value>
   </data>
-  <data name="ExtensionFilePriority" xml:space="preserve">
+	<data name="ExtensionFilePriority" xml:space="preserve">
     <value>Gestion des fichiers prioritaires</value>
   </data>
-  <data name="LargeFileSizeSetting" xml:space="preserve">
+	<data name="LargeFileSizeSetting" xml:space="preserve">
     <value>Taille de fichier volumineux (en Ko) :</value>
   </data>
-  <data name="Pause" xml:space="preserve">
+	<data name="Pause" xml:space="preserve">
     <value>Pause</value>
   </data>
-  <data name="Resume" xml:space="preserve">
+	<data name="Resume" xml:space="preserve">
     <value>Reprendre</value>
   </data>
-  <data name="Stop" xml:space="preserve">
+	<data name="Stop" xml:space="preserve">
     <value>Arrêter</value>
   </data>
-  <data name="BackupSettings" xml:space="preserve">
+	<data name="BackupSettings" xml:space="preserve">
     <value>Paramètres de sauvegarde</value>
   </data>
-  <data name="EncryptionKey" xml:space="preserve">
+	<data name="EncryptionKey" xml:space="preserve">
     <value>Clé de chiffrement :</value>
   </data>
-  <data name="ApplicationSettings" xml:space="preserve">
+	<data name="ApplicationSettings" xml:space="preserve">
     <value>Paramètres d'application</value>
   </data>
-  <data name="SelectedButtonsTitle" xml:space="preserve">
+	<data name="SelectedButtonsTitle" xml:space="preserve">
     <value>Travail de sauvegarde sélectionné</value>
   </data>
-  <data name="ApplicationAlreadyRunning" xml:space="preserve">
+	<data name="ApplicationAlreadyRunning" xml:space="preserve">
     <value>L'application est déjà en cours d'exécution.</value>
   </data>
-  <data name="SingleInstanceTitle" xml:space="preserve">
+	<data name="SingleInstanceTitle" xml:space="preserve">
     <value>Instance unique</value>
   </data>
-  <data name="CultureNotFoundMessage" xml:space="preserve">
+	<data name="CultureNotFoundMessage" xml:space="preserve">
     <value>Culture '{0}' non trouvée. Passage à la langue par défaut '{1}'.</value>
   </data>
-  <data name="InvalidCultureTitle" xml:space="preserve">
+	<data name="InvalidCultureTitle" xml:space="preserve">
     <value>Culture invalide</value>
   </data>
-  <data name="NoLanguageSavedMessage" xml:space="preserve">
+	<data name="NoLanguageSavedMessage" xml:space="preserve">
     <value>Aucune langue sauvegardée. Passage à la langue par défaut '{0}'.</value>
   </data>
-  <data name="NoLanguageSavedTitle" xml:space="preserve">
+	<data name="NoLanguageSavedTitle" xml:space="preserve">
     <value>Aucune langue sauvegardée</value>
   </data>
-  <data name="LogFormatXML" xml:space="preserve">
+	<data name="LogFormatXML" xml:space="preserve">
     <value>XML</value>
   </data>
-  <data name="LogFormatJSON" xml:space="preserve">
+	<data name="LogFormatJSON" xml:space="preserve">
     <value>JSON</value>
   </data>
-  <data name="LoadEncryptionKey" xml:space="preserve">
+	<data name="LoadEncryptionKey" xml:space="preserve">
     <value>Chargement de la clé de chiffrement</value>
   </data>
-  <data name="MainRemoteControl" xml:space="preserve">
+	<data name="MainRemoteControl" xml:space="preserve">
     <value>Contrôle à distance</value>
   </data>
-  <data name="RemoteControlTitle" xml:space="preserve">
+	<data name="RemoteControlTitle" xml:space="preserve">
     <value>Gestion du contrôle à distance</value>
   </data>
-  <data name="ServerAddress" xml:space="preserve">
+	<data name="ServerAddress" xml:space="preserve">
     <value>Adresse du serveur:</value>
   </data>
-  <data name="ServerPort" xml:space="preserve">
+	<data name="ServerPort" xml:space="preserve">
     <value>Port:</value>
   </data>
-  <data name="Connect" xml:space="preserve">
+	<data name="Connect" xml:space="preserve">
     <value>Connecter</value>
   </data>
-  <data name="Disconnect" xml:space="preserve">
+	<data name="Disconnect" xml:space="preserve">
     <value>Déconnecter</value>
   </data>
-  <data name="BusinessSoftware" xml:space="preserve">
+	<data name="BusinessSoftware" xml:space="preserve">
     <value>Logiciel métier</value>
   </data>
-  <data name="Size" xml:space="preserve">
+	<data name="Size" xml:space="preserve">
     <value>Taille</value>
   </data>
-  <data name="CurrentFile" xml:space="preserve">
+	<data name="CurrentFile" xml:space="preserve">
     <value>Fichier actuel</value>
   </data>
-  <data name="Files" xml:space="preserve">
+	<data name="Files" xml:space="preserve">
     <value>Fichiers</value>
   </data>
-  <data name="ProcessedFiles" xml:space="preserve">
+	<data name="ProcessedFiles" xml:space="preserve">
     <value>Fichiers traités</value>
   </data>
-  <data name="StateWaiting" xml:space="preserve">
+	<data name="StateWaiting" xml:space="preserve">
     <value>En attente</value>
   </data>
-  <data name="StateRunning" xml:space="preserve">
+	<data name="StateRunning" xml:space="preserve">
     <value>En cours</value>
   </data>
-  <data name="StatePaused" xml:space="preserve">
+	<data name="StatePaused" xml:space="preserve">
     <value>Pause</value>
   </data>
-  <data name="StateCompleted" xml:space="preserve">
+	<data name="StateCompleted" xml:space="preserve">
     <value>Terminé </value>
   </data>
-  <data name="StateError" xml:space="preserve">
+	<data name="StateError" xml:space="preserve">
     <value>Erreur</value>
   </data>
-  <data name="StateUnknown" xml:space="preserve">
+	<data name="StateUnknown" xml:space="preserve">
     <value>Inconnu</value>
   </data>
-  <data name="Calculating" xml:space="preserve">
+	<data name="Calculating" xml:space="preserve">
     <value>Calcul</value>
   </data>
-  <data name="MessageNoJobSelected" xml:space="preserve">
+	<data name="MessageNoJobSelected" xml:space="preserve">
     <value>Aucun travail sélectionné </value>
   </data>
-  <data name="MessageConfirmDeleteJobs" xml:space="preserve">
+	<data name="MessageConfirmDeleteJobs" xml:space="preserve">
     <value>Suppression effectué </value>
   </data>
-  <data name="StatusRunning" xml:space="preserve">
+	<data name="StatusRunning" xml:space="preserve">
     <value>En cours</value>
   </data>
-  <data name="PopUpBusinessSoftware" xml:space="preserve">
+	<data name="PopUpBusinessSoftware" xml:space="preserve">
     <value>Impossible d'executer la/les sauvegarde(s), veuillez fermer le logiciel metier.</value>
+  </data>
+	<data name="BackupJobsSettingsChangeConfirmation" xml:space="preserve">
+    <value>Les travaux de sauvegardes en cours ne seront pas affectés par les changements. Voulez-vous continuer?</value>
   </data>
 </root>

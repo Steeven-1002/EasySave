@@ -1,4 +1,4 @@
-## Release Note - EasySave v1.0
+## Release Note - EasySave
 
 **Release Date:** 28/05/2025
 
