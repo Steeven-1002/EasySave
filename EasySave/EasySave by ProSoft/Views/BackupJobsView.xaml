@@ -190,8 +190,10 @@
 
         <Border Grid.Row="2" Padding="0,15,0,0" BorderThickness="0,1,0,0" BorderBrush="{StaticResource BorderBrush}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="{x:Static localization:Resources.BackupWorkManagementStartBackupSelected}" 
-                        Command="{Binding LaunchJobCommand}">
+                <Button x:Name="ResumeButton" 
+                        Content="{x:Static localization:Resources.BackupWorkManagementStartBackupSelected}" 
+                        Command="{Binding ResumeJobCommand}"
+                        CommandParameter="{x:Null}" Margin="5,5,10,5">
                     <Button.Style>
                         <Style TargetType="{x:Type Button}" BasedOn="{StaticResource ActionButtonStyle}">
                             <Style.Triggers>
@@ -209,21 +211,6 @@
                         CommandParameter="{x:Null}">
                     <Button.Style>
                         <Style TargetType="{x:Type Button}" BasedOn="{StaticResource PauseButtonStyle}">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding SelectedJobs.Count}" Value="0">
-                                    <Setter Property="IsEnabled" Value="False"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
-                <Button x:Name="ResumeButton" 
-                        Content="{x:Static localization:Resources.Resume}"
-                        Margin="5" 
-                        Command="{Binding ResumeJobCommand}"
-                        CommandParameter="{x:Null}">
-                    <Button.Style>
-                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource ActionButtonStyle}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding SelectedJobs.Count}" Value="0">
                                     <Setter Property="IsEnabled" Value="False"/>
@@ -261,10 +248,6 @@
                         </Style>
                     </Button.Style>
                 </Button>
-                <Button Content="Individuals"
-                        Style="{StaticResource ActionButtonStyle}"
-                        Margin="5" 
-                        Click="BackupJob_CheckChanged"/>
                 <Button Content="{x:Static localization:Resources.BackupWorkManagementNewBackup}" 
                         Style="{StaticResource ActionButtonStyle}"
                         Margin="100,5,5,5" 

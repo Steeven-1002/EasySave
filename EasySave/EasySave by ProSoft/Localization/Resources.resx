@@ -372,6 +372,9 @@
   <data name="PopUpBusinessSoftware" xml:space="preserve">
     <value>Unable to perform backup(s), please close the business software.</value>
   </data>
+  <data name="StatusRunning" xml:space="preserve">
+    <value>Running</value>
+  </data>
   <data name="BackupJobsSettingsChangeConfirmation" xml:space="preserve">
     <value>Current backup jobs will not be affected by the changes. Do you want to continue?</value>
   </data>

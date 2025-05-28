@@ -15,7 +15,9 @@ namespace EasySave_by_ProSoft
         private BackupJobsView _backupJobsView;
         private SettingsView _settingsView;
         private RemoteControlView _remoteControlView;
+        private UIElement _currentView;
         private readonly IDialogService _dialogService = new DialogService();
+
 
         public MainWindow()
         {
@@ -31,13 +33,18 @@ namespace EasySave_by_ProSoft
 
             // Show the default view
             MainContentArea.Content = _backupJobsView;
+            _currentView = _backupJobsView;
         }
 
         private void ShowBackupJobs_Click(object sender, RoutedEventArgs e)
         {
-            // Refresh jobs list when switching to backup jobs view
-            _backupJobsView.RefreshJobsList();
-            MainContentArea.Content = _backupJobsView;
+            // Only refresh jobs list when first loading the view or coming from a view other than settings
+            // This prevents job state from being reset when returning from settings
+            if (_currentView != _backupJobsView)
+            {
+                MainContentArea.Content = _backupJobsView;
+                _currentView = _backupJobsView;
+            }
         }
 
         private void ShowSettings_Click(object sender, RoutedEventArgs e)
@@ -57,6 +64,7 @@ namespace EasySave_by_ProSoft
         {
             // Connect directly to client view, since server is always running in background
             MainContentArea.Content = _remoteControlView;
+            _currentView = _remoteControlView;
         }
     }
 }
