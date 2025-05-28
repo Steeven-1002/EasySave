@@ -1,5 +1,4 @@
 using EasySave_by_ProSoft.Core;
-using EasySave_by_ProSoft.Network;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
@@ -194,20 +193,20 @@ namespace EasySave_by_ProSoft.Models
                 BackupJob jobToRun = backupJobs.FirstOrDefault(j => j.Name == name);
                 if (jobToRun != null)
                 {
-          
+
                     if (jobToRun.Status.State == BackupState.Initialise ||
                         jobToRun.Status.State == BackupState.Error ||
                         jobToRun.Status.State == BackupState.Completed)
                     {
-                        
+
                         jobToRun.Status.ResetForRun();
                     }
 
-              
+
                     if (jobToRun.Status.State == BackupState.Initialise)
                     {
                         jobsToRun.Add(jobToRun);
-                       
+
                         _businessMonitor.RegisterJob(jobToRun);
                     }
                     else
@@ -507,10 +506,10 @@ namespace EasySave_by_ProSoft.Models
             {
                 _remoteControlService = new Services.RemoteControlService(this);
             }
-            
+
             // Set the port
             _remoteControlService.ServerPort = port;
-            
+
             // Start the server
             return _remoteControlService.StartServer();
         }

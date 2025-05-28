@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Windows.Input;
 
 namespace EasySave_by_ProSoft.ViewModels
@@ -18,12 +17,6 @@ namespace EasySave_by_ProSoft.ViewModels
         private readonly AppSettings _settings = AppSettings.Instance;
         private readonly IDialogService _dialogService;
         private string _selectedLogFormat;
-
-        // Notification properties
-        public event Action<string, string, bool> RequestApplicationRestartPrompt;
-        public event Action LanguageChangeConfirmed;
-        public event Action LanguageChangeCancelled;
-        public event Action<Exception> ApplicationRestartFailed;
 
         public string BusinessSoftwareName
         {
@@ -59,13 +52,7 @@ namespace EasySave_by_ProSoft.ViewModels
                     // Allow process names without .exe as some system processes might not have it when queried.
                     // However, for user input, standardizing to include .exe if not present might be intended.
                     // The existing logic to add .exe if missing seems reasonable for user-defined business software.
-                    if (!processName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(System.IO.Path.GetExtension(processName)))
-                    {
-                        // If it has an extension but it's not .exe, this might be an issue or intended.
-                        // For now, keeping the logic that adds .exe if no extension or different.
-                        // This part could be refined based on exact requirements for process name matching.
-                    }
-                    else if (string.IsNullOrEmpty(System.IO.Path.GetExtension(processName))) // Only add .exe if no extension is present
+                    if (string.IsNullOrEmpty(System.IO.Path.GetExtension(processName))) // Only add .exe if no extension is present
                     {
                         processName = $"{processName}.exe";
                         System.Diagnostics.Debug.WriteLine($"Added .exe extension to process name: {processName}");
@@ -100,11 +87,12 @@ namespace EasySave_by_ProSoft.ViewModels
             }
             set
             {
-                var cleaned = Regex.Replace(value, @"(?<!^)\.", " .");
-
-                var list = cleaned.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                                 .Select(s => s.Trim())
-                                 .ToList();
+                // Accept commas as delimiters without additional processing
+                var list = value.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => s.Trim())
+                    .Select(s => s.StartsWith(".") ? s : "." + s) // Ensure each extension starts with a period
+                    .Distinct() // Remove duplicates
+                    .ToList();
 
                 _settings.SetSetting("EncryptionExtensions", list);
                 OnPropertyChanged();
@@ -130,12 +118,12 @@ namespace EasySave_by_ProSoft.ViewModels
             }
             set
             {
-                // Ensure proper format for extension file priority
-                var cleaned = Regex.Replace(value, @"(?<!^)\.", " .");
-
-                var list = cleaned.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                                 .Select(s => s.Trim())
-                                 .ToList();
+                // Accept commas as delimiters without additional processing
+                var list = value.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => s.Trim())
+                    .Select(s => s.StartsWith(".") ? s : "." + s) // Ensure each extension starts with a period
+                    .Distinct() // Remove duplicates
+                    .ToList();
 
                 _settings.SetSetting("ExtensionFilePriority", list);
                 OnPropertyChanged();
@@ -256,16 +244,48 @@ namespace EasySave_by_ProSoft.ViewModels
                 CultureInfo newCulture = new CultureInfo(newLanguage);
                 Thread.CurrentThread.CurrentUICulture = newCulture;
                 Thread.CurrentThread.CurrentCulture = newCulture;
-                if (Localization.Resources.Culture != null || Localization.Resources.Culture == null)
-                {
-                    Localization.Resources.Culture = newCulture;
-                }
 
-                // Trigger the restart prompt event
-                RequestApplicationRestartPrompt?.Invoke(
-                    Localization.Resources.LanguageChangeRestartMessage,
-                    Localization.Resources.ConfirmationTitle,
-                    true);
+                // Apply culture to Resources
+                Localization.Resources.Culture = newCulture;
+
+                // Update the application resources to reflect the new culture
+                System.Windows.Application.Current.Resources.MergedDictionaries.Clear();
+                System.Windows.Application.Current.Resources.MergedDictionaries.Add(
+                    new System.Windows.ResourceDictionary
+                    {
+                        Source = new Uri($"/Localization/Strings.{newCulture}.xaml", UriKind.Relative)
+                    });
+
+                // Fire event to refresh the UI
+                OnPropertyChanged(nameof(UserLanguage));
+                App.Current.MainWindow.UpdateLayout();
+
+                // Removed the reference to RequestApplicationRestartPrompt as it does not exist
+                _dialogService.ShowInformation(
+                    Localization.Resources.LanguageChangeRestartMessage ?? "Please restart the application to apply the language change.",
+                    Localization.Resources.InformationTitle ?? "Information");
+
+                // Restart the application to apply the new language
+                try
+                {
+                    // Prepare to restart the application
+                    string appPath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+                    System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = appPath,
+                        UseShellExecute = true
+                    };
+
+                    // Launch new instance before closing current one
+                    System.Diagnostics.Process.Start(startInfo);
+
+                    // Close current instance
+                    System.Windows.Application.Current.Shutdown();
+                }
+                catch (Exception ex)
+                {
+                    _dialogService.ShowError(Localization.Resources.ErrorTitle ?? "Error");
+                }
             }
             catch (CultureNotFoundException ex)
             {
@@ -274,24 +294,6 @@ namespace EasySave_by_ProSoft.ViewModels
                     Localization.Resources.ErrorTitle);
                 return;
             }
-        }
-
-        public void HandleApplicationRestartResult(bool restartConfirmed)
-        {
-            if (restartConfirmed)
-            {
-                LanguageChangeConfirmed?.Invoke();
-            }
-            else
-            {
-                // Revert to original language settings
-                LanguageChangeCancelled?.Invoke();
-            }
-        }
-
-        public void NotifyRestartFailed(Exception ex)
-        {
-            ApplicationRestartFailed?.Invoke(ex);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

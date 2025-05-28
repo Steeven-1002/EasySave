@@ -1,14 +1,9 @@
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Network;
-using EasySave_by_ProSoft.Core;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -18,7 +13,7 @@ namespace EasySave_by_ProSoft.ViewModels
     /// <summary>
     /// ViewModel for the Remote Control Client view
     /// </summary>
-    public class RemoteControlViewModel : INotifyPropertyChanged, IEventListener, IDisposable
+    public class RemoteControlViewModel : INotifyPropertyChanged, IDisposable
     {
         // Implement INotifyPropertyChanged interface
         public event PropertyChangedEventHandler PropertyChanged;
@@ -34,7 +29,6 @@ namespace EasySave_by_ProSoft.ViewModels
         private string _connectionStatus = "Not connected";
         private bool _isConnected = false;
         private ObservableCollection<RemoteJobViewModel> _remoteJobs;
-        private Core.EventManager _eventManager = Core.EventManager.Instance;
         private bool _disposed = false;
 
         // Properties
@@ -82,8 +76,8 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             get
             {
-                return IsConnected 
-                    ? new SolidColorBrush(Colors.Green) 
+                return IsConnected
+                    ? new SolidColorBrush(Colors.Green)
                     : new SolidColorBrush(Colors.DarkRed);
             }
         }
@@ -149,9 +143,6 @@ namespace EasySave_by_ProSoft.ViewModels
             // Initialize collections
             _remoteJobs = new ObservableCollection<RemoteJobViewModel>();
 
-            // Register with EventManager to receive job status updates
-            _eventManager.AddListener(this);
-
             // Initialize commands
             ToggleConnectionCommand = new RelayCommand(_ => ToggleConnection());
             RefreshJobsCommand = new RelayCommand(_ => RefreshJobs(), _ => IsConnected);
@@ -190,10 +181,10 @@ namespace EasySave_by_ProSoft.ViewModels
                     _client.JobStatusesReceived -= Client_JobStatusesReceived;
                     _client.ErrorOccurred -= Client_ErrorOccurred;
                 }
-                
+
                 // Default to localhost if no server is specified
                 var host = string.IsNullOrWhiteSpace(ServerHost) ? "localhost" : ServerHost;
-                
+
                 _client = new NetworkClient(host, ServerPort);
                 _client.ConnectionStatusChanged += Client_ConnectionStatusChanged;
                 _client.JobStatusesReceived += Client_JobStatusesReceived;
@@ -252,7 +243,7 @@ namespace EasySave_by_ProSoft.ViewModels
             {
                 Debug.WriteLine($"Error refreshing jobs: {ex.Message}");
                 ConnectionStatus = $"Error refreshing: {ex.Message}";
-                
+
                 // Don't attempt to reconnect immediately as it might cause a loop
                 // Instead, let the automatic reconnect handle it if needed
             }
@@ -266,8 +257,13 @@ namespace EasySave_by_ProSoft.ViewModels
                 var existingJobs = RemoteJobs.ToDictionary(job => job.JobName, job => job);
                 var updatedJobs = new ObservableCollection<RemoteJobViewModel>();
 
+                // Track job names to detect jobs that no longer exist on the server
+                var receivedJobNames = new HashSet<string>();
+
                 foreach (var state in jobStates)
                 {
+                    receivedJobNames.Add(state.JobName);
+
                     if (existingJobs.TryGetValue(state.JobName, out var existingJob))
                     {
                         // Update existing job
@@ -316,6 +312,7 @@ namespace EasySave_by_ProSoft.ViewModels
             try
             {
                 await _client.PauseJobsAsync(new List<string> { job.JobName });
+                RefreshJobs(); // Refresh to get updated status
             }
             catch (Exception ex)
             {
@@ -331,6 +328,7 @@ namespace EasySave_by_ProSoft.ViewModels
             try
             {
                 await _client.ResumeJobsAsync(new List<string> { job.JobName });
+                RefreshJobs(); // Refresh to get updated status
             }
             catch (Exception ex)
             {
@@ -346,6 +344,7 @@ namespace EasySave_by_ProSoft.ViewModels
             try
             {
                 await _client.StopJobsAsync(new List<string> { job.JobName });
+                RefreshJobs(); // Refresh to get updated status
             }
             catch (Exception ex)
             {
@@ -368,7 +367,7 @@ namespace EasySave_by_ProSoft.ViewModels
                     Debug.WriteLine("Received empty job states list");
                     return;
                 }
-                
+
                 UpdateJobList(e);
             }
             catch (Exception ex)
@@ -468,63 +467,6 @@ namespace EasySave_by_ProSoft.ViewModels
                 Debug.WriteLine($"Error stopping selected jobs: {ex.Message}");
             }
         }
-        
-        // IEventListener implementation
-        public void OnJobStatusChanged(JobStatus status)
-        {
-            if (status != null && IsConnected)
-            {
-                Debug.WriteLine($"RemoteControlViewModel.OnJobStatusChanged: Job '{status.BackupJob?.Name}' state changed to {status.State}");
-                
-                // Use the dispatcher to ensure we're on the UI thread
-                var dispatcher = System.Windows.Application.Current?.Dispatcher;
-                if (dispatcher != null && !dispatcher.CheckAccess())
-                {
-                    dispatcher.Invoke(() => RefreshJobs());
-                }
-                else
-                {
-                    RefreshJobs();
-                }
-            }
-        }
-
-        public void OnBusinessSoftwareStateChanged(bool isRunning)
-        {
-            // Not needed for this implementation
-        }
-
-        public void OnLaunchJobsRequested(List<string> jobNames)
-        {
-            if (IsConnected)
-            {
-                RefreshJobs();
-            }
-        }
-
-        public void OnPauseJobsRequested(List<string> jobNames)
-        {
-            if (IsConnected)
-            {
-                RefreshJobs();
-            }
-        }
-
-        public void OnResumeJobsRequested(List<string> jobNames)
-        {
-            if (IsConnected)
-            {
-                RefreshJobs();
-            }
-        }
-
-        public void OnStopJobsRequested(List<string> jobNames)
-        {
-            if (IsConnected)
-            {
-                RefreshJobs();
-            }
-        }
 
         // IDisposable implementation
         public void Dispose()
@@ -539,9 +481,6 @@ namespace EasySave_by_ProSoft.ViewModels
             {
                 if (disposing)
                 {
-                    // Unregister from EventManager
-                    _eventManager.RemoveListener(this);
-                    
                     // Disconnect from server
                     _client?.Disconnect();
                 }

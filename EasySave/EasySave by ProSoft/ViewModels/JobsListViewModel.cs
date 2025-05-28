@@ -1,6 +1,6 @@
+using EasySave_by_ProSoft.Core;
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Services;
-using EasySave_by_ProSoft.Core;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -84,23 +84,25 @@ namespace EasySave_by_ProSoft.ViewModels
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _jobs = new ObservableCollection<BackupJob>();
-
+            Status = BackupState.Initialise;
+            SelectedJobs = new ObservableCollection<BackupJob>().ToList();
             // Register as a listener for job events
             _jobEventManager.AddListener(this);
-            
+
             // Register as a listener for remote control events
             _eventManager.AddListener(this);
 
+            // Load initially and set up command
+            LoadJobs();
+
             LaunchJobCommand = new RelayCommand(async _ => await LaunchSelectedJob(), _ => CanLaunchJob());
             RemoveJobCommand = new RelayCommand(_ => RemoveSelectedJob(SelectedJobs), _ => SelectedJobs != null && SelectedJobs.Count > 0);
-            
-            PauseJobCommand = new RelayCommand(_ => PauseSelectedJob(), _ => CanPauseSelectedJob());
-            ResumeJobCommand = new RelayCommand(_ => ResumeSelectedJob(), _ => CanResumeSelectedJob());
-            StopJobCommand = new RelayCommand(_ => StopSelectedJobs(), _ => CanStopSelectedJob());
-            LaunchMultipleJobsCommand = new RelayCommand(_ => LaunchMultipleJobs(), _ => CanLaunchMultipleJobs());
 
-            // Load jobs initially
-            LoadJobs();
+            // Update commands to work with parameter (the job) if provided, otherwise use selected jobs
+            PauseJobCommand = new RelayCommand(job => PauseJob(job), _ => true);
+            ResumeJobCommand = new RelayCommand(job => ResumeJob(job), _ => true);
+            StopJobCommand = new RelayCommand(job => StopJob(job), _ => true);
+            LaunchMultipleJobsCommand = new RelayCommand(_ => LaunchMultipleJobs(), _ => CanLaunchMultipleJobs());
         }
 
         private bool CanLaunchJob()
@@ -205,7 +207,7 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private async Task LaunchSelectedJob()
         {
-            
+
 
             // Check if any jobs are selected.
             if (SelectedJobs == null || !SelectedJobs.Any())
@@ -285,11 +287,24 @@ namespace EasySave_by_ProSoft.ViewModels
         }
 
         /// <summary>
-        /// Pauses the selected backup job
+        /// Pauses a job or selected jobs if no specific job is provided
         /// </summary>
-        private void PauseSelectedJob()
+        private void PauseJob(object jobParameter)
         {
-            if (SelectedJobs != null)
+            // If a specific job is provided, pause it
+            if (jobParameter is BackupJob specificJob)
+            {
+                if (specificJob.Status.State == BackupState.Running)
+                {
+                    specificJob.Pause();
+                    JobStatusChanged?.Invoke($"Job '{specificJob.Name}' has been paused.");
+                }
+                return;
+            }
+
+            // Otherwise, pause all selected jobs
+            if (SelectedJobs != null && SelectedJobs.Count > 0)
+            {
                 foreach (var job in SelectedJobs)
                 {
                     if (job.Status.State == BackupState.Running)
@@ -298,6 +313,12 @@ namespace EasySave_by_ProSoft.ViewModels
                         JobStatusChanged?.Invoke($"Job '{job.Name}' has been paused.");
                     }
                 }
+            }
+            else
+            {
+                // If no job is selected, show a message
+                _dialogService.ShowInformation("Please select a job to pause or click directly on a job's pause button.", "Information");
+            }
         }
 
         /// <summary>
@@ -312,11 +333,31 @@ namespace EasySave_by_ProSoft.ViewModels
         }
 
         /// <summary>
-        /// Resumes the selected backup job
+        /// Resumes a job or selected jobs if no specific job is provided
         /// </summary>
-        private void ResumeSelectedJob()
+        private void ResumeJob(object jobParameter)
         {
-            if (SelectedJobs != null)
+            // If a specific job is provided, resume it
+            if (jobParameter is BackupJob specificJob)
+            {
+                if (specificJob.Status.State == BackupState.Paused)
+                {
+                    specificJob.Resume();
+                    JobStatusChanged?.Invoke($"Job '{specificJob.Name}' has been resumed.");
+                }
+                // Add ability to start jobs in Initialise, Error, or Completed states
+                else if (specificJob.Status.State == BackupState.Initialise ||
+                         specificJob.Status.State == BackupState.Error ||
+                         specificJob.Status.State == BackupState.Completed)
+                {
+                    LaunchJob(specificJob);
+                }
+                return;
+            }
+
+            // Otherwise, resume all selected jobs
+            if (SelectedJobs != null && SelectedJobs.Count > 0)
+            {
                 foreach (var job in SelectedJobs)
                 {
                     if (job.Status.State == BackupState.Paused)
@@ -324,18 +365,59 @@ namespace EasySave_by_ProSoft.ViewModels
                         job.Resume();
                         JobStatusChanged?.Invoke($"Job '{job.Name}' has been resumed.");
                     }
+                    // Add ability to start jobs in Initialise, Error, or Completed states
+                    else if (job.Status.State == BackupState.Initialise ||
+                             job.Status.State == BackupState.Error ||
+                             job.Status.State == BackupState.Completed)
+                    {
+                        LaunchJob(job);
+                    }
                 }
+            }
+            else
+            {
+                // If no job is selected, show a message
+                _dialogService.ShowInformation("Please select a job to resume or click directly on a job's resume button.", "Information");
+            }
         }
 
         /// <summary>
-        /// Determines if the selected job can be resumed
+        /// Launches a specific job
+        /// </summary>
+        private async void LaunchJob(BackupJob job)
+        {
+            if (job != null)
+            {
+                job.Status.ResetForRun();
+                List<string> jobNames = new List<string> { job.Name };
+                _isLaunchingJobs = true;
+                CommandManager.InvalidateRequerySuggested();
+
+                try
+                {
+                    await _backupManager.ExecuteJobsByNameAsync(jobNames);
+                    JobStatusChanged?.Invoke($"Job '{job.Name}' has been started.");
+                }
+                finally
+                {
+                    _isLaunchingJobs = false;
+                    CommandManager.InvalidateRequerySuggested();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Determines if the selected job can be resumed or started
         /// </summary>
         public bool CanResumeSelectedJob()
         {
             if (SelectedJobs == null || SelectedJobs.Count == 0)
                 return false;
 
-            return SelectedJobs.Any(job => job.Status.State == BackupState.Paused);
+            return SelectedJobs.Any(job => job.Status.State == BackupState.Paused ||
+                                          job.Status.State == BackupState.Initialise ||
+                                          job.Status.State == BackupState.Error ||
+                                          job.Status.State == BackupState.Completed);
         }
 
         /// <summary>
@@ -357,21 +439,38 @@ namespace EasySave_by_ProSoft.ViewModels
         }
 
         /// <summary>
-        /// Stops the selected backup jobs
+        /// Stops a job or selected jobs if no specific job is provided
         /// </summary>
-        private void StopSelectedJobs()
+        private void StopJob(object jobParameter)
         {
-            if (SelectedJobs == null) return;
-            Debug.WriteLine($"JobsListViewModel.StopSelectedJobs called for: {string.Join(", ", SelectedJobs.Where(j => j.Status.State == BackupState.Running || j.Status.State == BackupState.Paused).Select(j => j.Name))}");
-            foreach (var job in SelectedJobs)
+            // If a specific job is provided, stop it
+            if (jobParameter is BackupJob specificJob)
             {
-                if (job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused)
+                if (specificJob.Status.State == BackupState.Running || specificJob.Status.State == BackupState.Paused)
                 {
-                    job.Stop();
-                    JobStatusChanged?.Invoke($"Job '{job.Name}' has been stopped.");
+                    specificJob.Stop();
+                    JobStatusChanged?.Invoke($"Job '{specificJob.Name}' has been stopped.");
+                }
+                return;
+            }
+
+            // Otherwise, stop all selected jobs
+            if (SelectedJobs != null && SelectedJobs.Count > 0)
+            {
+                foreach (var job in SelectedJobs)
+                {
+                    if (job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused)
+                    {
+                        job.Stop();
+                        JobStatusChanged?.Invoke($"Job '{job.Name}' has been stopped.");
+                    }
                 }
             }
-            CommandManager.InvalidateRequerySuggested();
+            else
+            {
+                // If no job is selected, show a message
+                _dialogService.ShowInformation("Please select a job to stop or click directly on a job's stop button.", "Information");
+            }
         }
 
         /// <summary>
@@ -410,7 +509,7 @@ namespace EasySave_by_ProSoft.ViewModels
             if (status != null)
             {
                 Debug.WriteLine($"JobsListViewModel.OnJobStatusChanged: Job '{status.BackupJob?.Name}' state changed to {status.State}");
-                
+
                 // Use the dispatcher to ensure we're on the UI thread
                 var dispatcher = System.Windows.Application.Current?.Dispatcher;
                 if (dispatcher != null && !dispatcher.CheckAccess())
@@ -431,7 +530,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             if (status?.BackupJob == null)
                 return;
-                
+
             // Find the job in the list
             var job = Jobs.FirstOrDefault(j => j.Name == status.BackupJob.Name);
             if (job != null)
@@ -457,7 +556,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             // When jobs are launched remotely, refresh the local job list to show updated status
             Debug.WriteLine($"JobsListViewModel.OnLaunchJobsRequested: Jobs launched remotely: {string.Join(", ", jobNames)}");
-            
+
             // Use the dispatcher to ensure we're on the UI thread
             var dispatcher = System.Windows.Application.Current?.Dispatcher;
             if (dispatcher != null && !dispatcher.CheckAccess())
@@ -474,7 +573,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             // When jobs are paused remotely, refresh the local job list
             Debug.WriteLine($"JobsListViewModel.OnPauseJobsRequested: Jobs paused remotely: {string.Join(", ", jobNames)}");
-            
+
             // Use the dispatcher to ensure we're on the UI thread
             var dispatcher = System.Windows.Application.Current?.Dispatcher;
             if (dispatcher != null && !dispatcher.CheckAccess())
@@ -491,7 +590,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             // When jobs are resumed remotely, refresh the local job list
             Debug.WriteLine($"JobsListViewModel.OnResumeJobsRequested: Jobs resumed remotely: {string.Join(", ", jobNames)}");
-            
+
             // Use the dispatcher to ensure we're on the UI thread
             var dispatcher = System.Windows.Application.Current?.Dispatcher;
             if (dispatcher != null && !dispatcher.CheckAccess())
@@ -508,7 +607,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             // When jobs are stopped remotely, refresh the local job list
             Debug.WriteLine($"JobsListViewModel.OnStopJobsRequested: Jobs stopped remotely: {string.Join(", ", jobNames)}");
-            
+
             // Use the dispatcher to ensure we're on the UI thread
             var dispatcher = System.Windows.Application.Current?.Dispatcher;
             if (dispatcher != null && !dispatcher.CheckAccess())

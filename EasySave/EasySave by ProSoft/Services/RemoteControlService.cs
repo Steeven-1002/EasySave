@@ -1,7 +1,6 @@
+using EasySave_by_ProSoft.Core;
 using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Network;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -26,7 +25,7 @@ namespace EasySave_by_ProSoft.Services
         private string _localIpAddress;
 
         public event PropertyChangedEventHandler? PropertyChanged;
-        
+
         // Event for notifying about client connections
         public event EventHandler<ClientConnectionInfo> ClientConnected;
         public event EventHandler<string> ClientDisconnected;
@@ -44,7 +43,7 @@ namespace EasySave_by_ProSoft.Services
                 {
                     _serverPort = value;
                     OnPropertyChanged();
-                    
+
                     // If server is already running, restart it with new port
                     if (IsServerRunning)
                     {
@@ -100,10 +99,10 @@ namespace EasySave_by_ProSoft.Services
         {
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
             _connectedClients = new ObservableCollection<ClientConnectionInfo>();
-            
+
             // Initialize the IP address
             _localIpAddress = GetLocalIPv4Address();
-            
+
             // Initialize the socket server
             InitializeSocketServer();
         }
@@ -116,6 +115,9 @@ namespace EasySave_by_ProSoft.Services
             _server = new SocketServer(_backupManager, ServerPort);
             _server.ServerStatusChanged += Server_StatusChanged;
             _server.MessageReceived += Server_MessageReceived;
+
+            // Make sure SocketServer is registered with EventManager to receive job status updates
+            EventManager.Instance.AddListener(new NetworkSocketEventAdapter(_server));
         }
 
         public bool StartServer()
@@ -200,7 +202,7 @@ namespace EasySave_by_ProSoft.Services
             else if (status.StartsWith("Client disconnected:"))
             {
                 var clientId = status.Replace("Client disconnected:", "").Trim();
-                
+
                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
                 {
                     // Find and remove the client (in a real implementation, match by ID)
@@ -217,7 +219,7 @@ namespace EasySave_by_ProSoft.Services
         {
             // Handle client messages
             Debug.WriteLine($"Message received: {message.Type}");
-            
+
             // Log more details about the message
             switch (message.Type)
             {
@@ -256,7 +258,7 @@ namespace EasySave_by_ProSoft.Services
             {
                 // Get all network interfaces
                 NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces();
-                
+
                 // Find active interfaces that are not loopbacks
                 foreach (NetworkInterface adapter in interfaces)
                 {
@@ -278,15 +280,87 @@ namespace EasySave_by_ProSoft.Services
             {
                 Debug.WriteLine($"Error getting local IP: {ex.Message}");
             }
-            
+
             // Fallback to loopback
             return "127.0.0.1";
         }
 
+        /// <summary>
+        /// Shutdown properly cleans up the EventManager subscriptions
+        /// </summary>
         public void Shutdown()
         {
+            EventManager.Instance.RemoveListener(new NetworkSocketEventAdapter(_server));
             StopServer();
             _server = null;
+        }
+
+        /// <summary>
+        /// Gets the SocketServer instance
+        /// </summary>
+        /// <returns>The SocketServer instance or null if not initialized</returns>
+        public SocketServer GetSocketServer()
+        {
+            return _server;
+        }
+
+        /// <summary>
+        /// Adapter class to connect the SocketServer to EventManager
+        /// </summary>
+        private class NetworkSocketEventAdapter : IEventListener
+        {
+            private readonly SocketServer _socketServer;
+
+            public NetworkSocketEventAdapter(SocketServer socketServer)
+            {
+                _socketServer = socketServer;
+            }
+
+            /// <summary>
+            /// Broadcast job status changes to connected clients
+            /// </summary>
+            public void OnJobStatusChanged(JobStatus status)
+            {
+                if (status != null)
+                {
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _socketServer.BroadcastJobStatusAsync(status).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Error broadcasting job status: {ex.Message}");
+                        }
+                    });
+                }
+            }
+
+            /// <summary>
+            /// Not needed for the socket server adapter
+            /// </summary>
+            public void OnBusinessSoftwareStateChanged(bool isRunning) { }
+
+            /// <summary>
+            /// Not needed for the socket server adapter
+            /// </summary>
+            public void OnLaunchJobsRequested(List<string> jobNames) { }
+
+            /// <summary>
+            /// Not needed for the socket server adapter
+            /// </summary>
+            public void OnPauseJobsRequested(List<string> jobNames) { }
+
+            /// <summary>
+            /// Not needed for the socket server adapter
+            /// </summary>
+            public void OnResumeJobsRequested(List<string> jobNames) { }
+
+            /// <summary>
+            /// Not needed for the socket server adapter
+            /// </summary>
+            public void OnStopJobsRequested(List<string> jobNames) { }
         }
     }
 

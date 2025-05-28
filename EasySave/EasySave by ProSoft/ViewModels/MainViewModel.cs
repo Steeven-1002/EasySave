@@ -256,7 +256,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             if (SelectedJobs == null || SelectedJobs.Count == 0)
                 return false;
-            
+
             return SelectedJobs.Any(job => job.Status.State == BackupState.Running);
         }
 
@@ -282,7 +282,7 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             if (SelectedJobs == null || SelectedJobs.Count == 0)
                 return false;
-            
+
             return SelectedJobs.Any(job => job.Status.State == BackupState.Paused);
         }
 

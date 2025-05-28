@@ -1,7 +1,6 @@
 ﻿using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Views;
 using System.Windows;
-using System.Windows.Controls;
 
 namespace EasySave_by_ProSoft
 {

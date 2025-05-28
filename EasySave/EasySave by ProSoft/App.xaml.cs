@@ -1,14 +1,9 @@
 ﻿using EasySave_by_ProSoft.Models;
 using EasySave_by_ProSoft.Properties; // For Settings.Default
-using EasySave_by_ProSoft.Services;
-using EasySave_by_ProSoft.Views;
-using System;
 using System.Diagnostics;
 using System.Globalization;
-using System.Threading;
 using System.Windows;
 using System.Windows.Data;
-using System.Windows.Media;
 
 namespace EasySave_by_ProSoft
 {
@@ -28,9 +23,9 @@ namespace EasySave_by_ProSoft
             {
                 // Another instance is already running, show a message and exit
                 System.Windows.MessageBox.Show(
-                    Localization.Resources.ApplicationAlreadyRunning, 
-                    Localization.Resources.SingleInstanceTitle, 
-                    MessageBoxButton.OK, 
+                    Localization.Resources.ApplicationAlreadyRunning,
+                    Localization.Resources.SingleInstanceTitle,
+                    MessageBoxButton.OK,
                     MessageBoxImage.Information);
                 Shutdown();
                 return;
@@ -55,12 +50,12 @@ namespace EasySave_by_ProSoft
                     CultureInfo defaultCulture = new CultureInfo(DefaultCultureName);
                     Thread.CurrentThread.CurrentUICulture = defaultCulture;
                     Thread.CurrentThread.CurrentCulture = defaultCulture;
-                    
+
                     // The saved language is not valid, fallback to default language
                     System.Windows.MessageBox.Show(
                         string.Format(Localization.Resources.CultureNotFoundMessage, savedLang, DefaultCultureName),
                         Localization.Resources.InvalidCultureTitle);
-                        
+
                     targetCulture = defaultCulture;
                     Settings.Default.UserLanguage = DefaultCultureName;
                     Settings.Default.Save(); // Save the default language
@@ -72,12 +67,12 @@ namespace EasySave_by_ProSoft
                 targetCulture = new CultureInfo(DefaultCultureName);
                 Thread.CurrentThread.CurrentUICulture = targetCulture;
                 Thread.CurrentThread.CurrentCulture = targetCulture;
-                
+
                 // Any saved language is empty, use the default language and save it
                 System.Windows.MessageBox.Show(
                     string.Format(Localization.Resources.NoLanguageSavedMessage, DefaultCultureName),
                     Localization.Resources.NoLanguageSavedTitle);
-                    
+
                 Settings.Default.UserLanguage = DefaultCultureName;
                 Settings.Default.Save(); // Save the default language
             }
@@ -110,6 +105,34 @@ namespace EasySave_by_ProSoft
             if (Localization.Resources.Culture != null || Localization.Resources.Culture == null) // Allows assignment
             {
                 Localization.Resources.Culture = culture;
+            }
+
+            // Load the appropriate XAML language resource dictionary
+            try
+            {
+                App.Current.Resources.MergedDictionaries.Clear();
+                ResourceDictionary resourceDict = new ResourceDictionary();
+                resourceDict.Source = new Uri($"/Localization/Strings.{culture.Name}.xaml", UriKind.Relative);
+                App.Current.Resources.MergedDictionaries.Add(resourceDict);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error loading language resources: {ex.Message}");
+                // If there's an error with the specific culture, try to load the default en-US resources
+                if (culture.Name != DefaultCultureName)
+                {
+                    try
+                    {
+                        App.Current.Resources.MergedDictionaries.Clear();
+                        ResourceDictionary resourceDict = new ResourceDictionary();
+                        resourceDict.Source = new Uri($"/Localization/Strings.{DefaultCultureName}.xaml", UriKind.Relative);
+                        App.Current.Resources.MergedDictionaries.Add(resourceDict);
+                    }
+                    catch (Exception innerEx)
+                    {
+                        Debug.WriteLine($"Error loading default language resources: {innerEx.Message}");
+                    }
+                }
             }
         }
 

@@ -49,7 +49,7 @@ namespace EasySave_by_ProSoft.Models
         public void RegisterJob(BackupJob job)
         {
             if (job == null) return;
-            
+
             lock (jobsLock)
             {
                 if (!activeJobs.Contains(job))
@@ -67,7 +67,7 @@ namespace EasySave_by_ProSoft.Models
         public void UnregisterJob(BackupJob job)
         {
             if (job == null) return;
-            
+
             lock (jobsLock)
             {
                 if (activeJobs.Contains(job))

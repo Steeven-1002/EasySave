@@ -22,7 +22,7 @@ namespace EasySave_by_ProSoft.Views
         {
             InitializeComponent();
             _dialogService = new DialogService();
-            
+
             // Register for the Unloaded event to clean up resources
             Unloaded += BackupJobsView_Unloaded;
         }
@@ -135,9 +135,9 @@ namespace EasySave_by_ProSoft.Views
             if (_jobsListViewModel.SelectedJobs.Count == 1)
                 _jobsListViewModel.LaunchJobCommand.Execute(null);
             else
-                foreach (var job in _jobsListViewModel.SelectedJobs)
+                foreach (var backupJob in _jobsListViewModel.Jobs)
                 {
-                    _jobsListViewModel.LaunchJobCommand.Execute(job);
+                    _jobsListViewModel.LaunchJobCommand.Execute(backupJob);
                 }
         }
 
@@ -281,13 +281,40 @@ namespace EasySave_by_ProSoft.Views
         }
 
         /// <summary>
-        /// Event handler for checkbox change events
+        /// Event handler for checkbox change events and the Individuals button
         /// </summary>
         private void BackupJob_CheckChanged(object sender, RoutedEventArgs e)
         {
+            // Handle individual checkbox clicks
             if (sender is System.Windows.Controls.CheckBox checkBox && checkBox.DataContext is BackupJob job)
             {
                 UpdateSelectedJobsFromCheckboxes();
+            }
+            // Handle "Individuals" button click
+            else
+            {
+                // If no jobs are selected, select all jobs
+                if (_jobsListViewModel.SelectedJobs.Count == 0)
+                {
+                    foreach (BackupJob ijob in _jobsListViewModel.Jobs)
+                    {
+                        ijob.IsSelected = true;
+                    }
+                }
+                // If some jobs are selected, toggle their selection state
+                else
+                {
+                    foreach (var jjob in _jobsListViewModel.SelectedJobs)
+                    {
+                        jjob.IsSelected = !jjob.IsSelected;
+                    }
+                }
+
+                // Update selection in the view model
+                UpdateSelectedJobsFromCheckboxes();
+
+                // Show confirmation message
+                _dialogService.ShowInformation("Job selection updated", "Information");
             }
         }
 

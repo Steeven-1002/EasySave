@@ -1,0 +1,74 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=mscorlib">
+    <!-- Application Strings -->
+    <system:String x:Key="AppName">EasySave</system:String>
+    <system:String x:Key="AppDescription">Logiciel de Gestion de Sauvegarde</system:String>
+    
+    <!-- Navigation -->
+    <system:String x:Key="Home">Accueil</system:String>
+    <system:String x:Key="Jobs">Travaux de Sauvegarde</system:String>
+    <system:String x:Key="Settings">Paramètres</system:String>
+    <system:String x:Key="RemoteControl">Contrôle à Distance</system:String>
+    
+    <!-- Job Management -->
+    <system:String x:Key="CreateJob">Créer un Travail</system:String>
+    <system:String x:Key="EditJob">Modifier le Travail</system:String>
+    <system:String x:Key="DeleteJob">Supprimer le Travail</system:String>
+    <system:String x:Key="RunJob">Exécuter le Travail</system:String>
+    <system:String x:Key="RunAllJobs">Exécuter Tous les Travaux</system:String>
+    <system:String x:Key="JobName">Nom du Travail</system:String>
+    <system:String x:Key="SourceDirectory">Répertoire Source</system:String>
+    <system:String x:Key="TargetDirectory">Répertoire Cible</system:String>
+    <system:String x:Key="BackupType">Type de Sauvegarde</system:String>
+    <system:String x:Key="Complete">Complète</system:String>
+    <system:String x:Key="Differential">Différentielle</system:String>
+    
+    <!-- Settings -->
+    <system:String x:Key="GeneralSettings">Paramètres Généraux</system:String>
+    <system:String x:Key="Language">Langue</system:String>
+    <system:String x:Key="LogFormat">Format de Journal</system:String>
+    <system:String x:Key="EncryptionSettings">Paramètres de Chiffrement</system:String>
+    <system:String x:Key="EncryptionKey">Clé de Chiffrement</system:String>
+    <system:String x:Key="EncryptExtensions">Extensions à Chiffrer</system:String>
+    <system:String x:Key="PriorityExtensions">Extensions Prioritaires</system:String>
+    <system:String x:Key="BusinessSoftware">Logiciel Métier</system:String>
+    <system:String x:Key="LargeFileSize">Taille de Fichier Volumineux (Ko)</system:String>
+    <system:String x:Key="SaveSettings">Enregistrer les Paramètres</system:String>
+    
+    <!-- Notifications -->
+    <system:String x:Key="SettingsSaved">Paramètres enregistrés avec succès!</system:String>
+    <system:String x:Key="InformationTitle">Information</system:String>
+    <system:String x:Key="ErrorTitle">Erreur</system:String>
+    <system:String x:Key="WarningTitle">Avertissement</system:String>
+    <system:String x:Key="JobSaved">Travail de sauvegarde enregistré avec succès!</system:String>
+    <system:String x:Key="JobDeleted">Travail de sauvegarde supprimé avec succès!</system:String>
+    <system:String x:Key="ConfirmDelete">Êtes-vous sûr de vouloir supprimer ce travail?</system:String>
+    
+    <!-- Status Messages -->
+    <system:String x:Key="Running">En cours</system:String>
+    <system:String x:Key="Completed">Terminé</system:String>
+    <system:String x:Key="Failed">Échoué</system:String>
+    <system:String x:Key="NotStarted">Non Démarré</system:String>
+    
+    <!-- Remote Control -->
+    <system:String x:Key="StartServer">Démarrer le Serveur</system:String>
+    <system:String x:Key="StopServer">Arrêter le Serveur</system:String>
+    <system:String x:Key="ServerStatus">État du Serveur</system:String>
+    <system:String x:Key="ServerRunning">Le serveur est en cours d'exécution</system:String>
+    <system:String x:Key="ServerStopped">Le serveur est arrêté</system:String>
+    <system:String x:Key="ServerPort">Port du Serveur</system:String>
+    
+    <!-- Misc -->
+    <system:String x:Key="Browse">Parcourir</system:String>
+    <system:String x:Key="Cancel">Annuler</system:String>
+    <system:String x:Key="Save">Enregistrer</system:String>
+    <system:String x:Key="Select">Sélectionner</system:String>
+    <system:String x:Key="Close">Fermer</system:String>
+    <system:String x:Key="ApplicationAlreadyRunning">L'application est déjà en cours d'exécution</system:String>
+    <system:String x:Key="SingleInstanceTitle">Instance Unique</system:String>
+    <system:String x:Key="CultureNotFoundMessage">Culture {0} introuvable. Retour à {1}</system:String>
+    <system:String x:Key="InvalidCultureTitle">Culture Invalide</system:String>
+    <system:String x:Key="NoLanguageSavedMessage">Aucune préférence de langue enregistrée. Utilisation de {0}</system:String>
+    <system:String x:Key="NoLanguageSavedTitle">Aucune Langue Enregistrée</system:String>
+</ResourceDictionary> 

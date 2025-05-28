@@ -195,6 +195,9 @@
   <data name="LanguageChangeCancelledMessage" xml:space="preserve">
     <value>Le changement de langue a été annulé. La langue actuelle reste active.</value>
   </data>
+  <data name="LanguageChangeAppliedMessage" xml:space="preserve">
+    <value>La langue a été changée avec succès.</value>
+  </data>
   <data name="LanguageChangeRestartMessage" xml:space="preserve">
     <value>L'application doit redémarrer la fenêtre principale pour appliquer le changement de langue. Cliquez sur 'OK' pour redémarrer maintenant.</value>
   </data>
@@ -365,6 +368,7 @@
   </data>
   <data name="MessageConfirmDeleteJobs" xml:space="preserve">
     <value>Suppression effectué </value>
+  </data>
   <data name="StatusRunning" xml:space="preserve">
     <value>En cours</value>
   </data>
