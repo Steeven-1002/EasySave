@@ -28,6 +28,7 @@ namespace EasySave_by_ProSoft.Core
         {
             if (jobs == null || !jobs.Any()) return;
 
+            Debug.WriteLine($"ParallelExecutionManager: Starting execution of {jobs.Count} jobs");
             List<Task> runningTasks = new();
 
             foreach (var job in jobs)
@@ -37,16 +38,19 @@ namespace EasySave_by_ProSoft.Core
                     if (!_activeJobs.Contains(job))
                     {
                         _activeJobs.Add(job);
+                        Debug.WriteLine($"ParallelExecutionManager: Added job '{job.Name}' to active jobs list");
 
                         var jobTask = Task.Run(() =>
                         {
                             try
                             {
+                                Debug.WriteLine($"ParallelExecutionManager: Starting job '{job.Name}'");
                                 job.Start();
+                                Debug.WriteLine($"ParallelExecutionManager: Job '{job.Name}' completed with status: {job.Status.State}");
                             }
                             catch (Exception ex)
                             {
-                                Debug.WriteLine($"Error executing job {job.Name}: {ex.Message}");
+                                Debug.WriteLine($"ParallelExecutionManager: Error executing job {job.Name}: {ex.Message}");
                                 job.Status.SetError($"Error: {ex.Message}");
                             }
                             finally
@@ -54,6 +58,7 @@ namespace EasySave_by_ProSoft.Core
                                 lock (_activeJobs)
                                 {
                                     _activeJobs.Remove(job);
+                                    Debug.WriteLine($"ParallelExecutionManager: Removed job '{job.Name}' from active jobs list");
                                 }
                             }
                         }, _cts.Token);
@@ -61,12 +66,22 @@ namespace EasySave_by_ProSoft.Core
                         _jobTasks[job] = jobTask;
                         runningTasks.Add(jobTask);
                     }
+                    else
+                    {
+                        Debug.WriteLine($"ParallelExecutionManager: Job '{job.Name}' is already in active jobs list, skipping");
+                    }
                 }
             }
 
             if (runningTasks.Any())
             {
+                Debug.WriteLine($"ParallelExecutionManager: Waiting for {runningTasks.Count} jobs to complete");
                 await Task.WhenAll(runningTasks);
+                Debug.WriteLine("ParallelExecutionManager: All jobs completed");
+            }
+            else
+            {
+                Debug.WriteLine("ParallelExecutionManager: No jobs to run");
             }
         }
 

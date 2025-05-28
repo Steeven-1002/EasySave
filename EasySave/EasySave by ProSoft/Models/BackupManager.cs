@@ -186,6 +186,7 @@ namespace EasySave_by_ProSoft.Models
             if (jobNames == null || !jobNames.Any())
                 return;
 
+            Debug.WriteLine($"BackupManager.ExecuteJobsByNameAsync: Preparing to execute jobs: {string.Join(", ", jobNames)}");
             List<BackupJob> jobsToRun = new List<BackupJob>();
 
             foreach (var name in jobNames)
@@ -193,43 +194,42 @@ namespace EasySave_by_ProSoft.Models
                 BackupJob jobToRun = backupJobs.FirstOrDefault(j => j.Name == name);
                 if (jobToRun != null)
                 {
-
                     if (jobToRun.Status.State == BackupState.Initialise ||
                         jobToRun.Status.State == BackupState.Error ||
                         jobToRun.Status.State == BackupState.Completed)
                     {
-
                         jobToRun.Status.ResetForRun();
+                        Debug.WriteLine($"BackupManager.ExecuteJobsByNameAsync: Reset job '{jobToRun.Name}' for execution");
                     }
-
 
                     if (jobToRun.Status.State == BackupState.Initialise)
                     {
                         jobsToRun.Add(jobToRun);
-
                         _businessMonitor.RegisterJob(jobToRun);
+                        Debug.WriteLine($"BackupManager.ExecuteJobsByNameAsync: Added job '{jobToRun.Name}' to execution list");
                     }
                     else
                     {
-                        Debug.WriteLine($"Job '{jobToRun.Name}' is not launchable (Actual State : {jobToRun.Status.State})");
+                        Debug.WriteLine($"BackupManager.ExecuteJobsByNameAsync: Job '{jobToRun.Name}' is not launchable (Actual State: {jobToRun.Status.State})");
                     }
                 }
                 else
                 {
-                    Debug.WriteLine($"Job with name '{name}' not found");
+                    Debug.WriteLine($"BackupManager.ExecuteJobsByNameAsync: Job with name '{name}' not found");
                 }
             }
 
             if (jobsToRun.Any())
             {
+                Debug.WriteLine($"BackupManager.ExecuteJobsByNameAsync: Executing {jobsToRun.Count} jobs");
                 await _parallelManager.ExecuteJobsInParallelAsync(jobsToRun);
+                Debug.WriteLine($"BackupManager.ExecuteJobsByNameAsync: Job execution completed");
             }
             else
             {
-                Debug.WriteLine("No Job to launch");
+                Debug.WriteLine("BackupManager.ExecuteJobsByNameAsync: No jobs to launch");
             }
         }
-
 
         public bool RemoveJobByName(string jobName)
         {

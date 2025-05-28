@@ -439,6 +439,15 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Language has been changed successfully..
+        /// </summary>
+        public static string LanguageChangeAppliedMessage {
+            get {
+                return ResourceManager.GetString("LanguageChangeAppliedMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Language change has been cancelled. The current language remains active..
         /// </summary>
         public static string LanguageChangeCancelledMessage {
@@ -786,6 +795,15 @@ namespace EasySave_by_ProSoft.Localization {
         public static string StateWaiting {
             get {
                 return ResourceManager.GetString("StateWaiting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Running.
+        /// </summary>
+        public static string StatusRunning {
+            get {
+                return ResourceManager.GetString("StatusRunning", resourceCulture);
             }
         }
         

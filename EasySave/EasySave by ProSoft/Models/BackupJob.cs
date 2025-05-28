@@ -28,7 +28,6 @@ namespace EasySave_by_ProSoft.Models
         private bool _isPaused = false;
         private bool _stopRequested = false;
         private List<string> toProcessFiles = new List<string>();
-        private readonly IDialogService _dialogService;
 
 
         private readonly SemaphoreSlim _largeFileTransferSemaphore;
@@ -71,7 +70,7 @@ namespace EasySave_by_ProSoft.Models
 
             _largeFileTransferSemaphore = largeFileSemaphore ?? throw new ArgumentNullException(nameof(largeFileSemaphore));
 
-            string appNameToMonitor = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
+            string? appNameToMonitor = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
             _businessMonitor = new BusinessApplicationMonitor(appNameToMonitor);
 
             // Initialize services
@@ -142,33 +141,39 @@ namespace EasySave_by_ProSoft.Models
         /// </summary>
         public void Start()
         {
-
-
-
             if (_businessMonitor != null && _businessMonitor.IsRunning())
             {
                 var dialogService = new DialogService();
                 dialogService.ShowBusinessSoftware(localization: Resources.PopUpBusinessSoftware);
+                // Set the job status to error when business software is running
+                Status.SetError("Cannot start job while business software is running");
                 return;
             }
 
-
-
             lock (this)
             {
-                if (_isRunning || Status.State == BackupState.Completed)
+                // Don't start if already running
+                if (_isRunning)
                     return;
-
+                    
+                // Reset flags to ensure we can restart after stopping
                 _isRunning = true;
                 _isPaused = false;
                 _stopRequested = false;
+                
+                // If the job was previously completed or stopped, reset the status
+                if (Status.State == BackupState.Completed || 
+                    Status.State == BackupState.Error || 
+                    Status.State == BackupState.Initialise)
+                {
+                    Status.ResetForRun();
+                }
             }
 
             try
             {
                 // Start the job with start details
-                string startDetails = null;
-                Status.Start(startDetails);
+                Status.Start();
 
                 // Get files using the selected strategy
                 if (toProcessFiles.Count == 0)
@@ -302,6 +307,10 @@ namespace EasySave_by_ProSoft.Models
         {
             try
             {
+                // Check if stop was requested before starting file processing
+                if (_stopRequested)
+                    return;
+                    
                 Status.CurrentSourceFile = sourceFile;
                 string relativePath = sourceFile.Substring(SourcePath.Length).TrimStart('\\', '/');
                 string targetFile = Path.Combine(TargetPath, relativePath);
@@ -311,8 +320,16 @@ namespace EasySave_by_ProSoft.Models
                 if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
                     Directory.CreateDirectory(targetDir);
 
+                // Check again if stop was requested before file operations
+                if (_stopRequested)
+                    return;
+
                 long fileSize = _fileSystemService.GetSize(sourceFile);
                 _fileSystemService.CopyFile(sourceFile, targetFile);
+
+                // Check if stop was requested before encryption
+                if (_stopRequested)
+                    return;
 
                 List<string> encryptionExtensions = new();
                 var extensionsElement = AppSettings.Instance.GetSetting("EncryptionExtensions");
@@ -341,27 +358,54 @@ namespace EasySave_by_ProSoft.Models
                     _encryptionTime = 0;
                 }
 
-                Status.RemainingFiles--;
-                Status.RemainingSize -= fileSize;
-                Status.EncryptionTimeMs = _encryptionTime;
-                Status.Update();
+                // Only update status if we haven't been stopped
+                if (!_stopRequested)
+                {
+                    Status.RemainingFiles--;
+                    Status.RemainingSize -= fileSize;
+                    Status.EncryptionTimeMs = _encryptionTime;
+                    Status.Update();
+                }
             }
             catch (Exception ex)
             {
-                System.Windows.Forms.MessageBox.Show($"Error processing file {sourceFile}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                // Only show error if we haven't been stopped
+                if (!_stopRequested)
+                {
+                    System.Windows.Forms.MessageBox.Show($"Error processing file {sourceFile}: {ex.Message}", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                }
             }
         }
 
         private async Task ProcessLargeFileWithSemaphore(string sourceFile, long largeFileSizeThresholdBytes)
         {
+            // Check if stop was requested before acquiring semaphore
+            if (_stopRequested)
+                return;
+                
             long fileSize = _fileSystemService.GetSize(sourceFile);
             if (fileSize > largeFileSizeThresholdBytes)
             {
                 double thresholdKB = largeFileSizeThresholdBytes / 1024.0;
 
-                await _largeFileTransferSemaphore.WaitAsync();
+                // Use a timeout when acquiring the semaphore to prevent deadlock when stopping
+                bool semaphoreAcquired = await _largeFileTransferSemaphore.WaitAsync(500);
+                if (!semaphoreAcquired)
+                {
+                    // If we couldn't acquire the semaphore and we're stopping, just return
+                    if (_stopRequested)
+                        return;
+                        
+                    // Otherwise try again
+                    await _largeFileTransferSemaphore.WaitAsync();
+                }
+                
                 try
                 {
+                    // Check again if stop was requested after acquiring semaphore
+                    if (_stopRequested)
+                        return;
+                        
                     await ProcessSingleFile(sourceFile, largeFileSizeThresholdBytes);
                 }
                 finally
@@ -419,11 +463,34 @@ namespace EasySave_by_ProSoft.Models
         {
             lock (statusLock)
             {
+                if (_isPaused)
+                    Resume();
                 _stopRequested = true;
                 IsPausedByBusinessApp = false;
                 Status.State = BackupState.Error;
                 Status.Details = "Job stopped by user";
                 Status.Update();
+
+                // Force immediate termination of any ongoing operations
+                try
+                {
+                    // Clear the list of files to process to prevent restarting with partial data
+                    toProcessFiles.Clear();
+                    
+                    // Reset internal state flags
+                    _isRunning = false;
+                    _isPaused = false;
+                    
+                    // Ensure the job status is properly reset for future runs
+                    Status.ResetForRun();
+                    Status.State = BackupState.Initialise;
+                    Status.Details = "Job ready to start";
+                    Status.Update();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error during job termination: {ex.Message}");
+                }
 
                 // Unregister from business application monitor if needed
                 if (_backupManager is BackupManager manager)

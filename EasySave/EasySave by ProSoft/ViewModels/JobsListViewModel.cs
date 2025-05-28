@@ -297,7 +297,8 @@ namespace EasySave_by_ProSoft.ViewModels
                 if (specificJob.Status.State == BackupState.Running)
                 {
                     specificJob.Pause();
-                    JobStatusChanged?.Invoke($"Job '{specificJob.Name}' has been paused.");
+                    Debug.WriteLine($"JobsListViewModel.PauseJob: Paused specific job '{specificJob.Name}'");
+                    CommandManager.InvalidateRequerySuggested(); // Update command states
                 }
                 return;
             }
@@ -310,9 +311,10 @@ namespace EasySave_by_ProSoft.ViewModels
                     if (job.Status.State == BackupState.Running)
                     {
                         job.Pause();
-                        JobStatusChanged?.Invoke($"Job '{job.Name}' has been paused.");
+                        Debug.WriteLine($"JobsListViewModel.PauseJob: Paused selected job '{job.Name}'");
                     }
                 }
+                CommandManager.InvalidateRequerySuggested(); // Update command states
             }
             else
             {
@@ -343,7 +345,8 @@ namespace EasySave_by_ProSoft.ViewModels
                 if (specificJob.Status.State == BackupState.Paused)
                 {
                     specificJob.Resume();
-                    JobStatusChanged?.Invoke($"Job '{specificJob.Name}' has been resumed.");
+                    Debug.WriteLine($"JobsListViewModel.ResumeJob: Resumed specific job '{specificJob.Name}'");
+                    CommandManager.InvalidateRequerySuggested(); // Update command states
                 }
                 // Add ability to start jobs in Initialise, Error, or Completed states
                 else if (specificJob.Status.State == BackupState.Initialise ||
@@ -363,7 +366,7 @@ namespace EasySave_by_ProSoft.ViewModels
                     if (job.Status.State == BackupState.Paused)
                     {
                         job.Resume();
-                        JobStatusChanged?.Invoke($"Job '{job.Name}' has been resumed.");
+                        Debug.WriteLine($"JobsListViewModel.ResumeJob: Resumed selected job '{job.Name}'");
                     }
                     // Add ability to start jobs in Initialise, Error, or Completed states
                     else if (job.Status.State == BackupState.Initialise ||
@@ -373,6 +376,7 @@ namespace EasySave_by_ProSoft.ViewModels
                         LaunchJob(job);
                     }
                 }
+                CommandManager.InvalidateRequerySuggested(); // Update command states
             }
             else
             {
@@ -389,19 +393,28 @@ namespace EasySave_by_ProSoft.ViewModels
             if (job != null)
             {
                 job.Status.ResetForRun();
+                Debug.WriteLine($"JobsListViewModel.LaunchJob: Reset job '{job.Name}' status for execution. New status: {job.Status.State}");
+                
                 List<string> jobNames = new List<string> { job.Name };
                 _isLaunchingJobs = true;
                 CommandManager.InvalidateRequerySuggested();
 
                 try
                 {
+                    Debug.WriteLine($"JobsListViewModel.LaunchJob: Starting execution of job '{job.Name}'");
                     await _backupManager.ExecuteJobsByNameAsync(jobNames);
-                    JobStatusChanged?.Invoke($"Job '{job.Name}' has been started.");
+                    Debug.WriteLine($"JobsListViewModel.LaunchJob: Job '{job.Name}' execution completed");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"JobsListViewModel.LaunchJob: Error executing job '{job.Name}': {ex.Message}");
+                    job.Status.SetError($"Error: {ex.Message}");
                 }
                 finally
                 {
                     _isLaunchingJobs = false;
                     CommandManager.InvalidateRequerySuggested();
+                    Debug.WriteLine($"JobsListViewModel.LaunchJob: (in finally) SET _isLaunchingJobs = false for job '{job.Name}'");
                 }
             }
         }
@@ -449,7 +462,8 @@ namespace EasySave_by_ProSoft.ViewModels
                 if (specificJob.Status.State == BackupState.Running || specificJob.Status.State == BackupState.Paused)
                 {
                     specificJob.Stop();
-                    JobStatusChanged?.Invoke($"Job '{specificJob.Name}' has been stopped.");
+                    Debug.WriteLine($"JobsListViewModel.StopJob: Stopped specific job '{specificJob.Name}'");
+                    CommandManager.InvalidateRequerySuggested(); // Update command states
                 }
                 return;
             }
@@ -462,9 +476,10 @@ namespace EasySave_by_ProSoft.ViewModels
                     if (job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused)
                     {
                         job.Stop();
-                        JobStatusChanged?.Invoke($"Job '{job.Name}' has been stopped.");
+                        Debug.WriteLine($"JobsListViewModel.StopJob: Stopped selected job '{job.Name}'");
                     }
                 }
+                CommandManager.InvalidateRequerySuggested(); // Update command states
             }
             else
             {
