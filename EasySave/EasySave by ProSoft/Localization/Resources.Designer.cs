@@ -79,6 +79,15 @@ namespace EasySave_by_ProSoft.Localization {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Current backup jobs will not be affected by the changes. Do you want to continue?.
+        /// </summary>
+        public static string BackupJobsSettingsChangeConfirmation {
+            get {
+                return ResourceManager.GetString("BackupJobsSettingsChangeConfirmation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Backup Settings.
         /// </summary>
         public static string BackupSettings {
@@ -435,6 +444,15 @@ namespace EasySave_by_ProSoft.Localization {
         public static string Language {
             get {
                 return ResourceManager.GetString("Language", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Language has been changed successfully..
+        /// </summary>
+        public static string LanguageChangeAppliedMessage {
+            get {
+                return ResourceManager.GetString("LanguageChangeAppliedMessage", resourceCulture);
             }
         }
         
