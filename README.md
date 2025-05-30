@@ -19,7 +19,7 @@ Our team has just integrated the software publisher ProSoft.   Under the res
 * C#
 *Framework .NET 8.0
 
-# Version 1.0
+# Version 3.0
 
 Here is a list given by the client that is needed to develop the software : 
 
