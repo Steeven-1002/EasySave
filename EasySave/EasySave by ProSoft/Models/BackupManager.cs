@@ -187,6 +187,14 @@ namespace EasySave_by_ProSoft.Models
                 return;
 
             Debug.WriteLine($"BackupManager.ExecuteJobsByNameAsync: Preparing to execute jobs: {string.Join(", ", jobNames)}");
+            
+            // Check if business software is running
+            if (_businessMonitor != null && _businessMonitor.IsRunning())
+            {
+                Debug.WriteLine("BackupManager.ExecuteJobsByNameAsync: Business software is running, cannot launch jobs");
+                return;
+            }
+
             List<BackupJob> jobsToRun = new List<BackupJob>();
 
             foreach (var name in jobNames)
@@ -369,6 +377,13 @@ namespace EasySave_by_ProSoft.Models
 
             Debug.WriteLine($"BackupManager.OnLaunchJobsRequested: Processing launch request for jobs: {string.Join(", ", jobNames)}");
 
+            // Check if business software is running first
+            if (_businessMonitor != null && _businessMonitor.IsRunning())
+            {
+                Debug.WriteLine("BackupManager.OnLaunchJobsRequested: Cannot launch jobs while business software is running");
+                return;
+            }
+
             // Reset job status for each job before executing
             foreach (var name in jobNames)
             {
@@ -414,6 +429,13 @@ namespace EasySave_by_ProSoft.Models
         public void OnResumeJobsRequested(List<string> jobNames)
         {
             if (jobNames == null || !jobNames.Any()) return;
+
+            // Check if business software is running first
+            if (_businessMonitor != null && _businessMonitor.IsRunning())
+            {
+                Debug.WriteLine("BackupManager.OnResumeJobsRequested: Cannot resume jobs while business software is running");
+                return;
+            }
 
             foreach (var name in jobNames)
             {

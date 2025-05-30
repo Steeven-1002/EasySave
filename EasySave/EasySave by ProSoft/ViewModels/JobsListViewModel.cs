@@ -207,12 +207,20 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private async Task LaunchSelectedJob()
         {
-
-
             // Check if any jobs are selected.
             if (SelectedJobs == null || !SelectedJobs.Any())
             {
                 Debug.WriteLine("LaunchSelectedJob: No jobs selected.");
+                return;
+            }
+
+            // Check if business software is running
+            string appNameToMonitor = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
+            if (!string.IsNullOrEmpty(appNameToMonitor) &&
+                new BusinessApplicationMonitor(appNameToMonitor).IsRunning())
+            {
+                Debug.WriteLine("LaunchSelectedJob: Business software is running, cannot launch jobs.");
+                ValidationError?.Invoke("Cannot launch jobs while business software is running");
                 return;
             }
 
@@ -339,6 +347,16 @@ namespace EasySave_by_ProSoft.ViewModels
         /// </summary>
         private void ResumeJob(object jobParameter)
         {
+            // Check if business software is running
+            string appNameToMonitor = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
+            if (!string.IsNullOrEmpty(appNameToMonitor) &&
+                new BusinessApplicationMonitor(appNameToMonitor).IsRunning())
+            {
+                Debug.WriteLine("ResumeJob: Business software is running, cannot resume jobs.");
+                _dialogService.ShowInformation("Cannot resume jobs while business software is running.", "Business Software Running");
+                return;
+            }
+
             // If a specific job is provided, resume it
             if (jobParameter is BackupJob specificJob)
             {
@@ -392,9 +410,19 @@ namespace EasySave_by_ProSoft.ViewModels
         {
             if (job != null)
             {
+                // Check if business software is running
+                string appNameToMonitor = AppSettings.Instance.GetSetting("BusinessSoftwareName") as string;
+                if (!string.IsNullOrEmpty(appNameToMonitor) &&
+                    new BusinessApplicationMonitor(appNameToMonitor).IsRunning())
+                {
+                    Debug.WriteLine("LaunchJob: Business software is running, cannot launch job.");
+                    ValidationError?.Invoke("Cannot launch job while business software is running");
+                    return;
+                }
+
                 job.Status.ResetForRun();
                 Debug.WriteLine($"JobsListViewModel.LaunchJob: Reset job '{job.Name}' status for execution. New status: {job.Status.State}");
-                
+
                 List<string> jobNames = new List<string> { job.Name };
                 _isLaunchingJobs = true;
                 CommandManager.InvalidateRequerySuggested();
@@ -564,7 +592,35 @@ namespace EasySave_by_ProSoft.ViewModels
 
         public void OnBusinessSoftwareStateChanged(bool isRunning)
         {
-            // Not needed for this implementation
+            Debug.WriteLine($"JobsListViewModel.OnBusinessSoftwareStateChanged: Business software running state is now {isRunning}");
+
+            // Use the dispatcher to update UI
+            var dispatcher = System.Windows.Application.Current?.Dispatcher;
+            if (dispatcher != null && !dispatcher.CheckAccess())
+            {
+                dispatcher.Invoke(() => UpdateUIForBusinessSoftwareState(isRunning));
+            }
+            else
+            {
+                UpdateUIForBusinessSoftwareState(isRunning);
+            }
+        }
+
+        /// <summary>
+        /// Updates the UI based on business software state changes
+        /// </summary>
+        private void UpdateUIForBusinessSoftwareState(bool isRunning)
+        {
+            if (isRunning)
+            {
+                // Show notification to user
+                JobStatusChanged?.Invoke("Business software has started. Running jobs will be paused.");
+            }
+            else
+            {
+                // Show notification to user
+                JobStatusChanged?.Invoke("Business software has stopped. Jobs paused by business software will be resumed.");
+            }
         }
 
         public void OnLaunchJobsRequested(List<string> jobNames)
