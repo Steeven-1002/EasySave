@@ -102,7 +102,7 @@ namespace EasySave_by_ProSoft.ViewModels
                 JobAdded?.Invoke(job);
                 JobCreated?.Invoke(Localization.Resources.MessageNewJobValidated);
 
-                // Reset inputs
+                // Reset input fields after successful job creation
                 ResetInputFields();
             }
             catch (Exception ex)

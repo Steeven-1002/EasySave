@@ -120,7 +120,7 @@ namespace EasySave_by_ProSoft.ViewModels
             }
             set
             {
-                // Remplace commas with periods and ensure proper formatting
+                // Replace commas with periods and ensure proper formatting
                 var formatted = Regex.Replace(value, @"(?<!\, )\.", ", .");
 
                 var cleaned = Regex.Replace(formatted, @"(?<!^)\.", " .");

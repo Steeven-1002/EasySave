@@ -189,7 +189,7 @@ namespace EasySave_by_ProSoft.Models
         public double TransferRate => ElapsedTime.TotalSeconds > 0 ? TransferredSize / ElapsedTime.TotalSeconds : 0;
 
         /// <summary>
-        /// Estimated time remaining
+        /// Time remaining until job completion based on current transfer rate
         /// </summary>
         public TimeSpan EstimatedTimeRemaining
         {

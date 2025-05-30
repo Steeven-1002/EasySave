@@ -621,6 +621,9 @@ namespace EasySave_by_ProSoft.ViewModels
                 // Show notification to user
                 JobStatusChanged?.Invoke("Business software has stopped. Jobs paused by business software will be resumed.");
             }
+
+            // Force command state update
+            CommandManager.InvalidateRequerySuggested();
         }
 
         public void OnLaunchJobsRequested(List<string> jobNames)

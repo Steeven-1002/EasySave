@@ -11,7 +11,7 @@ using System.Text.Json.Serialization;
 namespace EasySave_by_ProSoft.Network
 {
     /// <summary>
-    /// Manages TCP socket connections for remote backup job control
+    /// Manages TCP socket connections for remote backup job control.
     /// </summary>
     public class SocketServer
     {
@@ -23,7 +23,7 @@ namespace EasySave_by_ProSoft.Network
         public int Port { get; }
         public bool IsRunning { get; private set; }
 
-        // Event for server status changes
+        // Event for server status changes.
         public event EventHandler<string> ServerStatusChanged;
         public event EventHandler<NetworkMessage> MessageReceived;
 
