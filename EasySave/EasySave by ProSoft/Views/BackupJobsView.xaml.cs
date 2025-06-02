@@ -1,7 +1,8 @@
 ﻿using EasySave_by_ProSoft.Models;
+using EasySave_by_ProSoft.Services;
 using EasySave_by_ProSoft.ViewModels;
-using System.Windows; // For RoutedEventArgs and MessageBox
-using System.Windows.Controls; // For UserControl
+using System.Windows;
+using System.Windows.Controls;
 using WinForms = System.Windows.Forms;
 
 namespace EasySave_by_ProSoft.Views
@@ -9,15 +10,21 @@ namespace EasySave_by_ProSoft.Views
     /// <summary>
     /// View for managing backup jobs
     /// </summary>
-    public partial class BackupJobsView : System.Windows.Controls.UserControl
+    public partial class BackupJobsView : System.Windows.Controls.UserControl, IDisposable
     {
         private readonly BackupManager _backupManager;
-        private readonly MainViewModel _backupJobsViewModel;
+        private readonly JobsListViewModel _jobsListViewModel;
         private readonly JobAddViewModel _jobAddViewModel;
+        private readonly IDialogService _dialogService;
+        private bool _disposed = false;
 
         public BackupJobsView()
         {
             InitializeComponent();
+            _dialogService = new DialogService();
+
+            // Register for the Unloaded event to clean up resources
+            Unloaded += BackupJobsView_Unloaded;
         }
 
         public BackupJobsView(BackupManager backupManager) : this()
@@ -25,14 +32,20 @@ namespace EasySave_by_ProSoft.Views
             _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
 
             // Create ViewModels with the BackupManager
-            _backupJobsViewModel = new MainViewModel(_backupManager);
-            _jobAddViewModel = new JobAddViewModel(_backupManager);
+            _jobsListViewModel = new JobsListViewModel(_backupManager, _dialogService);
+            _jobAddViewModel = new JobAddViewModel(_backupManager, _dialogService);
 
             // Connect events
-            _jobAddViewModel.JobAdded += _backupJobsViewModel.JobAdded;
+            _jobAddViewModel.JobAdded += _jobsListViewModel.JobAdded;
+
+            // Connect notification events
+            _jobsListViewModel.ValidationError += message => _dialogService.ShowError(message);
+            _jobsListViewModel.JobStatusChanged += message => _dialogService.ShowInformation(message);
+            _jobAddViewModel.ValidationError += message => _dialogService.ShowError(message);
+            _jobAddViewModel.JobCreated += message => _dialogService.ShowInformation(message);
 
             // Set data contexts
-            DataContext = _backupJobsViewModel;
+            DataContext = _jobsListViewModel;
             if (CreateJobPanel != null)
             {
                 CreateJobPanel.DataContext = _jobAddViewModel;
@@ -41,7 +54,7 @@ namespace EasySave_by_ProSoft.Views
             // Make sure ListBox is properly bound to the Jobs collection
             if (BackupJobsListView != null)
             {
-                BackupJobsListView.ItemsSource = _backupJobsViewModel.Jobs;
+                BackupJobsListView.ItemsSource = _jobsListViewModel.Jobs;
                 BackupJobsListView.SelectionMode = System.Windows.Controls.SelectionMode.Extended;
 
                 // You can keep this event handler for backwards compatibility or remove it
@@ -64,14 +77,49 @@ namespace EasySave_by_ProSoft.Views
             RefreshJobsList();
         }
 
+        private void BackupJobsView_Unloaded(object sender, RoutedEventArgs e)
+        {
+            // Clean up resources when the view is unloaded
+            Dispose();
+        }
+
+        // IDisposable implementation
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Unregister from the Unloaded event
+                    Unloaded -= BackupJobsView_Unloaded;
+
+                    // Dispose of the view models
+                    _jobsListViewModel?.Dispose();
+                }
+
+                _disposed = true;
+            }
+        }
+
+        ~BackupJobsView()
+        {
+            Dispose(false);
+        }
+
         /// <summary>
         /// Refreshes the jobs list from the JSON storage
         /// </summary>
         public void RefreshJobsList()
         {
-            if (_backupJobsViewModel != null)
+            if (_jobsListViewModel != null)
             {
-                _backupJobsViewModel.LoadJobs();
+                _jobsListViewModel.LoadJobs();
             }
         }
 
@@ -80,57 +128,56 @@ namespace EasySave_by_ProSoft.Views
         /// </summary>
         private void LaunchSelectedJob_Click(object sender, RoutedEventArgs e)
         {
-            // Check for selected jobs via checkboxes
-            if (_backupJobsViewModel.SelectedJob == null || _backupJobsViewModel.SelectedJob.Count == 0)
-            {
-                System.Windows.MessageBox.Show("No backup selected");
+            // Check for job selection using the ViewModel method
+            if (!_jobsListViewModel.ValidateJobSelection())
                 return;
-            }
-            else if (_backupJobsViewModel.SelectedJob.Count == 1)
-                // Run the command with the selected job
-                _backupJobsViewModel.LaunchJobCommand.Execute(null);
+
+            if (_jobsListViewModel.SelectedJobs.Count == 1)
+                _jobsListViewModel.LaunchJobCommand.Execute(null);
             else
-                // Run the command with all selected jobs
-                foreach (var job in _backupJobsViewModel.SelectedJob)
+                foreach (var backupJob in _jobsListViewModel.Jobs)
                 {
-                    _backupJobsViewModel.LaunchJobCommand.Execute(job);
+                    _jobsListViewModel.LaunchJobCommand.Execute(backupJob);
                 }
-            // Update the UI to reflect the job status
-            RefreshJobsList();
         }
 
         private void DeleteSelectedJob_Click(object sender, RoutedEventArgs e)
         {
-            if (_backupJobsViewModel.SelectedJob == null)
-            {
-                System.Windows.MessageBox.Show("Please select a job to delete.");
-                return;
-            }
-
-            _backupJobsViewModel.RemoveJobCommand.Execute(null);
-
-            System.Windows.MessageBox.Show(Localization.Resources.MessageBoxDeleteJob);
+            // The button will be disabled when no jobs are selected via the Command binding
+            // But we still keep this method to notify about the deletion
+            _jobsListViewModel.NotifyJobDeleted();
         }
 
         private void LaunchMultipleJobs_Click(object sender, RoutedEventArgs e)
         {
             // Get selected jobs via checkboxes
-            var selectedJobs = _backupJobsViewModel.Jobs.Where(job => job.IsSelected).ToList();
+            var selectedJobs = _jobsListViewModel.Jobs.Where(job => job.IsSelected).ToList();
 
             if (selectedJobs.Count == 0)
             {
-                System.Windows.MessageBox.Show("Please select at least one job to launch.");
+                _dialogService.ShowWarning("Please select at least one job to launch.");
                 return;
             }
 
-            _backupJobsViewModel.LaunchMultipleJobsCommand.Execute(null);
-            System.Windows.MessageBox.Show($"{selectedJobs.Count} jobs have been launched.");
+            _jobsListViewModel.LaunchMultipleJobsCommand.Execute(null);
+            _jobsListViewModel.NotifyJobsLaunched(selectedJobs.Count);
         }
 
         private void CreateNewJob_Click(object sender, RoutedEventArgs e)
         {
             if (CreateJobPanel != null)
             {
+                // Set default values for the job fields
+                _jobAddViewModel.Name = string.Empty;
+                _jobAddViewModel.SourcePath = string.Empty;
+                _jobAddViewModel.TargetPath = string.Empty;
+                _jobAddViewModel.Type = BackupType.Full;
+
+                // Set the ComboBox selection to the default
+                if (JobTypeComboBox != null)
+                    JobTypeComboBox.SelectedIndex = 0;
+
+                // Show the panel
                 CreateJobPanel.Visibility = Visibility.Visible;
             }
         }
@@ -150,10 +197,6 @@ namespace EasySave_by_ProSoft.Views
         /// <summary>
         /// Opens a folder browser dialog
         /// </summary>
-        /// <param name="sender">Event sender</param>
-        /// <param name="e">Event arguments</param>
-        /// <param name="com">Dialog description</param>
-        /// <returns>Selected folder path or empty string</returns>
         private string Browse_Click(object sender, RoutedEventArgs e, string com)
         {
             var dialog = new WinForms.FolderBrowserDialog();
@@ -170,26 +213,42 @@ namespace EasySave_by_ProSoft.Views
 
         private void ValidateNewJob_Click(object sender, RoutedEventArgs e)
         {
-            // Execute the ViewModel command to create the job
-            if (string.IsNullOrWhiteSpace(JobNameTextBox.Text) || string.IsNullOrWhiteSpace(JobSourcePathTextBox.Text) || string.IsNullOrWhiteSpace(JobTargetPathTextBox.Text))
+            // Make sure job name is set correctly from TextBox before validation
+            if (JobNameTextBox != null && !string.IsNullOrWhiteSpace(JobNameTextBox.Text))
+                _jobAddViewModel.Name = JobNameTextBox.Text;
+
+            if (JobSourcePathTextBox != null && !string.IsNullOrWhiteSpace(JobSourcePathTextBox.Text))
+                _jobAddViewModel.SourcePath = JobSourcePathTextBox.Text;
+
+            if (JobTargetPathTextBox != null && !string.IsNullOrWhiteSpace(JobTargetPathTextBox.Text))
+                _jobAddViewModel.TargetPath = JobTargetPathTextBox.Text;
+
+            // Set values in the view model
+            if (!_jobAddViewModel.ValidateJobInputs())
+                return;
+
+            // Try to parse the backup type from the combo box
+            try
             {
-                System.Windows.MessageBox.Show("Invalid input. Please fill all fields.");
+                _jobAddViewModel.Type = Enum.TryParse(typeof(BackupType), (JobTypeComboBox.SelectedItem as ComboBoxItem)?.Content.ToString(), out var result)
+                    ? (BackupType)result
+                    : throw new InvalidOperationException("Invalid backup type selected.");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError($"Error with backup type: {ex.Message}");
                 return;
             }
-            _jobAddViewModel.SourcePath = JobSourcePathTextBox.Text;
-            _jobAddViewModel.TargetPath = JobTargetPathTextBox.Text;
-            _jobAddViewModel.Name = JobNameTextBox.Text;
-            _jobAddViewModel.Type = Enum.TryParse(typeof(BackupType), (JobTypeComboBox.SelectedItem as ComboBoxItem)?.Content.ToString(), out var result)
-                ? (BackupType)result
-                : throw new InvalidOperationException("Invalid backup type selected.");
-            if (_jobAddViewModel != null && _jobAddViewModel.AddJobCommand.CanExecute(null))
+
+            // Execute the view model command to create the job
+            if (_jobAddViewModel.AddJobCommand.CanExecute(null))
             {
                 _jobAddViewModel.AddJobCommand.Execute(null);
-                System.Windows.MessageBox.Show(Localization.Resources.MessageNewJobValidated);
 
+                // Hide the panel after validation
                 if (CreateJobPanel != null)
                 {
-                    CreateJobPanel.Visibility = Visibility.Collapsed; // Hide the panel after validation
+                    CreateJobPanel.Visibility = Visibility.Collapsed;
                 }
 
                 // Clear input fields
@@ -197,9 +256,6 @@ namespace EasySave_by_ProSoft.Views
                 JobSourcePathTextBox.Text = string.Empty;
                 JobTargetPathTextBox.Text = string.Empty;
                 JobTypeComboBox.SelectedIndex = 0;
-
-                // Refresh the jobs list after adding a new job
-                RefreshJobsList();
             }
         }
 
@@ -207,18 +263,58 @@ namespace EasySave_by_ProSoft.Views
         {
             if (CreateJobPanel != null)
             {
-                CreateJobPanel.Visibility = Visibility.Collapsed; // Hide the panel on cancel
+                // Clear input fields before hiding the panel
+                JobNameTextBox.Text = string.Empty;
+                JobSourcePathTextBox.Text = string.Empty;
+                JobTargetPathTextBox.Text = string.Empty;
+                JobTypeComboBox.SelectedIndex = 0;
+
+                // Reset ViewModel properties
+                _jobAddViewModel.Name = string.Empty;
+                _jobAddViewModel.SourcePath = string.Empty;
+                _jobAddViewModel.TargetPath = string.Empty;
+                _jobAddViewModel.Type = BackupType.Full;
+
+                // Hide the panel
+                CreateJobPanel.Visibility = Visibility.Collapsed;
             }
         }
 
         /// <summary>
-        /// Event handler for checkbox change events
+        /// Event handler for checkbox change events and the Individuals button
         /// </summary>
         private void BackupJob_CheckChanged(object sender, RoutedEventArgs e)
         {
+            // Handle individual checkbox clicks
             if (sender is System.Windows.Controls.CheckBox checkBox && checkBox.DataContext is BackupJob job)
             {
                 UpdateSelectedJobsFromCheckboxes();
+            }
+            // Handle "Individuals" button click
+            else
+            {
+                // If no jobs are selected, select all jobs
+                if (_jobsListViewModel.SelectedJobs.Count == 0)
+                {
+                    foreach (BackupJob ijob in _jobsListViewModel.Jobs)
+                    {
+                        ijob.IsSelected = true;
+                    }
+                }
+                // If some jobs are selected, toggle their selection state
+                else
+                {
+                    foreach (var jjob in _jobsListViewModel.SelectedJobs)
+                    {
+                        jjob.IsSelected = !jjob.IsSelected;
+                    }
+                }
+
+                // Update selection in the view model
+                UpdateSelectedJobsFromCheckboxes();
+
+                // Show confirmation message
+                _dialogService.ShowInformation("Job selection updated", "Information");
             }
         }
 
@@ -228,13 +324,103 @@ namespace EasySave_by_ProSoft.Views
         private void UpdateSelectedJobsFromCheckboxes()
         {
             // Get all jobs that have IsSelected = true
-            var selectedJobs = _backupJobsViewModel.Jobs
+            var selectedJobs = _jobsListViewModel.Jobs
                 .Where(job => job.IsSelected)
                 .ToList();
 
             // Update the view model
-            _backupJobsViewModel.SelectedJob = selectedJobs.Count > 0 ? selectedJobs : null;
-            _backupJobsViewModel.SelectedJobs = selectedJobs;
+            _jobsListViewModel.SelectedJobs = selectedJobs;
+        }
+
+        private void PauseSelectedJob_Click(object sender, RoutedEventArgs e)
+        {
+            // Check for job selection using the ViewModel method
+            if (!_jobsListViewModel.ValidateJobSelection())
+                return;
+
+            if (!_jobsListViewModel.CanPauseSelectedJob())
+            {
+                _dialogService.ShowWarning("Selected jobs cannot be paused. Only running jobs can be paused.");
+                return;
+            }
+
+            _jobsListViewModel.PauseJobCommand.Execute(null);
+        }
+
+        private void ResumeSelectedJob_Click(object sender, RoutedEventArgs e)
+        {
+            // Check for job selection using the ViewModel method
+            if (!_jobsListViewModel.ValidateJobSelection())
+                return;
+
+            if (!_jobsListViewModel.CanResumeSelectedJob())
+            {
+                _dialogService.ShowWarning("Selected jobs cannot be resumed. Only paused jobs can be resumed.");
+                return;
+            }
+
+            _jobsListViewModel.ResumeJobCommand.Execute(null);
+        }
+
+        private void StopSelectedJob_Click(object sender, RoutedEventArgs e)
+        {
+            // Check for job selection using the ViewModel method
+            if (!_jobsListViewModel.ValidateJobSelection())
+                return;
+
+            var jobsToStop = _jobsListViewModel.SelectedJobs.Where(job =>
+                job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused).ToList();
+
+            if (jobsToStop.Count == 0)
+            {
+                _dialogService.ShowWarning("No running or paused jobs selected to stop.");
+                return;
+            }
+
+            _jobsListViewModel.StopJobCommand.Execute(null);
+        }
+
+        // Update the code where ambiguity occurs
+        private void JobPause_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button button && button.Tag is BackupJob job)
+            {
+                if (job.Status.State == BackupState.Running)
+                {
+                    job.Pause();
+                    _dialogService.ShowInformation($"Job '{job.Name}' has been paused.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Resumes a specific job when its resume button is clicked
+        /// </summary>
+        private void JobResume_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button button && button.Tag is BackupJob job)
+            {
+                if (job.Status.State == BackupState.Paused)
+                {
+                    job.Resume();
+                    _dialogService.ShowInformation($"Job '{job.Name}' has been resumed.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Stops a specific job when its stop button is clicked
+        /// </summary>
+        private void JobStop_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button button && button.Tag is BackupJob job)
+            {
+                if (job.Status.State == BackupState.Running || job.Status.State == BackupState.Paused)
+                {
+                    job.Stop();
+                    _dialogService.ShowInformation($"Job '{job.Name}' has been stopped.");
+                }
+            }
         }
     }
 }

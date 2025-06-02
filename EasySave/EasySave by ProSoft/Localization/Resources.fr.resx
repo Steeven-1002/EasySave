@@ -121,7 +121,7 @@
     <value>Différentielle</value>
   </data>
   <data name="BackupTypeFull" xml:space="preserve">
-    <value>Complète</value>
+    <value>Complete</value>
   </data>
   <data name="BackupWorkManagement" xml:space="preserve">
     <value>Gestion des Travaux de Sauvegarde</value>
@@ -136,7 +136,7 @@
     <value>Source</value>
   </data>
   <data name="BackupWorkManagementStartBackupSelected" xml:space="preserve">
-    <value>Lancer le travail sélectionné</value>
+    <value>Lancer</value>
   </data>
   <data name="BackupWorkManagementTarget" xml:space="preserve">
     <value>Cible</value>
@@ -157,7 +157,7 @@
     <value>Type de sauvegarde</value>
   </data>
   <data name="ConfigNewJobEncryptExtensions" xml:space="preserve">
-    <value>Extensions à crypter (séparées par des virgules) :</value>
+    <value>Extensions à crypter :</value>
   </data>
   <data name="ConfigNewJobName" xml:space="preserve">
     <value>Nom</value>
@@ -181,7 +181,7 @@
     <value>Erreur</value>
   </data>
   <data name="ExtensionFileCryptSetting" xml:space="preserve">
-    <value>Extensions de fichiers à crypter par défaut (séparées par des virgules) :</value>
+    <value>Extensions de fichiers à crypter par défaut :</value>
   </data>
   <data name="GeneralSettings" xml:space="preserve">
     <value>Paramètres généraux</value>
@@ -195,8 +195,11 @@
   <data name="LanguageChangeCancelledMessage" xml:space="preserve">
     <value>Le changement de langue a été annulé. La langue actuelle reste active.</value>
   </data>
+  <data name="LanguageChangeAppliedMessage" xml:space="preserve">
+    <value>La langue a été changée avec succès.</value>
+  </data>
   <data name="LanguageChangeRestartMessage" xml:space="preserve">
-    <value>L'application doit redémarrer la fenêtre principale pour appliquer le changement de langue. Voulez-vous la redémarrer maintenant ?</value>
+    <value>L'application doit redémarrer la fenêtre principale pour appliquer le changement de langue. Cliquez sur 'OK' pour redémarrer maintenant.</value>
   </data>
   <data name="LogFileFormatSetting" xml:space="preserve">
     <value>Format du fichier Log :</value>
@@ -226,7 +229,7 @@
     <value>Paramètres validés.</value>
   </data>
   <data name="SettingsSaved" xml:space="preserve">
-    <value>Paramètres sauvegardé avec succes</value>
+    <value>Paramètres sauvegardés avec succès</value>
   </data>
   <data name="Settings" xml:space="preserve">
     <value>Paramètres</value>
@@ -251,5 +254,128 @@
   </data>
   <data name="BackupWorkManagementDeleteBackupSelected" xml:space="preserve">
     <value>Supprimer travail</value>
+  </data>
+  <data name="ExtensionFilePriority" xml:space="preserve">
+    <value>Gestion des fichiers prioritaires</value>
+  </data>
+  <data name="LargeFileSizeSetting" xml:space="preserve">
+    <value>Taille de fichier volumineux (en Ko) :</value>
+  </data>
+  <data name="Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Resume" xml:space="preserve">
+    <value>Reprendre</value>
+  </data>
+  <data name="Stop" xml:space="preserve">
+    <value>Arrêter</value>
+  </data>
+  <data name="BackupSettings" xml:space="preserve">
+    <value>Paramètres de sauvegarde</value>
+  </data>
+  <data name="EncryptionKey" xml:space="preserve">
+    <value>Clé de chiffrement :</value>
+  </data>
+  <data name="ApplicationSettings" xml:space="preserve">
+    <value>Paramètres d'application</value>
+  </data>
+  <data name="SelectedButtonsTitle" xml:space="preserve">
+    <value>Travail de sauvegarde sélectionné</value>
+  </data>
+  <data name="ApplicationAlreadyRunning" xml:space="preserve">
+    <value>L'application est déjà en cours d'exécution.</value>
+  </data>
+  <data name="SingleInstanceTitle" xml:space="preserve">
+    <value>Instance unique</value>
+  </data>
+  <data name="CultureNotFoundMessage" xml:space="preserve">
+    <value>Culture '{0}' non trouvée. Passage à la langue par défaut '{1}'.</value>
+  </data>
+  <data name="InvalidCultureTitle" xml:space="preserve">
+    <value>Culture invalide</value>
+  </data>
+  <data name="NoLanguageSavedMessage" xml:space="preserve">
+    <value>Aucune langue sauvegardée. Passage à la langue par défaut '{0}'.</value>
+  </data>
+  <data name="NoLanguageSavedTitle" xml:space="preserve">
+    <value>Aucune langue sauvegardée</value>
+  </data>
+  <data name="LogFormatXML" xml:space="preserve">
+    <value>XML</value>
+  </data>
+  <data name="LogFormatJSON" xml:space="preserve">
+    <value>JSON</value>
+  </data>
+  <data name="LoadEncryptionKey" xml:space="preserve">
+    <value>Chargement de la clé de chiffrement</value>
+  </data>
+  <data name="MainRemoteControl" xml:space="preserve">
+    <value>Contrôle à distance</value>
+  </data>
+  <data name="RemoteControlTitle" xml:space="preserve">
+    <value>Gestion du contrôle à distance</value>
+  </data>
+  <data name="ServerAddress" xml:space="preserve">
+    <value>Adresse du serveur:</value>
+  </data>
+  <data name="ServerPort" xml:space="preserve">
+    <value>Port:</value>
+  </data>
+  <data name="Connect" xml:space="preserve">
+    <value>Connecter</value>
+  </data>
+  <data name="Disconnect" xml:space="preserve">
+    <value>Déconnecter</value>
+  </data>
+  <data name="BusinessSoftware" xml:space="preserve">
+    <value>Logiciel métier</value>
+  </data>
+  <data name="Size" xml:space="preserve">
+    <value>Taille</value>
+  </data>
+  <data name="CurrentFile" xml:space="preserve">
+    <value>Fichier actuel</value>
+  </data>
+  <data name="Files" xml:space="preserve">
+    <value>Fichiers</value>
+  </data>
+  <data name="ProcessedFiles" xml:space="preserve">
+    <value>Fichiers traités</value>
+  </data>
+  <data name="StateWaiting" xml:space="preserve">
+    <value>En attente</value>
+  </data>
+  <data name="StateRunning" xml:space="preserve">
+    <value>En cours</value>
+  </data>
+  <data name="StatePaused" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="StateCompleted" xml:space="preserve">
+    <value>Terminé </value>
+  </data>
+  <data name="StateError" xml:space="preserve">
+    <value>Erreur</value>
+  </data>
+  <data name="StateUnknown" xml:space="preserve">
+    <value>Inconnu</value>
+  </data>
+  <data name="Calculating" xml:space="preserve">
+    <value>Calcul</value>
+  </data>
+  <data name="MessageNoJobSelected" xml:space="preserve">
+    <value>Aucun travail sélectionné </value>
+  </data>
+  <data name="MessageConfirmDeleteJobs" xml:space="preserve">
+    <value>Suppression effectué </value>
+  </data>
+  <data name="PopUpBusinessSoftware" xml:space="preserve">
+    <value>Impossible d'executer la/les sauvegarde(s), veuillez fermer le logiciel metier.</value>
+  </data>
+  <data name="StatusRunning" xml:space="preserve">
+    <value>En cours</value>
+  </data>
+  <data name="BackupJobsSettingsChangeConfirmation" xml:space="preserve">
+    <value>Les travaux de sauvegardes en cours ne seront pas affectés par les changements. Voulez-vous continuer?</value>
   </data>
 </root>

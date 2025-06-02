@@ -1,7 +1,5 @@
-﻿using EasySave_by_ProSoft.Models;
-using EasySave_by_ProSoft.Properties;
+﻿using EasySave_by_ProSoft.Services;
 using EasySave_by_ProSoft.ViewModels;
-using System.Diagnostics;
 using System.Windows;
 
 namespace EasySave_by_ProSoft.Views
@@ -11,39 +9,44 @@ namespace EasySave_by_ProSoft.Views
     /// </summary>
     public partial class SettingsView : System.Windows.Controls.UserControl
     {
+        // Define constants for log formats
+        private const string LOG_FORMAT_XML = "XML";
+        private const string LOG_FORMAT_JSON = "JSON";
+
         private string _initialCultureName;
         private SettingsViewModel _settingsViewModel;
+        private readonly IDialogService _dialogService;
 
         public SettingsView()
         {
-            _settingsViewModel = new SettingsViewModel();
-            DataContext = _settingsViewModel;
-
             InitializeComponent();
-            _initialCultureName = _settingsViewModel.UserLanguage;
-            UpdateLanguageRadioButtons();
+            _dialogService = new DialogService(); // Initialize the dialog service
+            _settingsViewModel = new SettingsViewModel(_dialogService);
+            DataContext = _settingsViewModel;
+            _initialCultureName = Thread.CurrentThread.CurrentUICulture.Name;
 
-            // Recharge la clé de chiffrement si elle existe
-            string? savedKey = AppSettings.Instance.GetSetting("EncryptionKey") as string;
-            if (!string.IsNullOrEmpty(savedKey))
+            // Set the checked status of radio buttons based on current language
+            string currentLanguage = _settingsViewModel.UserLanguage;
+            if (currentLanguage == "fr-FR")
             {
-                EncryptionKeyBox.Password = savedKey;
+                FrenchRadioButton.IsChecked = true;
+            }
+            else
+            {
+                EnglishRadioButton.IsChecked = true;
             }
 
-            // Synchronize PasswordBox with ViewModel if EncryptionKey changes in ViewModel
-            _settingsViewModel.PropertyChanged += (s, e) =>
-            {
-                if (e.PropertyName == nameof(SettingsViewModel.EncryptionKey))
-                {
-                    if (EncryptionKeyBox.Password != _settingsViewModel.EncryptionKey)
-                        EncryptionKeyBox.Password = _settingsViewModel.EncryptionKey;
-                }
-            };
+            // Initialize EncryptionKeyBox with current key value
+            EncryptionKeyBox.Password = _settingsViewModel.EncryptionKey;
+
+            // Subscribe to events
+            _settingsViewModel.PropertyChanged += SettingsViewModel_PropertyChanged;
+
 
             // Initialize the log format ComboBox
             if (LogFormatComboBox != null)
             {
-                if (_settingsViewModel.LogFormat.ToUpper() == "XML")
+                if (_settingsViewModel.LogFormat.ToUpper() == LOG_FORMAT_XML)
                 {
                     LogFormatComboBox.SelectedIndex = 1; // XML
                 }
@@ -54,86 +57,30 @@ namespace EasySave_by_ProSoft.Views
             }
         }
 
-        private void UpdateLanguageRadioButtons()
-        {
-            if (FrenchRadioButton != null) FrenchRadioButton.IsChecked = false;
-            if (EnglishRadioButton != null) EnglishRadioButton.IsChecked = false;
-
-            if (_initialCultureName.StartsWith("fr") && FrenchRadioButton != null)
-            {
-                FrenchRadioButton.IsChecked = true;
-            }
-            else if (_initialCultureName.StartsWith("en") && EnglishRadioButton != null)
-            {
-                EnglishRadioButton.IsChecked = true;
-            }
-            else // Default language if current culture is neither "en" nor "fr"
-            {
-                if (EnglishRadioButton != null) EnglishRadioButton.IsChecked = true;
-            }
-
-        }
-
         private void LanguageRadioButton_Checked(object sender, RoutedEventArgs e)
         {
             if (sender is System.Windows.Controls.RadioButton radioButton && radioButton.IsChecked == true && radioButton.Tag != null)
             {
                 string selectedCultureName = radioButton.Tag.ToString() ?? string.Empty;
-                _settingsViewModel.LanguageChanged(selectedCultureName, this);
+                _settingsViewModel.LanguageChanged(selectedCultureName);
             }
         }
-
-        public void PromptForApplicationRestart()
-        {
-            System.Windows.MessageBoxResult result = System.Windows.MessageBox.Show(
-                Localization.Resources.LanguageChangeRestartMessage,
-                Localization.Resources.ConfirmationTitle,
-                System.Windows.MessageBoxButton.YesNo,
-                System.Windows.MessageBoxImage.Question);
-
-            if (result == System.Windows.MessageBoxResult.Yes)
-            {
-                try
-                {
-                    string applicationPath = Process.GetCurrentProcess().MainModule.FileName;
-                    if (string.IsNullOrEmpty(applicationPath))
-                    {
-                        applicationPath = System.Windows.Application.ResourceAssembly.Location;
-                    }
-                    Process.Start(applicationPath);
-                    System.Windows.Application.Current.Shutdown();
-                }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show(
-                        $"{Localization.Resources.ErrorRestartingApplicationMessage}\n{ex.Message}",
-                        Localization.Resources.ErrorTitle,
-                        System.Windows.MessageBoxButton.OK,
-                        System.Windows.MessageBoxImage.Error);
-                    Settings.Default.UserLanguage = _initialCultureName;
-                    Settings.Default.Save();
-                }
-            }
-            else
-            {
-                System.Windows.MessageBox.Show(
-                    Localization.Resources.LanguageChangeCancelledMessage,
-                    Localization.Resources.InformationTitle,
-                    System.Windows.MessageBoxButton.OK,
-                    System.Windows.MessageBoxImage.Information);
-
-                Settings.Default.UserLanguage = _initialCultureName;
-                Settings.Default.Save();
-            }
-        }
-
-        // Add this event handler to synchronize PasswordBox with ViewModel
+        // Event handler to synchronize PasswordBox with ViewModel
         private void EncryptionKeyBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
             if (DataContext is SettingsViewModel vm)
             {
                 if (EncryptionKeyBox.Password != vm.EncryptionKey)
                     vm.EncryptionKey = EncryptionKeyBox.Password;
+            }
+        }
+
+        private void SettingsViewModel_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(SettingsViewModel.EncryptionKey))
+            {
+                if (EncryptionKeyBox.Password != _settingsViewModel.EncryptionKey)
+                    EncryptionKeyBox.Password = _settingsViewModel.EncryptionKey;
             }
         }
     }

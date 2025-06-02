@@ -36,10 +36,12 @@ namespace EasySave_by_ProSoft.Models
             else
             {
                 // Create default settings if the config file does not exist
-                settings["BusinessSoftwareName"] = JsonDocument.Parse("\"EasySave\"").RootElement;
+                settings["BusinessSoftwareName"] = JsonDocument.Parse("\"calc.exe\"").RootElement;
                 settings["EncryptionExtensions"] = JsonDocument.Parse("[\".txt\", \".docx\"]").RootElement;
+                settings["EncryptionKey"] = JsonDocument.Parse("\"defaultKey\"").RootElement;
                 settings["LogFormat"] = JsonDocument.Parse("\"XML\"").RootElement;
                 settings["UserLanguage"] = JsonDocument.Parse("\"en-US\"").RootElement;
+                settings["LargeFileSizeThresholdKey"] = JsonDocument.Parse("1000000").RootElement;
                 SaveConfiguration();
             }
         }

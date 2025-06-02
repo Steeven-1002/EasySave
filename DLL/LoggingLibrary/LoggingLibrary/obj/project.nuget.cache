@@ -1,8 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "zsSI7nphJ+I=",
+  "dgSpecHash": "HMy3yqqYoxc=",
   "success": true,
-  "projectFilePath": "C:\\Users\\anton\\Documents\\GitHub\\EasySave\\DLL\\LoggingLibrary\\LoggingLibrary\\LoggingLibrary.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "C:\\Users\\doubl\\source\\repos\\Steeven-1002\\EasySave\\DLL\\LoggingLibrary\\LoggingLibrary\\LoggingLibrary.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\doubl\\.nuget\\packages\\microsoft.net.sdk.compilers.toolset\\9.0.300\\microsoft.net.sdk.compilers.toolset.9.0.300.nupkg.sha512",
+    "C:\\Users\\doubl\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.16\\microsoft.windowsdesktop.app.ref.8.0.16.nupkg.sha512",
+    "C:\\Users\\doubl\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.16\\microsoft.netcore.app.ref.8.0.16.nupkg.sha512",
+    "C:\\Users\\doubl\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.16\\microsoft.aspnetcore.app.ref.8.0.16.nupkg.sha512"
+  ],
   "logs": []
 }

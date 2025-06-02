@@ -7,16 +7,15 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-	    <UseWindowsForms>True</UseWindowsForms>
+    <UseWindowsForms>True</UseWindowsForms>
     <AssemblyName>EasySave_by_ProSoft</AssemblyName>
-    <PlatformTarget>x86</PlatformTarget>
+    <PlatformTarget>x64</PlatformTarget>
+    <ApplicationIcon>Views\Images\EasySave_Black.ico</ApplicationIcon>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
     <None Remove="Drapeau_Royaume_Unis.jpg" />
-    <None Remove="Views\Images\Drapeau_France.jpg" />
-    <None Remove="Views\Images\Drapeau_Royaume_Unis.jpg" />
-    <None Remove="Views\Images\EasySave_Black.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -35,7 +34,7 @@
     <Content Include="Views\Images\Drapeau_Royaume_Unis.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Views\Images\EasySave_Black.png">
+    <Content Include="Views\Images\EasySave_Black.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
